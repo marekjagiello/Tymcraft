@@ -105,6 +105,8 @@ class Game {
 
         // 9. Animals
         this.animals = new AnimalManager(this.scene, this.world);
+        this.interaction.animals = this.animals;
+        this.interaction.ui = this.ui;
 
         this.clock = new THREE.Clock();
         this.dayTime = 0.2; // 0 to 1 cycle
@@ -163,7 +165,7 @@ class Game {
         this.drops.update(dt, this.player.position, (id, name) => {
             this.ui.addItem(id, name, 1);
         });
-        this.animals.update(dt);
+        this.animals.update(dt, this.player.position);
         this.world.update();
         this.survival.update(dt);
         this.ui.update();

@@ -28,19 +28,74 @@ export class Interaction {
         this.particleMat = new THREE.MeshLambertMaterial({ color: 0x777777 });
 
         this.currentTarget = null;
+        this.animals = null;
+        this.ui = null;
         this.initEvents();
+    }
+
+    raycastAnimal(maxDist = 5.0) {
+        if (!this.animals || !this.animals.animals) return null;
+
+        const origin = this.camera.position;
+        const dir = new THREE.Vector3();
+        this.camera.getWorldDirection(dir);
+
+        let closestAnimal = null;
+        let closestDist = maxDist;
+
+        for (const animal of this.animals.animals) {
+            const animalPos = animal.position.clone().add(new THREE.Vector3(0, 0.3, 0));
+            const toAnimal = animalPos.clone().sub(origin);
+            const proj = toAnimal.dot(dir);
+
+            if (proj > 0 && proj < closestDist) {
+                const perpDist = animalPos.distanceTo(origin.clone().addScaledVector(dir, proj));
+                const hitRadius = (animal.type === 'snake') ? 0.75 : 0.85;
+                if (perpDist < hitRadius) {
+                    closestDist = proj;
+                    closestAnimal = animal;
+                }
+            }
+        }
+
+        return closestAnimal;
     }
 
     initEvents() {
         window.addEventListener('mousedown', (e) => {
             if (!this.player.controls.isLocked) return;
 
+            const activeItemId = this.getActiveBlockId();
+
             if (e.button === 0) {
-                // Left Click: Break Block
+                // Left Click: Check if aimed at an animal (snake, sheep, pig)
+                const animal = this.raycastAnimal();
+                if (animal) {
+                    if (activeItemId === 23) {
+                        // Clicking with apple as if to attack/destroy feeds it instead: hearts appear!
+                        animal.interactWithApple();
+                        if (this.onItemConsumed) this.onItemConsumed(23);
+                        if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca i mały wąż! 🐍");
+                        return;
+                    } else {
+                        animal.onAttacked();
+                        return;
+                    }
+                }
+
+                // Otherwise Break Block
                 this.breakBlock();
             } else if (e.button === 2) {
-                // Right Click: Place Block
+                // Right Click: Check if feeding animal with apple
                 e.preventDefault();
+                const animal = this.raycastAnimal();
+                if (animal && activeItemId === 23) {
+                    animal.interactWithApple();
+                    if (this.onItemConsumed) this.onItemConsumed(23);
+                    if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca i mały wąż! 🐍");
+                    return;
+                }
+
                 this.placeBlock();
             }
         });

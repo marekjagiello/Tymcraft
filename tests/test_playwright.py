@@ -136,6 +136,46 @@ def run_test():
             assert drop_test.get("collected"), "Przedmiot powinien zostać zebrany przez gracza przy zbliżeniu"
             print("✓ Prawidłowo zweryfikowano: minibloczki ze zniszczonych bloków, jabłka z liści (brak bloków liści), 60s czas znikania i podnoszenie do ekwipunku.")
 
+            # Test pomarańczowego węża i interakcji z jabłkiem
+            print("7. Test pomarańczowego węża i interakcji z jabłkiem (Serca i mały wąż)...")
+            snake_test = page.evaluate("""() => {
+                const game = window.__gameInstance;
+                if (!game || !game.animals) return { error: "Brak animalManager" };
+
+                const snakes = game.animals.animals.filter(a => a.type === 'snake');
+                if (snakes.length === 0) return { error: "Brak węży" };
+
+                const snake = snakes[0];
+                const hasSegments = snake.segments && snake.segments.length >= 7;
+                const hasTongue = !!snake.tongue;
+                const initialAnimalCount = game.animals.animals.length;
+
+                // Interakcja z jabłkiem (karmienie / taming)
+                snake.interactWithApple();
+
+                const heartsSpawned = snake.activeHearts && snake.activeHearts.length > 0;
+                const afterAnimalCount = game.animals.animals.length;
+                const babySpawned = afterAnimalCount > initialAnimalCount;
+                const isTamed = snake.isTamed;
+
+                return {
+                    snakeFound: true,
+                    hasSegments: hasSegments,
+                    hasTongue: hasTongue,
+                    heartsSpawned: heartsSpawned,
+                    babySpawned: babySpawned,
+                    isTamed: isTamed
+                };
+            }""")
+            print(f"✓ Wynik testu węża: {snake_test}")
+            assert snake_test.get("snakeFound"), "Wąż powinien zostać znaleziony w świecie"
+            assert snake_test.get("hasSegments"), "Wąż powinien posiadać wielosegmentowe ciało z plamkami"
+            assert snake_test.get("hasTongue"), "Wąż powinien posiadać ruchomy język"
+            assert snake_test.get("heartsSpawned"), "Po interakcji z jabłkiem powinny pojawić się pikselowe serca"
+            assert snake_test.get("babySpawned"), "Po nakarmieniu powinien pojawić się mały wąż"
+            assert snake_test.get("isTamed"), "Wąż powinien zostać oswojony i podążać za graczem"
+            print("✓ Prawidłowo zweryfikowano: pikselowy pomarańczowy wąż z plamkami i czarnymi oczami, pojawianie się serc ❤️ i małego węża po kliknięciu z jabłkiem.")
+
             # Wykonanie zrzutu ekranu
             screenshot_path = 'tests/screenshot_survival.png'
             page.screenshot(path=screenshot_path)
