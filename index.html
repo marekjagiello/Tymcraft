@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Web POC</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%235b8731'/><rect y='6' width='16' height='10' fill='%23866043'/></svg>">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="crosshair"></div>
+
+    <div id="debug-info">
+        <div><b>Minecraft Web POC</b></div>
+        <div>Ładowanie świata...</div>
+    </div>
+
+    <div id="block-name-popup"></div>
+
+    <div id="hotbar-container">
+        <div id="hotbar"></div>
+    </div>
+
+    <div id="start-overlay">
+        <div class="overlay-card">
+            <h1 class="overlay-title">MINECRAFT POC</h1>
+            <p class="overlay-subtitle">Prototyp w Three.js — biomy, zbieranie, budowanie i zwierzęta</p>
+            
+            <div class="controls-list">
+                <div class="control-item">
+                    <span class="key-badge">W, A, S, D</span> Poruszanie się
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">Myszka</span> Rozglądanie się
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">Spacja</span> Skok
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">Shift</span> Sprint
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">LPM</span> Wydobywanie (niszczenie)
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">PPM</span> Stawianie bloku
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">1 - 9</span> Wybór bloku
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">Scroll</span> Przełączanie slotu
+                </div>
+            </div>
+
+            <div class="start-button-prompt">
+                Kliknij tutaj, aby zagrać
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Script (ES Module) -->
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
