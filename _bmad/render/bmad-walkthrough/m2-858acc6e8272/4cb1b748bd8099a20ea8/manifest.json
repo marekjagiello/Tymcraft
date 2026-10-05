@@ -1,0 +1,36 @@
+{
+  "generation_hash": "4cb1b748bd8099a20ea8",
+  "inputs": {
+    "jinja2_version": "3.1.6",
+    "project_root": "/home/marek/ai projects/m2",
+    "renderer_sha256": "a622fd5d9f633690323bdecf6cc9dc28625ef0d7b9d971fcc3cd101ed271fa19",
+    "resolved_values": {
+      "config.core.output_folder": "/home/marek/ai projects/m2/_bmad-output",
+      "customization.workflow.on_activation": "",
+      "customization.workflow.on_block_activation": "",
+      "customization.workflow.on_block_complete": "",
+      "customization.workflow.on_complete": "",
+      "customization.workflow.persistent_facts": []
+    },
+    "skill_root": "/home/marek/ai projects/m2/.agents/skills/bmad-walkthrough",
+    "source_sha256": {
+      "step-01-orientation.md": "6ba18633dd1f0cb83f9b76c83dd9b4632405372d1bbe3cbc76ddb2dd5532fe9f",
+      "step-02-narrative.md": "adfb54009c18844b5fd733450b5a5199a3ffd2a441308945e71ea57ecb03a7ff",
+      "step-03-walkthrough.md": "32fd4ffab64e1829789f941e37ce830c95257bf6ed5d5a8ae539ec3a564945f9",
+      "templates/log-template.md": "ebf59c7f6a85dfccea6f580e8a35363a0a8641e66067427ec803592d297ae770",
+      "workflow.md": "6500f78846c1c27922932bb800de9f4bdf1c5e440204379371ee7ea2d805f45e"
+    }
+  },
+  "outputs": {
+    "step-01-orientation.md": "f579942c2aa73acb4ece18d64f04883cb0921e7bacbaabaeeb7e72e203f8fdb2",
+    "step-02-narrative.md": "6cec08767109012816752144321d70dc95d494054b8f00a59de1c067f5479674",
+    "step-03-walkthrough.md": "ef6e6e7dcef093956467175db9e24ae4b49f3ac7817a9d4b0b86db17deb48bea",
+    "templates/log-template.md": "e4992dcf11a8c0c798c8f63c75417a8777f2b2c74c1b38bdaf3f676513f0875d",
+    "workflow.md": "7f3b3378f4a3500136930b4d6760bc957ca063e4a80cf3d04938c7b4fec8c94c"
+  },
+  "project_root": "/home/marek/ai projects/m2",
+  "project_slug": "m2",
+  "root_hash": "858acc6e8272",
+  "schema_version": 1,
+  "skill": "bmad-walkthrough"
+}
