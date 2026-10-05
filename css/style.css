@@ -248,3 +248,189 @@ body, html {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.04); }
 }
+
+/* Red Damage Flash Vignette */
+#damage-vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 100px 30px rgba(255, 0, 0, 0.85);
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+}
+
+/* Survival Bars (Hearts & Hunger above Hotbar) */
+#survival-bars {
+    display: flex;
+    justify-content: space-between;
+    width: 440px;
+    margin-bottom: 6px;
+    padding: 0 4px;
+}
+
+#hearts-bar, #hunger-bar {
+    display: flex;
+    gap: 3px;
+}
+
+.heart-icon, .hunger-icon {
+    font-size: 15px;
+    line-height: 1;
+    filter: drop-shadow(1px 1px 1px #000);
+}
+
+/* 2x2 Crafting & Inventory Modal */
+#crafting-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #c6c6c6;
+    border: 3px solid #ffffff;
+    border-right-color: #555555;
+    border-bottom-color: #555555;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    padding: 16px 20px;
+    z-index: 90;
+    display: none;
+    color: #333333;
+    font-family: monospace;
+    width: 380px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.close-modal-btn {
+    background: #e11d48;
+    color: white;
+    border: 1px solid #881337;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.crafting-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #8b8b8b;
+    padding: 14px;
+    border: 2px solid #373737;
+    margin-bottom: 14px;
+    border-radius: 4px;
+}
+
+.crafting-grid-2x2 {
+    display: grid;
+    grid-template-columns: 44px 44px;
+    gap: 4px;
+}
+
+.craft-slot, .output-slot {
+    width: 44px;
+    height: 44px;
+    background: #8b8b8b;
+    border: 2px solid #373737;
+    border-top-color: #373737;
+    border-left-color: #373737;
+    border-right-color: #ffffff;
+    border-bottom-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.output-slot {
+    border-color: #22c55e;
+    background: #4b5563;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.crafting-arrow {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.crafting-recipe-hint {
+    font-size: 11px;
+    color: #4b5563;
+    margin-bottom: 12px;
+    line-height: 1.4;
+    background: #e5e5e5;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+/* Death Overlay */
+#death-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(160, 0, 0, 0.7);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 120;
+    color: white;
+}
+
+.death-title {
+    font-size: 48px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 3px 3px 0 #000000;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+}
+
+#respawn-button {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    background: #15803d;
+    padding: 12px 32px;
+    border: 2px solid #ffffff;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+}
+
+#respawn-button:hover {
+    transform: scale(1.05);
+}
+
+.hud-btn {
+    margin-top: 6px;
+    background: #dc2626;
+    color: white;
+    border: 1px solid #991b1b;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    display: inline-block;
+}
+

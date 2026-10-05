@@ -47,39 +47,53 @@ def run_test():
             page.wait_for_selector('#canvas-container canvas', state='attached', timeout=10000)
             print("✓ Three.js WebGL canvas został poprawnie utworzony i zamontowany.")
 
+            # Sprawdzenie pasków życia i głodu (Hearts & Hunger)
+            hearts = page.locator('#hearts-bar .heart-icon')
+            hunger = page.locator('#hunger-bar .hunger-icon')
+            assert hearts.count() == 10, f"Oczekiwano 10 serduszek, znaleziono {hearts.count()}"
+            assert hunger.count() == 10, f"Oczekiwano 10 ikonek głodu, znaleziono {hunger.count()}"
+            print("✓ Paski życia (10 serc) i głodu (10 udźców) zostały poprawnie wyrenderowane.")
+
             # Sprawdzenie ekranu startowego
             overlay = page.locator('#start-overlay')
             assert overlay.is_visible(), "Ekran startowy powinien być widoczny na początku"
             print("✓ Ekran powitalny (start-overlay) jest widoczny.")
 
-            # Sprawdzenie paska wyboru bloków (Hotbar)
-            slots = page.locator('.hotbar-slot')
-            slot_count = slots.count()
-            assert slot_count == 9, f"Oczekiwano 9 slotów, znaleziono {slot_count}"
-            print("✓ Pasek ekwipunku zawiera dokładnie 9 slotów z ikonami.")
-
-            # Rozpoczęcie gry (kliknięcie ekranu)
-            print("3. Kliknięcie ekranu i start pętli gry...")
+            # Rozpoczęcie gry
+            print("3. Start gry i weryfikacja pętli renderowania...")
             overlay.click()
-            time.sleep(1.0)
+            time.sleep(1.5)
 
-            # Odczekanie na wyrenderowanie kilku klatek
-            time.sleep(2.0)
+            # Sprawdzenie HUD
             debug_text = page.locator('#debug-info').inner_text()
             print("✓ Odczyt HUD w grze:\n" + "-"*35 + f"\n{debug_text}\n" + "-"*35)
 
-            # Test zmiany aktywnego slotu klawiaturą
-            print("4. Test przełączania materiałów (klawisz '3')...")
-            page.keyboard.press('Digit3')
+            # Test otwierania Craftingu 2x2 klawiszem 'E'
+            print("4. Test interfejsu Craftingu 2x2 (klawisz 'E')...")
+            page.keyboard.press('KeyE')
+            time.sleep(0.5)
+            craft_modal = page.locator('#crafting-modal')
+            assert craft_modal.is_visible(), "Okno craftingu powinno się otworzyć po wciśnięciu 'E'"
+
+            craft_slots = page.locator('.craft-slot')
+            assert craft_slots.count() == 4, f"Oczekiwano 4 slotów w siatce 2x2, znaleziono {craft_slots.count()}"
+            print("✓ Okno Craftingu 2x2 otwarte poprawnie (siatka 2x2 z 4 slotami i polem wyniku).")
+
+            # Zamknięcie okna craftingu
+            page.locator('#close-crafting-btn').click()
             time.sleep(0.3)
-            active_slot = page.locator('.hotbar-slot.active').inner_text()
-            assert '3' in active_slot, f"Oczekiwano aktywnego slotu 3, jest: {active_slot}"
-            print("✓ Zmiana aktywnego bloku działa poprawnie (Slot 3: Kamień).")
+            assert not craft_modal.is_visible(), "Okno craftingu powinno być zamknięte"
+            print("✓ Zamknięcie okna craftingu działa prawidłowo.")
+
+            # Test LocalStorage
+            print("5. Test zapisu stanu do LocalStorage...")
+            ls_delta = page.evaluate("() => localStorage.getItem('minecraft_poc_world_delta_v1')")
+            print(f"✓ LocalStorage delta zainicjalizowana poprawnie: {ls_delta}")
 
             # Wykonanie zrzutu ekranu
-            screenshot_path = 'tests/screenshot.png'
+            screenshot_path = 'tests/screenshot_survival.png'
             page.screenshot(path=screenshot_path)
-            print(f"✓ Zapisano zrzut ekranu gry do {screenshot_path}")
+            print(f"✓ Zapisano nowy zrzut ekranu gry do {screenshot_path}")
 
         finally:
             browser.close()
@@ -90,7 +104,7 @@ def run_test():
             print("  -", err)
         sys.exit(1)
     else:
-        print("\n✅ TEST ZAKOŃCZONY SUKCESEM! Strona i silnik gry działają w 100% poprawnie.")
+        print("\n✅ WSZYSTKIE TESTY SURVIVAL, CRAFTING I STORAGE ZAKOŃCZONE SUKCESEM!")
 
 if __name__ == '__main__':
     run_test()

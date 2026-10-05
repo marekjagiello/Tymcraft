@@ -130,12 +130,35 @@ export class Interaction {
         // Remove block from world
         this.world.setBlock(x, y, z, 0);
 
+        // Apple drop chance when breaking leaves
+        if (blockId === 5 && Math.random() < 0.3) {
+            console.log("[Interaction] Znaleziono Jabłko z liści!");
+            if (this.onItemObtained) this.onItemObtained(23, 'Jabłko');
+        }
+
         // Re-check target
         this.currentTarget = this.raycastVoxels();
         this.updateHighlight();
     }
 
     placeBlock() {
+        const activeItemId = this.getActiveBlockId();
+
+        // 1. If holding food (Apple: ID 23), eat it!
+        if (activeItemId === 23) {
+            if (this.survival) {
+                this.survival.feed(4);
+                console.log("[Interaction] Zjedzono jabłko! (+4 głód)");
+                if (this.onItemConsumed) this.onItemConsumed(23);
+            }
+            return;
+        }
+
+        // 2. Tools (Pickaxes, Sticks) cannot be placed as blocks
+        if (activeItemId >= 20 && activeItemId <= 22) {
+            return;
+        }
+
         if (!this.currentTarget || !this.currentTarget.hit) return;
 
         const { x, y, z, normalX, normalY, normalZ } = this.currentTarget;
@@ -161,8 +184,7 @@ export class Interaction {
             return; // Don't place inside player
         }
 
-        const activeBlockId = this.getActiveBlockId();
-        this.world.setBlock(placeX, placeY, placeZ, activeBlockId);
+        this.world.setBlock(placeX, placeY, placeZ, activeItemId);
 
         // Re-check target
         this.currentTarget = this.raycastVoxels();

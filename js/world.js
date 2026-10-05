@@ -11,9 +11,10 @@ export const WORLD_HEIGHT = 32;
 export const SEA_LEVEL = 6;
 
 export class World {
-    constructor(scene, seed = 4242) {
+    constructor(scene, seed = 4242, storageManager = null) {
         this.scene = scene;
         this.seed = seed;
+        this.storage = storageManager;
         this.noise = new SimplexNoise(seed);
         this.biomeNoise = new SimplexNoise(seed + 9999);
 
@@ -24,7 +25,24 @@ export class World {
         this.chunks = new Map();
 
         this.generateWorld();
+        this.applyStorageDelta();
         this.buildAllChunks();
+    }
+
+    applyStorageDelta() {
+        if (!this.storage) return;
+        const delta = this.storage.loadBlockDelta();
+        const entries = Object.entries(delta);
+        if (entries.length > 0) {
+            console.log(`[World] Applying ${entries.length} saved block modifications from localStorage.`);
+            for (const [coord, blockId] of entries) {
+                const [x, y, z] = coord.split(',').map(Number);
+                const idx = this.getIndex(x, y, z);
+                if (idx !== -1) {
+                    this.voxels[idx] = blockId;
+                }
+            }
+        }
     }
 
     getIndex(x, y, z) {
@@ -44,6 +62,9 @@ export class World {
         if (idx === -1) return false;
 
         this.voxels[idx] = id;
+        if (this.storage) {
+            this.storage.saveBlock(x, y, z, id);
+        }
 
         // Mark current chunk dirty
         const cx = Math.floor(x / CHUNK_SIZE);

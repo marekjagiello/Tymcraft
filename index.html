@@ -16,6 +16,7 @@
     </script>
 </head>
 <body>
+    <div id="damage-vignette"></div>
     <div id="canvas-container"></div>
     <div id="crosshair"></div>
 
@@ -27,13 +28,48 @@
     <div id="block-name-popup"></div>
 
     <div id="hotbar-container">
+        <div id="survival-bars">
+            <div id="hearts-bar" title="Życie (Health)"></div>
+            <div id="hunger-bar" title="Głód (Hunger)"></div>
+        </div>
         <div id="hotbar"></div>
+    </div>
+
+    <!-- 2x2 Crafting & Inventory Modal -->
+    <div id="crafting-modal">
+        <div class="modal-header">
+            <span>Rzemiosło (Crafting 2x2)</span>
+            <button id="close-crafting-btn" class="close-modal-btn">✕</button>
+        </div>
+        <div class="crafting-section">
+            <div class="crafting-grid-2x2">
+                <div class="craft-slot" data-slot="0" title="Slot 1"></div>
+                <div class="craft-slot" data-slot="1" title="Slot 2"></div>
+                <div class="craft-slot" data-slot="2" title="Slot 3"></div>
+                <div class="craft-slot" data-slot="3" title="Slot 4"></div>
+            </div>
+            <div class="crafting-arrow">➔</div>
+            <div class="output-slot" id="craft-output-slot" title="Wynik">Puste</div>
+        </div>
+        <div class="crafting-recipe-hint">
+            <b>Przepisy:</b><br>
+            • 1x Drewno ➔ 4x Deski<br>
+            • 2x Deski w pionie ➔ 4x Patyki<br>
+            • 2x Deski (góra) + 1x Patyk (dół) ➔ Drewniany Kilof<br>
+            • 2x Kamień (góra) + 1x Patyk (dół) ➔ Kamienny Kilof
+        </div>
+    </div>
+
+    <!-- Death Screen Overlay -->
+    <div id="death-overlay">
+        <h1 class="death-title">NIE ŻYJESZ!</h1>
+        <button id="respawn-button">Odrodzenie</button>
     </div>
 
     <div id="start-overlay">
         <div class="overlay-card">
             <h1 class="overlay-title">MINECRAFT POC</h1>
-            <p class="overlay-subtitle">Prototyp w Three.js — biomy, zbieranie, budowanie i zwierzęta</p>
+            <p class="overlay-subtitle">Prototyp w Three.js — biomy, survival, crafting 2x2 i zapis świata</p>
             
             <div class="controls-list">
                 <div class="control-item">
@@ -52,13 +88,13 @@
                     <span class="key-badge">LPM</span> Wydobywanie (niszczenie)
                 </div>
                 <div class="control-item">
-                    <span class="key-badge">PPM</span> Stawianie bloku
+                    <span class="key-badge">PPM</span> Stawianie / Jedzenie
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">E</span> Crafting & Ekwipunek
                 </div>
                 <div class="control-item">
                     <span class="key-badge">1 - 9</span> Wybór bloku
-                </div>
-                <div class="control-item">
-                    <span class="key-badge">Scroll</span> Przełączanie slotu
                 </div>
             </div>
 

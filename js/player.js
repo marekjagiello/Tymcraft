@@ -3,7 +3,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from './world.js';
 
 export class Player {
-    constructor(camera, domElement, world) {
+    constructor(camera, domElement, world, savedPosition = null) {
         this.camera = camera;
         this.domElement = domElement;
         this.world = world;
@@ -18,6 +18,7 @@ export class Player {
         this.position = new THREE.Vector3(32.5, 20, 32.5);
         this.velocity = new THREE.Vector3();
         this.onGround = false;
+        this.onFallLanding = null;
 
         this.walkSpeed = 6.0;
         this.sprintSpeed = 9.5;
@@ -35,7 +36,12 @@ export class Player {
         };
 
         this.initControls();
-        this.spawnOnSurface();
+        if (savedPosition && typeof savedPosition.x === 'number') {
+            this.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+            this.camera.position.set(this.position.x, this.position.y + this.eyeHeight, this.position.z);
+        } else {
+            this.spawnOnSurface();
+        }
     }
 
     spawnOnSurface() {
@@ -207,6 +213,9 @@ export class Player {
         if (this.checkVoxelCollision(testBoxY)) {
             if (this.velocity.y < 0) {
                 // Landing on ground
+                if (this.onFallLanding) {
+                    this.onFallLanding(this.velocity.y);
+                }
                 newY = Math.floor(testBoxY.minY) + 1.0;
                 this.onGround = true;
                 this.velocity.y = 0;

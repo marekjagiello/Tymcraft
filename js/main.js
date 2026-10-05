@@ -4,6 +4,9 @@ import { Player } from './player.js';
 import { Interaction } from './interaction.js';
 import { AnimalManager } from './animals.js';
 import { UI } from './ui.js';
+import { StorageManager } from './storage.js';
+import { SurvivalManager } from './survival.js';
+import { CraftingManager } from './crafting.js';
 
 class Game {
     constructor() {
@@ -50,11 +53,36 @@ class Game {
         this.moon = new THREE.Mesh(moonGeo, moonMat);
         this.scene.add(this.moon);
 
-        // Game Systems
-        this.world = new World(this.scene);
-        this.player = new Player(this.camera, this.renderer.domElement, this.world);
-        this.ui = new UI(this.player, this.world);
-        this.animals = new AnimalManager(this.scene, this.world);
+        // 1. Storage & Saved State
+        this.storage = new StorageManager();
+        const savedState = this.storage.loadPlayerState();
+
+        // 2. World System (persists placed/broken blocks)
+        this.world = new World(this.scene, 4242, this.storage);
+
+        // 3. Player System (restores saved position if present)
+        this.player = new Player(this.camera, this.renderer.domElement, this.world, savedState?.position);
+
+        // 4. Survival System (Health, Hunger, Fall Damage)
+        this.survival = new SurvivalManager(this.player, (hp, hunger) => {
+            if (this.ui) this.ui.renderSurvivalBars(hp, hunger);
+        });
+        if (savedState) {
+            if (typeof savedState.health === 'number') this.survival.health = savedState.health;
+            if (typeof savedState.hunger === 'number') this.survival.hunger = savedState.hunger;
+        }
+        this.player.onFallLanding = (vel) => this.survival.handleFallLanding(vel);
+
+        // 5. Crafting System (2x2 Grid)
+        this.crafting = new CraftingManager();
+
+        // 6. UI & HUD (Hearts, Hunger, 2x2 Crafting modal, Reset button)
+        this.ui = new UI(this.player, this.world, this.survival, this.crafting, this.storage);
+        if (savedState && typeof savedState.selectedSlot === 'number') {
+            this.ui.selectSlot(savedState.selectedSlot);
+        }
+
+        // 7. Interaction (Mining, Placing, Tool speed, Food eating)
         this.interaction = new Interaction(
             this.scene,
             this.camera,
@@ -62,10 +90,15 @@ class Game {
             this.player,
             () => this.ui.getActiveBlockId()
         );
+        this.interaction.survival = this.survival;
+
+        // 8. Animals
+        this.animals = new AnimalManager(this.scene, this.world);
 
         this.clock = new THREE.Clock();
         this.dayTime = 0.2; // 0 to 1 cycle
         this.dayDuration = 180; // 3 minutes full day-night cycle
+        this.autoSaveTimer = 0;
 
         window.addEventListener('resize', () => this.onWindowResize());
         this.animate();
@@ -118,8 +151,16 @@ class Game {
         this.interaction.update(dt);
         this.animals.update(dt);
         this.world.update();
+        this.survival.update(dt);
         this.ui.update();
         this.updateDayNight(dt);
+
+        // Auto-save player state every 5 seconds
+        this.autoSaveTimer += dt;
+        if (this.autoSaveTimer >= 5.0) {
+            this.storage.savePlayer(this.player, this.survival, this.ui.selectedSlotIndex);
+            this.autoSaveTimer = 0;
+        }
 
         this.renderer.render(this.scene, this.camera);
     }
