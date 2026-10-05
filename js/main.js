@@ -125,7 +125,19 @@ class Game {
     }
 }
 
-// Start game on load
-window.addEventListener('DOMContentLoaded', () => {
-    new Game();
-});
+function initGame() {
+    if (!window.__gameInstance) {
+        try {
+            window.__gameInstance = new Game();
+            console.log("[Game] Initialized successfully");
+        } catch (e) {
+            console.error("[Game] Failed to initialize:", e);
+        }
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGame);
+} else {
+    initGame();
+}
