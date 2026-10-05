@@ -108,8 +108,24 @@ function createAtlas() {
     drawTile(TILES.STONE, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const n = (hash(x, y) - 0.5) * 35;
-                c.fillStyle = `rgb(${125 + n}, ${125 + n}, ${125 + n})`;
+                // 1. Natural undulating rock strata / sedimentary bands
+                const strata = Math.sin(x * 0.45 + y * 0.3) * 7.0 + Math.cos(x * 0.25 - y * 0.4) * 5.0;
+                // 2. Soft 2x2 mineral cluster patches
+                const patch = (hash(Math.floor(x / 2), Math.floor(y / 2)) - 0.5) * 12.0;
+                // 3. Fine rock grain
+                const grain = (hash(x, y) - 0.5) * 10.0;
+                // 4. Subtle rock fissures / highlights for natural depth
+                let fissure = 0;
+                const h = hash(x * 3 + 1, y * 5 + 2);
+                if (h > 0.90) {
+                    fissure = -16;
+                } else if (h < 0.08) {
+                    fissure = 14;
+                }
+
+                const v = Math.max(80, Math.min(180, Math.round(126 + strata + patch + grain + fissure)));
+                // Subtle slate mineral tint
+                c.fillStyle = `rgb(${v - 2}, ${v}, ${v + 3})`;
                 c.fillRect(x, y, 1, 1);
             }
         }
