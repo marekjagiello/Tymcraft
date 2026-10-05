@@ -328,22 +328,82 @@ export class UI {
             }
         });
 
+        // Menu Buttons
+        const resumeBtn = document.getElementById('resume-game-btn');
+        if (resumeBtn) {
+            resumeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!this.isCraftingOpen) {
+                    this.player.controls.lock();
+                }
+            });
+        }
+
+        const resetBtn = document.getElementById('reset-world-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showResetConfirmation();
+            });
+        }
+
+        const confirmYesBtn = document.getElementById('confirm-reset-yes');
+        if (confirmYesBtn) {
+            confirmYesBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.storage) {
+                    this.storage.resetWorld(true);
+                } else {
+                    localStorage.clear();
+                    window.location.reload();
+                }
+            });
+        }
+
+        const confirmNoBtn = document.getElementById('confirm-reset-no');
+        if (confirmNoBtn) {
+            confirmNoBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.hideResetConfirmation();
+            });
+        }
+
         // Pointer Lock events
-        this.overlayEl.addEventListener('click', () => {
-            if (!this.isCraftingOpen) {
+        this.overlayEl.addEventListener('click', (e) => {
+            if (!this.isCraftingOpen && !e.target.closest('#reset-confirm-box') && !e.target.closest('#reset-world-btn')) {
                 this.player.controls.lock();
             }
         });
 
         this.player.controls.addEventListener('lock', () => {
             this.overlayEl.style.display = 'none';
+            this.hideResetConfirmation();
         });
 
         this.player.controls.addEventListener('unlock', () => {
             if (!this.isCraftingOpen && !this.survival?.isDead) {
+                const titleEl = document.getElementById('menu-title');
+                const subtitleEl = document.getElementById('menu-subtitle');
+                if (titleEl) titleEl.innerText = 'MENU GRY (PAUZA)';
+                if (subtitleEl) subtitleEl.innerText = 'Gra wstrzymana. Wybierz opcję poniżej:';
+                this.hideResetConfirmation();
                 this.overlayEl.style.display = 'flex';
             }
         });
+    }
+
+    showResetConfirmation() {
+        const confirmBox = document.getElementById('reset-confirm-box');
+        const menuButtons = document.getElementById('main-menu-buttons');
+        if (confirmBox) confirmBox.style.display = 'block';
+        if (menuButtons) menuButtons.style.display = 'none';
+    }
+
+    hideResetConfirmation() {
+        const confirmBox = document.getElementById('reset-confirm-box');
+        const menuButtons = document.getElementById('main-menu-buttons');
+        if (confirmBox) confirmBox.style.display = 'none';
+        if (menuButtons) menuButtons.style.display = 'flex';
     }
 
     update() {
@@ -369,15 +429,7 @@ export class UI {
                 <div>Pozycja: X: ${px} | Y: ${py} | Z: ${pz}</div>
                 <div>Biom: <span class="badge">${biome}</span></div>
                 <div>W ręku: <b>${activeItem.name}</b></div>
-                <div style="margin-top:6px;">
-                    <button id="reset-world-btn" class="hud-btn">Resetuj świat</button>
-                </div>
             `;
-
-            const resetBtn = document.getElementById('reset-world-btn');
-            if (resetBtn && this.storage) {
-                resetBtn.onclick = () => this.storage.resetWorld();
-            }
         }
     }
 }

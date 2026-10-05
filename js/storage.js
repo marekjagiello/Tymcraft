@@ -68,8 +68,8 @@ export class StorageManager {
         }
     }
 
-    resetWorld() {
-        if (confirm("Czy na pewno chcesz zresetować świat i zrestartować grę od nowa?")) {
+    resetWorld(skipPrompt = true) {
+        if (skipPrompt || confirm("Czy na pewno chcesz zresetować świat i zrestartować grę od nowa?")) {
             localStorage.removeItem(STORAGE_KEYS.WORLD_DELTA);
             localStorage.removeItem(STORAGE_KEYS.PLAYER_STATE);
             window.location.reload();

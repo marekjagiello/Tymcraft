@@ -176,6 +176,39 @@ def run_test():
             assert snake_test.get("isTamed"), "Wąż powinien zostać oswojony i podążać za graczem"
             print("✓ Prawidłowo zweryfikowano: pikselowy pomarańczowy wąż z plamkami i czarnymi oczami, pojawianie się serc ❤️ i małego węża po kliknięciu z jabłkiem.")
 
+            # Test Menu Pauzy (Escape) i przycisku resetu świata z potwierdzeniem
+            print("8. Test Menu Gry (Pauza), przycisku resetu świata i okna potwierdzenia...")
+            # Odblokowanie kursora (jak po naciśnięciu Escape)
+            page.evaluate("() => window.__gameInstance.player.controls.unlock()")
+            time.sleep(0.3)
+
+            menu_overlay = page.locator('#start-overlay')
+            assert menu_overlay.is_visible(), "Menu pauzy powinno być widoczne po unlock/Escape"
+
+            # Sprawdzenie przycisków w menu
+            reset_btn = page.locator('#reset-world-btn')
+            resume_btn = page.locator('#resume-game-btn')
+            assert reset_btn.is_visible(), "Przycisk 'Resetuj świat' powinien być widoczny w menu"
+            assert resume_btn.is_visible(), "Przycisk 'Wznów grę' powinien być widoczny w menu"
+
+            # Kliknięcie 'Resetuj świat' powinno otworzyć okno potwierdzenia
+            reset_btn.click()
+            time.sleep(0.2)
+            confirm_box = page.locator('#reset-confirm-box')
+            assert confirm_box.is_visible(), "Okno potwierdzenia resetu powinno się otworzyć"
+
+            # Kliknięcie 'Anuluj' powinno schować potwierdzenie i przywrócić menu
+            page.locator('#confirm-reset-no').click()
+            time.sleep(0.2)
+            assert not confirm_box.is_visible(), "Okno potwierdzenia powinno się zamknąć po 'Anuluj'"
+            assert reset_btn.is_visible(), "Przyciski menu powinny być ponownie widoczne"
+
+            # Sprawdzenie że HUD nie ma już przycisku resetowania
+            hud_reset = page.locator('#debug-info #reset-world-btn')
+            assert hud_reset.count() == 0, "W HUD debug-info nie powinno być już przycisku resetu"
+
+            print("✓ Prawidłowo zweryfikowano: menu pauzy po Escape, przycisk resetu w menu z oknem potwierdzenia i anulowania.")
+
             # Wykonanie zrzutu ekranu
             screenshot_path = 'tests/screenshot_survival.png'
             page.screenshot(path=screenshot_path)

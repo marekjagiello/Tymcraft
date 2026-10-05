@@ -68,8 +68,8 @@
 
     <div id="start-overlay">
         <div class="overlay-card">
-            <h1 class="overlay-title">MINECRAFT POC</h1>
-            <p class="overlay-subtitle">Prototyp w Three.js — biomy, survival, crafting 2x2 i zapis świata</p>
+            <h1 class="overlay-title" id="menu-title">MINECRAFT POC</h1>
+            <p class="overlay-subtitle" id="menu-subtitle">Prototyp w Three.js — biomy, survival, crafting 2x2 i zapis świata</p>
             
             <div class="controls-list">
                 <div class="control-item">
@@ -94,12 +94,36 @@
                     <span class="key-badge">E</span> Crafting & Ekwipunek
                 </div>
                 <div class="control-item">
+                    <span class="key-badge">Esc</span> Menu gry / Pauza
+                </div>
+                <div class="control-item">
                     <span class="key-badge">1 - 9</span> Wybór bloku
                 </div>
             </div>
 
-            <div class="start-button-prompt">
-                Kliknij tutaj, aby zagrać
+            <div class="menu-buttons-group" id="main-menu-buttons">
+                <button id="resume-game-btn" class="menu-action-btn menu-btn-resume">
+                    ▶ Zagraj / Wznów grę
+                </button>
+                <button id="reset-world-btn" class="menu-action-btn menu-btn-reset">
+                    🗑️ Resetuj świat
+                </button>
+            </div>
+
+            <!-- Reset Confirmation Dialog -->
+            <div id="reset-confirm-box" class="confirm-box" style="display: none;">
+                <div class="confirm-header">⚠️ Czy na pewno chcesz zresetować świat?</div>
+                <p class="confirm-text">
+                    Wszystkie wykopane i postawione bloki, zebrany ekwipunek oraz stan gracza zostaną trwale wyczyszczone, a gra uruchomi się na nowo.
+                </p>
+                <div class="confirm-buttons-group">
+                    <button id="confirm-reset-yes" class="menu-action-btn menu-btn-danger">
+                        ✓ Tak, zresetuj wszystko
+                    </button>
+                    <button id="confirm-reset-no" class="menu-action-btn menu-btn-secondary">
+                        ✕ Anuluj
+                    </button>
+                </div>
             </div>
         </div>
     </div>
