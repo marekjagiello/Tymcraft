@@ -163,7 +163,8 @@ export class UI {
         if (!item) return;
         if (item.count !== undefined) {
             item.count -= 1;
-            if (item.count <= 0 && item.id === 23) {
+            if (item.count <= 0) {
+                item.id = 0;
                 item.name = 'Puste';
                 item.count = 0;
             }

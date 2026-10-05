@@ -123,6 +123,7 @@ def run_test():
                     lifespan: dirtDrop.lifespan,
                     zeroLeafBlocks: leafDrops.length === 0,
                     appleSpawned: appleDrops.length > 0,
+                    appleFallsDown: appleDrops.length > 0 && appleDrops[0].velocity.y < 0,
                     collected: collected
                 };
             }""")
@@ -131,6 +132,7 @@ def run_test():
             assert drop_test.get("lifespan") == 60.0, "Czas życia przedmiotu powinien wynosić 60 sekund"
             assert drop_test.get("zeroLeafBlocks"), "Z liści NIGDY nie powinien wypaść blok liści"
             assert drop_test.get("appleSpawned"), "Z liści powinno wypaść jabłko (ID 23)"
+            assert drop_test.get("appleFallsDown"), "Jabłko z liści musi opadać w dół (velocity.y < 0), nie lecieć w niebo"
             assert drop_test.get("collected"), "Przedmiot powinien zostać zebrany przez gracza przy zbliżeniu"
             print("✓ Prawidłowo zweryfikowano: minibloczki ze zniszczonych bloków, jabłka z liści (brak bloków liści), 60s czas znikania i podnoszenie do ekwipunku.")
 

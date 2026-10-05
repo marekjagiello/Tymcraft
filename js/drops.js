@@ -64,11 +64,21 @@ export class DroppedItem {
         this.name = name;
 
         this.position = new THREE.Vector3(x, y, z);
-        this.velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 2.0,
-            2.2 + Math.random() * 0.8,
-            (Math.random() - 0.5) * 2.0
-        );
+        
+        // Apples falling from trees fall DOWNWARDS (-Y); normal mined blocks have a tiny pop
+        if (this.id === 23) {
+            this.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.8,
+                -0.8 - Math.random() * 0.4,
+                (Math.random() - 0.5) * 0.8
+            );
+        } else {
+            this.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 1.2,
+                1.2 + Math.random() * 0.4,
+                (Math.random() - 0.5) * 1.2
+            );
+        }
 
         this.onGround = false;
         this.lifespan = 60.0; // 1 minute (60 seconds)
@@ -95,51 +105,73 @@ export class DroppedItem {
             return false; // Despawn
         }
 
-        // Falling physics until ground contact
-        if (!this.onGround) {
-            this.velocity.y -= 14.0 * dt;
-            this.position.x += this.velocity.x * dt;
-            this.position.z += this.velocity.z * dt;
-            this.position.y += this.velocity.y * dt;
+        // Target point around player waist/chest
+        const playerTarget = playerPosition.clone().add(new THREE.Vector3(0, 0.7, 0));
+        const dist = this.position.distanceTo(playerTarget);
 
-            // Check voxel ground collision
-            const bx = Math.floor(this.position.x);
-            const by = Math.floor(this.position.y);
-            const bz = Math.floor(this.position.z);
-
-            if (this.world.isSolid(bx, by, bz) || by <= 0) {
-                this.onGround = true;
-                this.baseGroundY = by + 1.0;
-                this.position.y = this.baseGroundY + 0.14;
-                this.velocity.set(0, 0, 0);
-            }
-        } else {
-            // Floating & Spinning animation
-            this.mesh.rotation.y += 2.2 * dt;
-            const bob = Math.sin(this.timeAlive * 3.5 + this.bobOffset) * 0.05;
-            this.mesh.position.y = this.baseGroundY + 0.16 + bob;
-        }
-
-        this.mesh.position.x = this.position.x;
-        this.mesh.position.z = this.position.z;
-
-        // Player proximity and pickup check
-        // Player center is around position.y + 0.9
-        const playerCenter = playerPosition.clone().add(new THREE.Vector3(0, 0.9, 0));
-        const dist = this.mesh.position.distanceTo(playerCenter);
-
-        // Attraction / Magnet within 2.2 units
-        if (dist < 2.2 && dist > 0.45) {
-            const pullDir = playerCenter.clone().sub(this.mesh.position).normalize();
-            this.position.addScaledVector(pullDir, 7.5 * dt);
-            this.mesh.position.copy(this.position);
-        }
-
-        // Collected within 0.55 units
-        if (dist <= 0.55) {
+        // 1. Pickup collection (within 1.25m of player)
+        if (dist <= 1.25) {
             onCollect(this.id, this.name);
             this.destroy();
             return false;
+        }
+
+        // 2. Magnetic attraction towards player when nearby (< 2.8m)
+        let beingPulled = false;
+        if (dist < 2.8) {
+            beingPulled = true;
+            this.onGround = false;
+            const pullDir = playerTarget.clone().sub(this.position).normalize();
+            this.position.addScaledVector(pullDir, 9.0 * dt);
+            this.mesh.position.copy(this.position);
+        }
+
+        // 3. Falling & Ground physics when not pulled by magnet
+        if (!beingPulled) {
+            if (!this.onGround) {
+                this.velocity.y -= 16.0 * dt; // gravity
+                this.velocity.x *= 0.95;
+                this.velocity.z *= 0.95;
+                this.position.x += this.velocity.x * dt;
+                this.position.z += this.velocity.z * dt;
+                this.position.y += this.velocity.y * dt;
+
+                // Ground collision: ONLY check when falling downwards!
+                if (this.velocity.y <= 0) {
+                    const checkX = Math.floor(this.position.x);
+                    const checkY = Math.floor(this.position.y);
+                    const checkZ = Math.floor(this.position.z);
+                    const blockBelow = this.world.getBlock(checkX, checkY, checkZ);
+
+                    // Drops fall through air (0), leaves (5), and water (10)
+                    const isSolidGround = (blockBelow !== 0 && blockBelow !== 5 && blockBelow !== 10 && this.world.isSolid(checkX, checkY, checkZ));
+
+                    if (isSolidGround || checkY <= 0) {
+                        this.onGround = true;
+                        this.baseGroundY = Math.max(0, checkY) + 1.0;
+                        this.position.y = this.baseGroundY + 0.14;
+                        this.velocity.set(0, 0, 0);
+                    }
+                }
+
+                this.mesh.position.copy(this.position);
+                this.mesh.rotation.x += 3.5 * dt;
+                this.mesh.rotation.y += 3.0 * dt;
+            } else {
+                // Check if ground block below was destroyed
+                const checkX = Math.floor(this.position.x);
+                const checkGroundY = Math.floor(this.baseGroundY - 0.5);
+                const checkZ = Math.floor(this.position.z);
+                if (!this.world.isSolid(checkX, checkGroundY, checkZ) && this.baseGroundY > 1) {
+                    this.onGround = false;
+                } else {
+                    this.mesh.rotation.x = 0;
+                    this.mesh.rotation.z = 0;
+                    this.mesh.rotation.y += 2.0 * dt;
+                    const bob = Math.sin(this.timeAlive * 3.5 + this.bobOffset) * 0.04;
+                    this.mesh.position.set(this.position.x, this.baseGroundY + 0.14 + bob, this.position.z);
+                }
+            }
         }
 
         return true;
