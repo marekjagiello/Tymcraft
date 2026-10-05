@@ -497,23 +497,29 @@ export class Animal {
 
 // Manager to handle all animals (Pigs, Sheep, Orange Snakes)
 export class AnimalManager {
-    constructor(scene, world) {
+    constructor(scene, world, player = null) {
         this.scene = scene;
         this.world = world;
+        this.player = player;
         this.animals = [];
         this.spawnInitialAnimals();
     }
 
     spawnInitialAnimals() {
+        // 1. Fixed world spawns in diverse biomes
         const spawnData = [
-            { x: 30, z: 30, type: 'snake' }, // Right next to player start!
-            { x: 34, z: 27, type: 'snake' }, // Second snake in starting area
+            { x: 30, z: 30, type: 'snake' },
+            { x: 34, z: 27, type: 'snake' },
+            { x: 16, z: 22, type: 'snake' },
+            { x: 48, z: 46, type: 'snake' },
+            { x: 22, z: 44, type: 'snake' },
+            { x: 42, z: 18, type: 'snake' },
             { x: 28, z: 28, type: 'pig' },
             { x: 36, z: 25, type: 'sheep' },
-            { x: 44, z: 36, type: 'snake' }, // Desert/Forest edge snake
+            { x: 44, z: 36, type: 'snake' },
             { x: 20, z: 35, type: 'pig' },
             { x: 38, z: 45, type: 'sheep' },
-            { x: 24, z: 42, type: 'snake' }, // Plains snake
+            { x: 24, z: 42, type: 'snake' },
             { x: 32, z: 18, type: 'pig' }
         ];
 
@@ -521,6 +527,21 @@ export class AnimalManager {
             const animal = new Animal(this.scene, this.world, data.type, data.x, data.z, this);
             this.animals.push(animal);
         }
+
+        // 2. ALWAYS spawn an orange snake 3-4 blocks right in front of the player's current location!
+        if (this.player && this.player.position) {
+            this.spawnSnakeNearPlayer(this.player, 3.5, 1.5);
+        }
+    }
+
+    spawnSnakeNearPlayer(player = this.player, offsetX = 3.0, offsetZ = 2.0) {
+        if (!player || !player.position) return null;
+        const px = THREE.MathUtils.clamp(player.position.x + offsetX, 3, WORLD_SIZE_X - 3);
+        const pz = THREE.MathUtils.clamp(player.position.z + offsetZ, 3, WORLD_SIZE_Z - 3);
+        const snake = new Animal(this.scene, this.world, 'snake', px, pz, this);
+        this.animals.push(snake);
+        console.log(`[AnimalManager] Zespawnowano pomarańczowego węża obok gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
+        return snake;
     }
 
     spawnBabySnake(x, z) {

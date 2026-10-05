@@ -274,6 +274,17 @@ body, html {
     box-shadow: 0 6px 18px rgba(34, 197, 94, 0.5);
 }
 
+.menu-btn-snake {
+    background: #ea580c;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.4);
+}
+.menu-btn-snake:hover {
+    background: #c2410c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(234, 88, 12, 0.55);
+}
+
 .menu-btn-reset {
     background: #ef4444;
     color: #ffffff;

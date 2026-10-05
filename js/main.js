@@ -104,9 +104,10 @@ class Game {
         };
 
         // 9. Animals
-        this.animals = new AnimalManager(this.scene, this.world);
+        this.animals = new AnimalManager(this.scene, this.world, this.player);
         this.interaction.animals = this.animals;
         this.interaction.ui = this.ui;
+        if (this.ui) this.ui.animals = this.animals;
 
         this.clock = new THREE.Clock();
         this.dayTime = 0.2; // 0 to 1 cycle

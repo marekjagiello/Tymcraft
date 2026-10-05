@@ -339,6 +339,20 @@ export class UI {
             });
         }
 
+        const spawnSnakeBtn = document.getElementById('spawn-snake-btn');
+        if (spawnSnakeBtn) {
+            spawnSnakeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.animals) {
+                    this.animals.spawnSnakeNearPlayer(this.player, 2.5, 1.5);
+                    this.showPopup("🐍 Zespawnowano pomarańczowego węża tuż obok Ciebie!");
+                }
+                if (!this.isCraftingOpen) {
+                    this.player.controls.lock();
+                }
+            });
+        }
+
         const resetBtn = document.getElementById('reset-world-btn');
         if (resetBtn) {
             resetBtn.addEventListener('click', (e) => {

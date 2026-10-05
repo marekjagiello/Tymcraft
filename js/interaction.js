@@ -96,6 +96,16 @@ export class Interaction {
                     return;
                 }
 
+                // If holding Shift + Right Click with Apple: Summon a snake on the targeted block!
+                if (e.shiftKey && activeItemId === 23 && this.animals) {
+                    const hit = this.currentTarget;
+                    const spawnX = hit?.hit ? hit.x + hit.normalX + 0.5 : this.player.position.x + 2;
+                    const spawnZ = hit?.hit ? hit.z + hit.normalZ + 0.5 : this.player.position.z + 2;
+                    this.animals.spawnBabySnake(spawnX, spawnZ);
+                    if (this.ui) this.ui.showPopup("🐍 Przyzwano pomarańczowego węża! 🍎");
+                    return;
+                }
+
                 this.placeBlock();
             }
         });
