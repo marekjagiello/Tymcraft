@@ -7,6 +7,7 @@ import { UI } from './ui.js';
 import { StorageManager } from './storage.js';
 import { SurvivalManager } from './survival.js';
 import { CraftingManager } from './crafting.js';
+import { DropsManager } from './drops.js';
 
 class Game {
     constructor() {
@@ -82,17 +83,27 @@ class Game {
             this.ui.selectSlot(savedState.selectedSlot);
         }
 
-        // 7. Interaction (Mining, Placing, Tool speed, Food eating)
+        // 7. Drops System (floating mini-blocks and apples)
+        this.drops = new DropsManager(this.scene, this.world);
+
+        // 8. Interaction (Mining, Placing, Tool speed, Food eating)
         this.interaction = new Interaction(
             this.scene,
             this.camera,
             this.world,
             this.player,
-            () => this.ui.getActiveBlockId()
+            () => this.ui.getActiveBlockId(),
+            this.drops
         );
         this.interaction.survival = this.survival;
+        this.interaction.onItemConsumed = () => {
+            this.ui.consumeActiveItem();
+        };
+        this.interaction.onBlockPlaced = () => {
+            this.ui.consumeActiveItem();
+        };
 
-        // 8. Animals
+        // 9. Animals
         this.animals = new AnimalManager(this.scene, this.world);
 
         this.clock = new THREE.Clock();
@@ -149,6 +160,9 @@ class Game {
 
         this.player.update(dt);
         this.interaction.update(dt);
+        this.drops.update(dt, this.player.position, (id, name) => {
+            this.ui.addItem(id, name, 1);
+        });
         this.animals.update(dt);
         this.world.update();
         this.survival.update(dt);

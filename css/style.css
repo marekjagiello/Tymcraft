@@ -158,6 +158,16 @@ body, html {
     text-shadow: 1px 1px 1px #000;
 }
 
+.slot-count {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px #000;
+}
+
 /* Start Overlay */
 #start-overlay {
     position: absolute;

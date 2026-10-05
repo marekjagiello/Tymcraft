@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js';
 
 export class Interaction {
-    constructor(scene, camera, world, player, getActiveBlockId) {
+    constructor(scene, camera, world, player, getActiveBlockId, drops = null) {
         this.scene = scene;
         this.camera = camera;
         this.world = world;
         this.player = player;
         this.getActiveBlockId = getActiveBlockId;
+        this.drops = drops;
 
         this.reachDistance = 5.5;
 
@@ -130,10 +131,9 @@ export class Interaction {
         // Remove block from world
         this.world.setBlock(x, y, z, 0);
 
-        // Apple drop chance when breaking leaves
-        if (blockId === 5 && Math.random() < 0.3) {
-            console.log("[Interaction] Znaleziono Jabłko z liści!");
-            if (this.onItemObtained) this.onItemObtained(23, 'Jabłko');
+        // Spawn 3D dropped item on the ground (mini-block or Apple from leaves)
+        if (this.drops) {
+            this.drops.spawnBlockDrop(x, y, z, blockId);
         }
 
         // Re-check target
@@ -185,6 +185,9 @@ export class Interaction {
         }
 
         this.world.setBlock(placeX, placeY, placeZ, activeItemId);
+        if (this.onBlockPlaced) {
+            this.onBlockPlaced(activeItemId);
+        }
 
         // Re-check target
         this.currentTarget = this.raycastVoxels();

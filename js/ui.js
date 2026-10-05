@@ -115,6 +115,13 @@ export class UI {
                 slot.appendChild(iconCanvas);
             }
 
+            if (item.count !== undefined && item.count > 0) {
+                const countSpan = document.createElement('span');
+                countSpan.className = 'slot-count';
+                countSpan.innerText = item.count;
+                slot.appendChild(countSpan);
+            }
+
             const num = document.createElement('span');
             num.className = 'slot-num';
             num.innerText = item.slot;
@@ -126,6 +133,53 @@ export class UI {
 
             this.hotbarEl.appendChild(slot);
         });
+    }
+
+    addItem(id, name, count = 1) {
+        let slot = HOTBAR_BLOCKS.find(s => s.id === id);
+        if (slot) {
+            slot.count = (slot.count || 0) + count;
+        } else {
+            slot = HOTBAR_BLOCKS.find(s => !s.count || s.count <= 0);
+            if (slot) {
+                slot.id = id;
+                slot.name = name;
+                slot.count = count;
+            } else {
+                HOTBAR_BLOCKS[this.selectedSlotIndex] = {
+                    slot: this.selectedSlotIndex + 1,
+                    id,
+                    name,
+                    count
+                };
+            }
+        }
+        this.renderHotbar();
+        this.showPopup(`+${count} ${name}`);
+    }
+
+    consumeActiveItem() {
+        const item = HOTBAR_BLOCKS[this.selectedSlotIndex];
+        if (!item) return;
+        if (item.count !== undefined) {
+            item.count -= 1;
+            if (item.count <= 0 && item.id === 23) {
+                item.name = 'Puste';
+                item.count = 0;
+            }
+            this.renderHotbar();
+        }
+    }
+
+    showPopup(text) {
+        if (this.blockNameEl) {
+            this.blockNameEl.innerText = text;
+            this.blockNameEl.style.opacity = '1';
+            clearTimeout(this.nameTimeout);
+            this.nameTimeout = setTimeout(() => {
+                if (this.blockNameEl) this.blockNameEl.style.opacity = '0';
+            }, 1800);
+        }
     }
 
     selectSlot(idx) {

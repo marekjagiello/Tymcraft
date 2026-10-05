@@ -90,6 +90,50 @@ def run_test():
             ls_delta = page.evaluate("() => localStorage.getItem('minecraft_poc_world_delta_v1')")
             print(f"✓ LocalStorage delta zainicjalizowana poprawnie: {ls_delta}")
 
+            # Test mechaniki upuszczania bloków i jabłek (Drops & Pickup)
+            print("6. Test mechaniki upuszczania minibloczków i jabłek...")
+            drop_test = page.evaluate("""() => {
+                const game = window.__gameInstance;
+                if (!game || !game.drops) return { error: "Brak game.drops" };
+
+                // Test 1: Zniszczenie ziemi tworzy minibloczek
+                const initialCount = game.drops.items.length;
+                game.drops.spawnBlockDrop(20, 20, 20, 2); // dirt
+                const afterDirt = game.drops.items.length;
+                const dirtDrop = game.drops.items[afterDirt - 1];
+
+                // Test 2: Zniszczenie liści (ID: 5) NIE tworzy bloku liści, może stworzyć jabłko (ID: 23)
+                for (let k = 0; k < 15; k++) {
+                    game.drops.spawnBlockDrop(20, 20, 20, 5);
+                }
+                const leafDrops = game.drops.items.filter(item => item.id === 5);
+                const appleDrops = game.drops.items.filter(item => item.id === 23);
+
+                // Test 3: Podnoszenie przedmiotu przez gracza
+                const pPos = game.player.position.clone();
+                const testPickup = new (game.drops.items[0].constructor)(game.scene, game.world, 23, 'Jabłko', pPos.x, pPos.y, pPos.z);
+                let collected = false;
+                testPickup.update(0.1, pPos, (id, name) => {
+                    collected = true;
+                    game.ui.addItem(id, name, 1);
+                });
+
+                return {
+                    dirtDropCreated: afterDirt > initialCount && dirtDrop.id === 2,
+                    lifespan: dirtDrop.lifespan,
+                    zeroLeafBlocks: leafDrops.length === 0,
+                    appleSpawned: appleDrops.length > 0,
+                    collected: collected
+                };
+            }""")
+            print(f"✓ Wynik testu upuszczania przedmiotów: {drop_test}")
+            assert drop_test.get("dirtDropCreated"), "Minibloczek ziemi powinien zostać utworzony"
+            assert drop_test.get("lifespan") == 60.0, "Czas życia przedmiotu powinien wynosić 60 sekund"
+            assert drop_test.get("zeroLeafBlocks"), "Z liści NIGDY nie powinien wypaść blok liści"
+            assert drop_test.get("appleSpawned"), "Z liści powinno wypaść jabłko (ID 23)"
+            assert drop_test.get("collected"), "Przedmiot powinien zostać zebrany przez gracza przy zbliżeniu"
+            print("✓ Prawidłowo zweryfikowano: minibloczki ze zniszczonych bloków, jabłka z liści (brak bloków liści), 60s czas znikania i podnoszenie do ekwipunku.")
+
             # Wykonanie zrzutu ekranu
             screenshot_path = 'tests/screenshot_survival.png'
             page.screenshot(path=screenshot_path)
