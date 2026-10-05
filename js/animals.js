@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import * as THREE from 'three';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT, SEA_LEVEL } from './world.js';
 
 export class Animal {

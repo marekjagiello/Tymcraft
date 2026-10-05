@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import * as THREE from 'three';
 import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js';
 import { Player } from './player.js';
 import { Interaction } from './interaction.js';
