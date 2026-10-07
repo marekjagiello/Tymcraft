@@ -339,37 +339,7 @@ export class UI {
             });
         }
 
-        const spawnSnakeBtn = document.getElementById('spawn-snake-btn');
-        if (spawnSnakeBtn) {
-            spawnSnakeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (this.animals) {
-                    this.animals.spawnSnakeNearPlayer(this.player, 2.5, 1.5);
-                    this.showPopup("🐍 Zespawnowano pomarańczowego węża tuż obok Ciebie!");
-                }
-                if (!this.isCraftingOpen) {
-                    this.player.controls.lock();
-                }
-            });
-        }
 
-        const killSnakesBtn = document.getElementById('kill-snakes-btn');
-        if (killSnakesBtn) {
-            killSnakesBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (this.animals) {
-                    const killed = this.animals.killSnakesExceptOne();
-                    if (killed > 0) {
-                        this.showPopup(`🗡️ Zabito ${killed} nadmiarowych węży! Pozostał tylko 1 wąż.`);
-                    } else {
-                        this.showPopup("🐍 Na mapie znajduje się już tylko 1 wąż.");
-                    }
-                }
-                if (!this.isCraftingOpen) {
-                    this.player.controls.lock();
-                }
-            });
-        }
 
         const resetBtn = document.getElementById('reset-world-btn');
         if (resetBtn) {

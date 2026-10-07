@@ -75,7 +75,7 @@ export class Interaction {
                         // Clicking with apple as if to attack/destroy feeds it instead: hearts appear!
                         animal.interactWithApple();
                         if (this.onItemConsumed) this.onItemConsumed(23);
-                        if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca i mały wąż! 🐍");
+                        if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca! 🐍");
                         return;
                     } else {
                         const wasAlive = animal.health > 0;
@@ -97,17 +97,7 @@ export class Interaction {
                 if (animal && activeItemId === 23) {
                     animal.interactWithApple();
                     if (this.onItemConsumed) this.onItemConsumed(23);
-                    if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca i mały wąż! 🐍");
-                    return;
-                }
-
-                // If holding Shift + Right Click with Apple: Summon a snake on the targeted block!
-                if (e.shiftKey && activeItemId === 23 && this.animals) {
-                    const hit = this.currentTarget;
-                    const spawnX = hit?.hit ? hit.x + hit.normalX + 0.5 : this.player.position.x + 2;
-                    const spawnZ = hit?.hit ? hit.z + hit.normalZ + 0.5 : this.player.position.z + 2;
-                    this.animals.spawnBabySnake(spawnX, spawnZ);
-                    if (this.ui) this.ui.showPopup("🐍 Przyzwano pomarańczowego węża! 🍎");
+                    if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca! 🐍");
                     return;
                 }
 

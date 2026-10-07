@@ -308,15 +308,6 @@ export class Animal {
     interactWithApple() {
         this.isTamed = true;
         this.spawnHeartParticles();
-
-        // Spawn a cute baby snake partner if adult snake
-        if (this.manager && this.type === 'snake' && !this.isBaby) {
-            this.manager.spawnBabySnake(
-                this.position.x + (Math.random() - 0.5) * 0.8,
-                this.position.z + (Math.random() - 0.5) * 0.8
-            );
-        }
-
         console.log(`[Animal] ${this.type} został nakarmiony jabłkiem! Pojawiły się serca ❤️`);
     }
 
@@ -663,6 +654,12 @@ export class AnimalManager {
     }
 
     update(dt, playerPosition = null) {
+        // Automatyczne zabijanie nadmiarowych węży (utrzymywanie maksymalnie 1 węża na świecie bez żadnego przycisku)
+        const snakes = this.animals.filter(a => a.type === 'snake');
+        if (snakes.length > 1) {
+            this.killSnakesExceptOne();
+        }
+
         // Update all animals
         for (let i = this.animals.length - 1; i >= 0; i--) {
             this.animals[i].update(dt, playerPosition);
