@@ -93,7 +93,7 @@ export class Interaction {
                         else if (activeItemId === 21 || activeItemId === 22) damage = 3.5; // Pickaxes
 
                         const wasAlive = animal.health > 0;
-                        animal.onAttacked(damage);
+                        animal.onAttacked(damage, this.player.position);
                         if (wasAlive && animal.health <= 0) {
                             let name = 'zwierzę';
                             if (animal.type === 'snake') name = 'węża';
@@ -101,6 +101,8 @@ export class Interaction {
                             else if (animal.type === 'pig') name = 'świnię';
                             else if (animal.type === 'sheep') name = 'owcę';
                             if (this.ui) this.ui.showPopup(`💥 Pokonano ${name}!`);
+                        } else if (animal.type === 'zombie' && this.ui) {
+                            this.ui.showPopup(`⚔️ Trafiono Zombie! (${animal.health}/${animal.maxHealth} HP)`);
                         }
                         return;
                     }

@@ -367,15 +367,21 @@ export class Animal {
         this.legs = [lLegPivot, rLegPivot];
     }
 
-    snapToGround() {
-        const bx = Math.floor(this.position.x);
-        const bz = Math.floor(this.position.z);
+    getGroundHeight(x, z) {
+        const bx = Math.floor(x);
+        const bz = Math.floor(z);
         for (let y = WORLD_HEIGHT - 1; y >= 0; y--) {
+            const block = this.world.getBlock(bx, y, bz);
+            if (block === 5) continue; // Skip tree leaves so we don't spawn/walk on top of leaves
             if (this.world.isSolid(bx, y, bz)) {
-                this.position.y = y + 1;
-                break;
+                return y + 1;
             }
         }
+        return 10;
+    }
+
+    snapToGround() {
+        this.position.y = this.getGroundHeight(this.position.x, this.position.z);
         this.group.position.copy(this.position);
     }
 
@@ -387,36 +393,42 @@ export class Animal {
     }
 
     flashRed() {
+        const mats = new Set();
         this.group.traverse((child) => {
-            if (child.isMesh && child.material) {
-                if (!child._origColor && child.material.color) {
-                    child._origColor = child.material.color.clone();
-                }
-                if (child.material.color) {
-                    child.material.color.setHex(0xef4444);
-                }
+            if (child.isMesh && child.material && child.material.color) {
+                mats.add(child.material);
             }
         });
+        for (const mat of mats) {
+            if (!mat._origColor) {
+                mat._origColor = mat.color.clone();
+            }
+            mat.color.setHex(0xef4444);
+        }
         setTimeout(() => {
             if (this.isDead) return;
-            this.group.traverse((child) => {
-                if (child.isMesh && child._origColor && child.material && child.material.color) {
-                    child.material.color.copy(child._origColor);
+            for (const mat of mats) {
+                if (mat._origColor) {
+                    mat.color.copy(mat._origColor);
                 }
-            });
+            }
         }, 180);
     }
 
-    onAttacked(damage = 2) {
+    onAttacked(damage = 2, attackerPos = null) {
         if (this.isDead) return;
         this.health -= damage;
         this.flashRed();
 
-        // Recoil / hop
-        this.state = 'walk';
-        this.stateTimer = 1.8;
-        this.targetRotationY += Math.PI * (0.6 + Math.random() * 0.4);
-        this.position.y += 0.25;
+        // Knockback away from attacker
+        if (attackerPos) {
+            const kb = this.position.clone().sub(attackerPos).setY(0);
+            if (kb.lengthSq() > 0.001) {
+                kb.normalize();
+                this.position.addScaledVector(kb, 0.7);
+            }
+        }
+        this.position.y += 0.2;
 
         if (this.health <= 0) {
             this.die();
@@ -541,17 +553,21 @@ export class Animal {
             // Target player
             if (playerPosition && !this.isDead) {
                 const distToPlayer = this.position.distanceTo(playerPosition);
-                if (distToPlayer < 22.0) {
-                    this.state = 'walk';
+                if (distToPlayer < 24.0) {
                     this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
 
-                    // Melee attack player
-                    if (distToPlayer <= 1.35 && this.attackCooldown <= 0) {
-                        this.attackCooldown = 1.2;
-                        if (this.manager && this.manager.survival) {
-                            this.manager.survival.takeDamage(2, 'Zombie');
-                            if (this.manager.ui) this.manager.ui.showPopup("⚠️ Zombie Cię zaatakował! (-1 serce)");
+                    if (distToPlayer <= 1.4) {
+                        this.state = 'idle';
+                        // Melee attack player
+                        if (this.attackCooldown <= 0) {
+                            this.attackCooldown = 1.2;
+                            if (this.manager && this.manager.survival) {
+                                this.manager.survival.takeDamage(2, 'Zombie');
+                                if (this.manager.ui) this.manager.ui.showPopup("⚠️ Zombie Cię zaatakował! (-1 serce)");
+                            }
                         }
+                    } else {
+                        this.state = 'walk';
                     }
                 }
             }
@@ -596,38 +612,16 @@ export class Animal {
                 this.state = 'idle';
                 this.stateTimer = 1.5;
             } else {
-                // Ground / obstacle check
-                const targetBX = Math.floor(nextX);
-                const targetBZ = Math.floor(nextZ);
-                const currentBY = Math.floor(this.position.y);
+                // Ground check at target position
+                const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+                const heightDiff = groundAtTarget - this.position.y;
 
-                const obstacle = this.world.isSolid(targetBX, currentBY, targetBZ);
-                const obstacleHigh = this.world.isSolid(targetBX, currentBY + 1, targetBZ);
-
-                if (obstacle && !obstacleHigh) {
-                    // Hop up 1 block
-                    this.position.y += 1.0;
+                if (heightDiff > 1.15) {
+                    // Blocked by tall wall - slide slightly
+                    this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
+                } else {
                     this.position.x = nextX;
                     this.position.z = nextZ;
-                } else if (!obstacle) {
-                    const groundBelow = this.world.isSolid(targetBX, currentBY - 1, targetBZ);
-                    const groundBelow2 = this.world.isSolid(targetBX, currentBY - 2, targetBZ);
-                    const isWater = (this.world.getBlock(targetBX, currentBY - 1, targetBZ) === 10);
-
-                    if (isWater) {
-                        this.targetRotationY += Math.PI * 0.8;
-                    } else if (groundBelow) {
-                        this.position.x = nextX;
-                        this.position.z = nextZ;
-                    } else if (groundBelow2) {
-                        this.position.x = nextX;
-                        this.position.z = nextZ;
-                        this.position.y -= 1.0;
-                    } else {
-                        this.targetRotationY += Math.PI * 0.8;
-                    }
-                } else {
-                    this.targetRotationY += Math.PI * 0.75;
                 }
             }
 
@@ -679,6 +673,16 @@ export class Animal {
             } else {
                 this.tongue.visible = false;
             }
+        }
+
+        // Maintain solid footing on terrain
+        const targetGroundY = this.getGroundHeight(this.position.x, this.position.z);
+        if (this.position.y < targetGroundY) {
+            this.position.y = targetGroundY;
+        } else if (this.position.y > targetGroundY + 0.05) {
+            this.position.y = Math.max(targetGroundY, this.position.y - dt * 10.0);
+        } else {
+            this.position.y = targetGroundY;
         }
 
         this.group.position.copy(this.position);
@@ -733,10 +737,11 @@ export class AnimalManager {
         this.killSnakesExceptOne();
 
         // 3. POCZĄTKOWY ZOMBIE (w zasięgu wzroku gracza z kamiennym hełmem chroniącym przed słońcem)
+        // 3. POCZĄTKOWY ZOMBIE (wprost przed oczami gracza z kamiennym hełmem chroniącym przed słońcem)
         if (this.player && this.player.position) {
-            this.spawnZombieNearPlayer(this.player, 7.0, 5.0, true);
+            this.spawnZombieInFrontOfPlayer(this.player, 5.0, true);
         } else {
-            const initialZombie = new Animal(this.scene, this.world, 'zombie', 38, 38, this, false, true);
+            const initialZombie = new Animal(this.scene, this.world, 'zombie', 32, 27, this, false, true);
             this.animals.push(initialZombie);
         }
     }
@@ -799,13 +804,25 @@ export class AnimalManager {
         return baby;
     }
 
-    spawnZombieNearPlayer(player = this.player, offsetX = 7.0, offsetZ = 5.0, hasHelmet = true) {
+    spawnZombieInFrontOfPlayer(player = this.player, distance = 5.0, hasHelmet = true) {
         if (!player || !player.position) return null;
-        const px = THREE.MathUtils.clamp(player.position.x + offsetX, 3, WORLD_SIZE_X - 3);
-        const pz = THREE.MathUtils.clamp(player.position.z + offsetZ, 3, WORLD_SIZE_Z - 3);
+        let dirX = 0;
+        let dirZ = -1;
+        if (player.camera) {
+            const forward = new THREE.Vector3();
+            player.camera.getWorldDirection(forward);
+            forward.y = 0;
+            if (forward.lengthSq() > 0.01) {
+                forward.normalize();
+                dirX = forward.x;
+                dirZ = forward.z;
+            }
+        }
+        const px = THREE.MathUtils.clamp(player.position.x + dirX * distance, 3, WORLD_SIZE_X - 3);
+        const pz = THREE.MathUtils.clamp(player.position.z + dirZ * distance, 3, WORLD_SIZE_Z - 3);
         const zombie = new Animal(this.scene, this.world, 'zombie', px, pz, this, false, hasHelmet);
         this.animals.push(zombie);
-        console.log(`[AnimalManager] Zespawnowano Zombie na (${px.toFixed(1)}, ${pz.toFixed(1)}) z hełmem=${hasHelmet}`);
+        console.log(`[AnimalManager] Zespawnowano Zombie na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)}) z hełmem=${hasHelmet}`);
         return zombie;
     }
 

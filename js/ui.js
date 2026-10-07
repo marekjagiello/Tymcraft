@@ -488,10 +488,20 @@ export class UI {
         const activeItem = HOTBAR_BLOCKS[this.selectedSlotIndex];
 
         if (this.infoEl) {
+            let zombieText = 'Brak';
+            if (this.animals && this.animals.animals) {
+                const z = this.animals.animals.find(a => a.type === 'zombie' && !a.isDead);
+                if (z) {
+                    const dist = z.position.distanceTo(this.player.position).toFixed(1);
+                    zombieText = `${dist}m (HP: ${z.health}/${z.maxHealth})`;
+                }
+            }
+
             this.infoEl.innerHTML = `
                 <div><b>Minecraft Web POC</b> | FPS: ${this.fps}</div>
                 <div>Pozycja: X: ${px} | Y: ${py} | Z: ${pz}</div>
                 <div>Biom: <span class="badge">${biome}</span></div>
+                <div>Zombie: <b style="color: #4ade80">${zombieText}</b></div>
                 <div>W ręku: <b>${activeItem.name}</b></div>
             `;
         }
