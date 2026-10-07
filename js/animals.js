@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT, SEA_LEVEL } from './world.js';
+import { DroppedItem } from './drops.js';
 
 // Helper to create a 3D pixel heart mesh (Minecraft-style voxel heart)
 export function createPixelHeartMesh() {
@@ -38,10 +39,13 @@ export class Animal {
         this.segments = [];
         this.head = null;
         this.tongue = null;
+        this.arms = [];
         this.activeHearts = [];
-        this.maxHealth = (this.type === 'snake') ? 4 : 8;
+        this.maxHealth = (this.type === 'snake') ? 4 : (this.type === 'zombie' ? 10 : 8);
         this.health = this.maxHealth;
         this.isDead = false;
+        this.attackCooldown = 0;
+        this.burnTimer = 0;
 
         this.position = new THREE.Vector3(x, 15, z);
         this.rotationY = Math.random() * Math.PI * 2;
@@ -49,7 +53,7 @@ export class Animal {
 
         this.state = 'idle'; // 'idle' | 'walk'
         this.stateTimer = 1 + Math.random() * 3;
-        this.walkSpeed = (this.type === 'snake') ? 1.8 : 1.6;
+        this.walkSpeed = (this.type === 'snake') ? 1.8 : (this.type === 'zombie' ? 1.35 : 1.6);
         this.animTime = Math.random() * 10;
         this.isTamed = false;
 
@@ -65,6 +69,8 @@ export class Animal {
             this.buildSheepModel();
         } else if (this.type === 'snake') {
             this.buildSnakeModel(this.isBaby);
+        } else if (this.type === 'zombie') {
+            this.buildZombieModel();
         }
     }
 
@@ -292,6 +298,65 @@ export class Animal {
         }
     }
 
+    buildZombieModel() {
+        const skinMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });    // Zombie green skin
+        const shirtMat = new THREE.MeshLambertMaterial({ color: 0x0284c7 });   // Cyan blue shirt
+        const pantsMat = new THREE.MeshLambertMaterial({ color: 0x1e3a8a });   // Dark indigo pants
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });       // Dark pixel eyes
+
+        // Head (0.4 x 0.4 x 0.4)
+        const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+        this.head = new THREE.Mesh(headGeo, skinMat);
+        this.head.position.set(0, 1.45, 0);
+        this.head.castShadow = true;
+        this.group.add(this.head);
+
+        // Black eyes
+        const eyeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.04);
+        const lEye = new THREE.Mesh(eyeGeo, eyeMat);
+        lEye.position.set(-0.1, 0.04, 0.2);
+        const rEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rEye.position.set(0.1, 0.04, 0.2);
+        this.head.add(lEye, rEye);
+
+        // Torso / Body (0.44 x 0.62 x 0.26)
+        const bodyGeo = new THREE.BoxGeometry(0.44, 0.62, 0.26);
+        const body = new THREE.Mesh(bodyGeo, shirtMat);
+        body.position.set(0, 0.94, 0);
+        body.castShadow = true;
+        this.group.add(body);
+
+        // Arms stretched forward (classic Minecraft zombie pose)
+        const armGeo = new THREE.BoxGeometry(0.16, 0.16, 0.55);
+        const lArm = new THREE.Mesh(armGeo, skinMat);
+        lArm.position.set(-0.3, 1.1, 0.26);
+        lArm.castShadow = true;
+        const rArm = new THREE.Mesh(armGeo, skinMat);
+        rArm.position.set(0.3, 1.1, 0.26);
+        rArm.castShadow = true;
+        this.group.add(lArm, rArm);
+        this.arms = [lArm, rArm];
+
+        // 2 Legs
+        const legGeo = new THREE.BoxGeometry(0.18, 0.64, 0.18);
+        const lLegPivot = new THREE.Group();
+        lLegPivot.position.set(-0.12, 0.64, 0);
+        const lLeg = new THREE.Mesh(legGeo, pantsMat);
+        lLeg.position.set(0, -0.32, 0);
+        lLeg.castShadow = true;
+        lLegPivot.add(lLeg);
+
+        const rLegPivot = new THREE.Group();
+        rLegPivot.position.set(0.12, 0.64, 0);
+        const rLeg = new THREE.Mesh(legGeo, pantsMat);
+        rLeg.position.set(0, -0.32, 0);
+        rLeg.castShadow = true;
+        rLegPivot.add(rLeg);
+
+        this.group.add(lLegPivot, rLegPivot);
+        this.legs = [lLegPivot, rLegPivot];
+    }
+
     snapToGround() {
         const bx = Math.floor(this.position.x);
         const bz = Math.floor(this.position.z);
@@ -365,6 +430,23 @@ export class Animal {
             this.manager.spawnDeathPoof(this.position.clone().add(new THREE.Vector3(0, 0.2, 0)));
         }
 
+        // Drop Rotten Flesh (ID 26) if zombie
+        if (this.type === 'zombie' && this.manager && this.manager.drops) {
+            const count = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < count; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    26,
+                    'Zgniłe Mięso',
+                    this.position.x + (Math.random() - 0.5) * 0.4,
+                    this.position.y + 0.3,
+                    this.position.z + (Math.random() - 0.5) * 0.4
+                );
+                this.manager.drops.items.push(drop);
+            }
+        }
+
         // Remove from scene
         if (this.group && this.group.parent) {
             this.scene.remove(this.group);
@@ -415,13 +497,55 @@ export class Animal {
         }
     }
 
-    update(dt, playerPosition = null) {
+    update(dt, playerPosition = null, isDay = true) {
         this.updateHearts(dt);
 
         this.stateTimer -= dt;
 
-        // If tamed and player is nearby, follow player!
-        if (this.isTamed && playerPosition) {
+        // Zombie logic: Hostile AI & Daylight Burning
+        if (this.type === 'zombie') {
+            if (this.attackCooldown > 0) this.attackCooldown -= dt;
+
+            // Daytime burning in direct sunlight
+            if (isDay && !this.isDead) {
+                const bx = Math.floor(this.position.x);
+                const bz = Math.floor(this.position.z);
+                const by = Math.floor(this.position.y);
+                let exposed = true;
+                for (let y = by + 2; y < WORLD_HEIGHT; y++) {
+                    if (this.world.isSolid(bx, y, bz)) {
+                        exposed = false;
+                        break;
+                    }
+                }
+                if (exposed) {
+                    this.burnTimer = (this.burnTimer || 0) + dt;
+                    this.flashRed();
+                    if (this.burnTimer >= 1.0) {
+                        this.burnTimer = 0;
+                        this.onAttacked(2); // Sunlight fire damage
+                    }
+                }
+            }
+
+            // Target player
+            if (playerPosition && !this.isDead) {
+                const distToPlayer = this.position.distanceTo(playerPosition);
+                if (distToPlayer < 22.0) {
+                    this.state = 'walk';
+                    this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
+
+                    // Melee attack player
+                    if (distToPlayer <= 1.35 && this.attackCooldown <= 0) {
+                        this.attackCooldown = 1.2;
+                        if (this.manager && this.manager.survival) {
+                            this.manager.survival.takeDamage(2, 'Zombie');
+                            if (this.manager.ui) this.manager.ui.showPopup("⚠️ Zombie Cię zaatakował! (-1 serce)");
+                        }
+                    }
+                }
+            }
+        } else if (this.isTamed && playerPosition) {
             const distToPlayer = this.position.distanceTo(playerPosition);
             if (distToPlayer > 2.2 && distToPlayer < 12.0) {
                 this.state = 'walk';
@@ -512,6 +636,10 @@ export class Animal {
                 this.legs[1].rotation.x = -swing;
                 this.legs[2].rotation.x = -swing;
                 this.legs[3].rotation.x = swing;
+            } else if (this.legs.length === 2) {
+                const swing = Math.sin(this.animTime) * 0.65;
+                this.legs[0].rotation.x = swing;
+                this.legs[1].rotation.x = -swing;
             }
         } else {
             // Idle state
@@ -653,16 +781,33 @@ export class AnimalManager {
         return baby;
     }
 
-    update(dt, playerPosition = null) {
+    update(dt, playerPosition = null, isDay = true) {
         // Automatyczne zabijanie nadmiarowych węży (utrzymywanie maksymalnie 1 węża na świecie bez żadnego przycisku)
         const snakes = this.animals.filter(a => a.type === 'snake');
         if (snakes.length > 1) {
             this.killSnakesExceptOne();
         }
 
+        // Nocny spawn Zombie
+        if (!isDay && playerPosition) {
+            this.nightSpawnTimer = (this.nightSpawnTimer || 0) + dt;
+            const zombieCount = this.animals.filter(a => a.type === 'zombie').length;
+            if (this.nightSpawnTimer >= 10.0 && zombieCount < 3) {
+                this.nightSpawnTimer = 0;
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 14 + Math.random() * 8;
+                const zx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
+                const zz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
+                const zombie = new Animal(this.scene, this.world, 'zombie', zx, zz, this);
+                this.animals.push(zombie);
+                console.log(`[Monster] Pojawił się Zombie w nocy na (${zx.toFixed(1)}, ${zz.toFixed(1)})!`);
+                if (this.ui) this.ui.showPopup("🧟 W ciemności nocy pojawił się Zombie!");
+            }
+        }
+
         // Update all animals
         for (let i = this.animals.length - 1; i >= 0; i--) {
-            this.animals[i].update(dt, playerPosition);
+            this.animals[i].update(dt, playerPosition, isDay);
         }
 
         // Update death poof particles

@@ -7,7 +7,10 @@ export const ITEMS = {
     STICK: { id: 20, name: 'Patyk', type: 'item', icon: 'stick' },
     WOOD_PICKAXE: { id: 21, name: 'Drewniany Kilof', type: 'tool', efficiency: 3.0, icon: 'wood_pick' },
     STONE_PICKAXE: { id: 22, name: 'Kamienny Kilof', type: 'tool', efficiency: 5.5, icon: 'stone_pick' },
-    APPLE: { id: 23, name: 'Jabłko', type: 'food', nutrition: 4, icon: 'apple' }
+    APPLE: { id: 23, name: 'Jabłko', type: 'food', nutrition: 4, icon: 'apple' },
+    WOOD_SWORD: { id: 24, name: 'Drewniany Miecz', type: 'weapon', damage: 4, icon: 'wood_sword' },
+    STONE_SWORD: { id: 25, name: 'Kamienny Miecz', type: 'weapon', damage: 6, icon: 'stone_sword' },
+    ROTTEN_FLESH: { id: 26, name: 'Zgniłe Mięso', type: 'food', nutrition: 2, icon: 'flesh' }
 };
 
 export class CraftingManager {
@@ -54,6 +57,18 @@ export class CraftingManager {
         // 4. Stone Pickaxe: Top 2 Stone, Bottom 1 Stick
         if (s0 === 3 && s1 === 3 && (s2 === 20 || s3 === 20)) {
             this.output = { item: ITEMS.STONE_PICKAXE, count: 1 };
+            return this.output;
+        }
+
+        // 5. Wooden Sword: Top 1 Plank, Bottom 1 Stick (vertical)
+        if ((s0 === 8 && s2 === 20 && !s1 && !s3) || (s1 === 8 && s3 === 20 && !s0 && !s2)) {
+            this.output = { item: ITEMS.WOOD_SWORD, count: 1 };
+            return this.output;
+        }
+
+        // 6. Stone Sword: Top 1 Stone, Bottom 1 Stick (vertical)
+        if ((s0 === 3 && s2 === 20 && !s1 && !s3) || (s1 === 3 && s3 === 20 && !s0 && !s2)) {
+            this.output = { item: ITEMS.STONE_SWORD, count: 1 };
             return this.output;
         }
 

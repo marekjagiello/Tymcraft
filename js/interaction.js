@@ -78,11 +78,20 @@ export class Interaction {
                         if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca! 🐍");
                         return;
                     } else {
+                        let damage = 2;
+                        if (activeItemId === 24) damage = 5; // Wooden Sword
+                        else if (activeItemId === 25) damage = 8; // Stone Sword
+                        else if (activeItemId === 21 || activeItemId === 22) damage = 3.5; // Pickaxes
+
                         const wasAlive = animal.health > 0;
-                        animal.onAttacked(2);
+                        animal.onAttacked(damage);
                         if (wasAlive && animal.health <= 0) {
-                            const name = (animal.type === 'snake') ? 'węża' : (animal.type === 'pig' ? 'świnię' : 'owcę');
-                            if (this.ui) this.ui.showPopup(`💥 Zabito ${name}!`);
+                            let name = 'zwierzę';
+                            if (animal.type === 'snake') name = 'węża';
+                            else if (animal.type === 'zombie') name = 'Zombie';
+                            else if (animal.type === 'pig') name = 'świnię';
+                            else if (animal.type === 'sheep') name = 'owcę';
+                            if (this.ui) this.ui.showPopup(`💥 Pokonano ${name}!`);
                         }
                         return;
                     }
@@ -98,6 +107,14 @@ export class Interaction {
                     animal.interactWithApple();
                     if (this.onItemConsumed) this.onItemConsumed(23);
                     if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca! 🐍");
+                    return;
+                }
+
+                // Eat Rotten Flesh (ID 26)
+                if (activeItemId === 26 && this.survival) {
+                    this.survival.eat(2);
+                    if (this.onItemConsumed) this.onItemConsumed(26);
+                    if (this.ui) this.ui.showPopup("🍖 Zjedzono zgniłe mięso (+2 głód)!");
                     return;
                 }
 

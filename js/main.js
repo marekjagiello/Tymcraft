@@ -105,6 +105,9 @@ class Game {
 
         // 9. Animals
         this.animals = new AnimalManager(this.scene, this.world, this.player);
+        this.animals.survival = this.survival;
+        this.animals.drops = this.drops;
+        this.animals.ui = this.ui;
         this.interaction.animals = this.animals;
         this.interaction.ui = this.ui;
         if (this.ui) this.ui.animals = this.animals;
@@ -166,7 +169,8 @@ class Game {
         this.drops.update(dt, this.player.position, (id, name) => {
             this.ui.addItem(id, name, 1);
         });
-        this.animals.update(dt, this.player.position);
+        const isDay = this.sun ? this.sun.position.y > 0 : true;
+        this.animals.update(dt, this.player.position, isDay);
         this.world.update();
         this.survival.update(dt);
         this.ui.update();

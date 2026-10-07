@@ -132,6 +132,9 @@ export class UI {
                 if (item.id === 21) itemSpan.innerText = '⛏️';
                 else if (item.id === 22) itemSpan.innerText = '⚒️';
                 else if (item.id === 23) itemSpan.innerText = '🍎';
+                else if (item.id === 24) itemSpan.innerText = '🗡️';
+                else if (item.id === 25) itemSpan.innerText = '⚔️';
+                else if (item.id === 26) itemSpan.innerText = '🥩';
                 slot.appendChild(itemSpan);
             } else {
                 // Voxel block texture icon from Atlas

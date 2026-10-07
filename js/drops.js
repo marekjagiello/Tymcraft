@@ -76,6 +76,24 @@ function createStickMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Rotten Flesh mesh
+function createRottenFleshMesh() {
+    const group = new THREE.Group();
+    const geo = new THREE.BoxGeometry(0.22, 0.08, 0.16);
+    const mat = new THREE.MeshLambertMaterial({ color: 0x8b3a2b });
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true;
+    group.add(m);
+
+    const decayGeo = new THREE.BoxGeometry(0.1, 0.09, 0.08);
+    const decayMat = new THREE.MeshLambertMaterial({ color: 0x3d5a2b });
+    const decay = new THREE.Mesh(decayGeo, decayMat);
+    decay.position.set(0.04, 0.01, 0);
+    group.add(decay);
+
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -110,6 +128,8 @@ export class DroppedItem {
             this.mesh = createAppleMesh();
         } else if (this.id === 20) {
             this.mesh = createStickMesh();
+        } else if (this.id === 26) {
+            this.mesh = createRottenFleshMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
