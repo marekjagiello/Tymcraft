@@ -39,6 +39,9 @@ export class Animal {
         this.head = null;
         this.tongue = null;
         this.activeHearts = [];
+        this.maxHealth = (this.type === 'snake') ? 4 : 8;
+        this.health = this.maxHealth;
+        this.isDead = false;
 
         this.position = new THREE.Vector3(x, 15, z);
         this.rotationY = Math.random() * Math.PI * 2;
@@ -317,11 +320,69 @@ export class Animal {
         console.log(`[Animal] ${this.type} został nakarmiony jabłkiem! Pojawiły się serca ❤️`);
     }
 
-    onAttacked() {
-        // Hop or hiss/turn away
+    flashRed() {
+        this.group.traverse((child) => {
+            if (child.isMesh && child.material) {
+                if (!child._origColor && child.material.color) {
+                    child._origColor = child.material.color.clone();
+                }
+                if (child.material.color) {
+                    child.material.color.setHex(0xef4444);
+                }
+            }
+        });
+        setTimeout(() => {
+            if (this.isDead) return;
+            this.group.traverse((child) => {
+                if (child.isMesh && child._origColor && child.material && child.material.color) {
+                    child.material.color.copy(child._origColor);
+                }
+            });
+        }, 180);
+    }
+
+    onAttacked(damage = 2) {
+        if (this.isDead) return;
+        this.health -= damage;
+        this.flashRed();
+
+        // Recoil / hop
         this.state = 'walk';
-        this.stateTimer = 2.0;
-        this.targetRotationY += Math.PI * 0.6;
+        this.stateTimer = 1.8;
+        this.targetRotationY += Math.PI * (0.6 + Math.random() * 0.4);
+        this.position.y += 0.25;
+
+        if (this.health <= 0) {
+            this.die();
+        }
+    }
+
+    die() {
+        if (this.isDead) return;
+        this.isDead = true;
+
+        // Clear any floating hearts
+        for (const h of this.activeHearts) {
+            if (h.mesh && h.mesh.parent) {
+                this.scene.remove(h.mesh);
+            }
+        }
+        this.activeHearts = [];
+
+        // Spawn death poof particles (smoke puff)
+        if (this.manager && this.manager.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position.clone().add(new THREE.Vector3(0, 0.2, 0)));
+        }
+
+        // Remove from scene
+        if (this.group && this.group.parent) {
+            this.scene.remove(this.group);
+        }
+
+        // Remove from manager list
+        if (this.manager) {
+            this.manager.removeAnimal(this);
+        }
     }
 
     spawnHeartParticles() {
@@ -502,24 +563,27 @@ export class AnimalManager {
         this.world = world;
         this.player = player;
         this.animals = [];
+
+        // Death poof particles
+        this.deathParticles = [];
+        this.deathGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        this.deathMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee });
+
         this.spawnInitialAnimals();
+
+        // Expose globally for convenience
+        if (typeof window !== 'undefined') {
+            window.killSnakesExceptOne = () => this.killSnakesExceptOne();
+        }
     }
 
     spawnInitialAnimals() {
-        // 1. Fixed world spawns in diverse biomes
+        // 1. Standardowe zwierzęta (świnie, owce)
         const spawnData = [
-            { x: 30, z: 30, type: 'snake' },
-            { x: 34, z: 27, type: 'snake' },
-            { x: 16, z: 22, type: 'snake' },
-            { x: 48, z: 46, type: 'snake' },
-            { x: 22, z: 44, type: 'snake' },
-            { x: 42, z: 18, type: 'snake' },
             { x: 28, z: 28, type: 'pig' },
             { x: 36, z: 25, type: 'sheep' },
-            { x: 44, z: 36, type: 'snake' },
             { x: 20, z: 35, type: 'pig' },
             { x: 38, z: 45, type: 'sheep' },
-            { x: 24, z: 42, type: 'snake' },
             { x: 32, z: 18, type: 'pig' }
         ];
 
@@ -528,9 +592,55 @@ export class AnimalManager {
             this.animals.push(animal);
         }
 
-        // 2. ALWAYS spawn an orange snake 3-4 blocks right in front of the player's current location!
+        // 2. DOKŁADNIE 1 WĄŻ w całym świecie (obok gracza lub w bazie)
         if (this.player && this.player.position) {
             this.spawnSnakeNearPlayer(this.player, 3.5, 1.5);
+        } else {
+            const singleSnake = new Animal(this.scene, this.world, 'snake', 30, 30, this);
+            this.animals.push(singleSnake);
+        }
+
+        // Gwarancja: jeśli z jakiegokolwiek powodu jest więcej niż 1 wąż, zabij wszystkie oprócz 1
+        this.killSnakesExceptOne();
+    }
+
+    removeAnimal(animal) {
+        const idx = this.animals.indexOf(animal);
+        if (idx !== -1) {
+            this.animals.splice(idx, 1);
+        }
+    }
+
+    // Zabija / usuwa wszystkie węże poza pierwszym (pozostawiając dokładnie 1 węża na świecie)
+    killSnakesExceptOne() {
+        const snakes = this.animals.filter(a => a.type === 'snake');
+        let killedCount = 0;
+        // Zostawiamy pierwszego węża (indeks 0), wszystkie pozostałe likwidujemy
+        for (let i = 1; i < snakes.length; i++) {
+            snakes[i].die();
+            killedCount++;
+        }
+        console.log(`[AnimalManager] Zabito/usunięto ${killedCount} nadmiarowych węży. W świecie pozostał dokładnie 1 wąż.`);
+        return killedCount;
+    }
+
+    spawnDeathPoof(position) {
+        for (let i = 0; i < 14; i++) {
+            const m = new THREE.Mesh(this.deathGeo, this.deathMat);
+            m.position.copy(position).add(new THREE.Vector3(
+                (Math.random() - 0.5) * 0.4,
+                Math.random() * 0.3,
+                (Math.random() - 0.5) * 0.4
+            ));
+            this.scene.add(m);
+            this.deathParticles.push({
+                mesh: m,
+                vx: (Math.random() - 0.5) * 1.6,
+                vy: 0.8 + Math.random() * 1.4,
+                vz: (Math.random() - 0.5) * 1.6,
+                life: 0.55,
+                maxLife: 0.55
+            });
         }
     }
 
@@ -553,8 +663,25 @@ export class AnimalManager {
     }
 
     update(dt, playerPosition = null) {
-        for (const animal of this.animals) {
-            animal.update(dt, playerPosition);
+        // Update all animals
+        for (let i = this.animals.length - 1; i >= 0; i--) {
+            this.animals[i].update(dt, playerPosition);
+        }
+
+        // Update death poof particles
+        for (let i = this.deathParticles.length - 1; i >= 0; i--) {
+            const p = this.deathParticles[i];
+            p.life -= dt;
+            if (p.life <= 0) {
+                this.scene.remove(p.mesh);
+                this.deathParticles.splice(i, 1);
+            } else {
+                p.mesh.position.x += p.vx * dt;
+                p.mesh.position.y += p.vy * dt;
+                p.mesh.position.z += p.vz * dt;
+                const scale = Math.max(0.05, p.life / p.maxLife);
+                p.mesh.scale.set(scale, scale, scale);
+            }
         }
     }
 }

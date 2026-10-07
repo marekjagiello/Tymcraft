@@ -78,7 +78,12 @@ export class Interaction {
                         if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca i mały wąż! 🐍");
                         return;
                     } else {
-                        animal.onAttacked();
+                        const wasAlive = animal.health > 0;
+                        animal.onAttacked(2);
+                        if (wasAlive && animal.health <= 0) {
+                            const name = (animal.type === 'snake') ? 'węża' : (animal.type === 'pig' ? 'świnię' : 'owcę');
+                            if (this.ui) this.ui.showPopup(`💥 Zabito ${name}!`);
+                        }
                         return;
                     }
                 }

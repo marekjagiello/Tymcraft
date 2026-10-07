@@ -285,6 +285,17 @@ body, html {
     box-shadow: 0 6px 18px rgba(234, 88, 12, 0.55);
 }
 
+.menu-btn-kill-snakes {
+    background: #dc2626;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+}
+.menu-btn-kill-snakes:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(220, 38, 38, 0.55);
+}
+
 .menu-btn-reset {
     background: #ef4444;
     color: #ffffff;
