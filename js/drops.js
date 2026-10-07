@@ -56,6 +56,26 @@ function createAppleMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D square voxel Stick mesh
+function createStickMesh() {
+    const group = new THREE.Group();
+    const geo = new THREE.BoxGeometry(0.045, 0.045, 0.045);
+    const lightMat = new THREE.MeshLambertMaterial({ color: 0xaa824a });
+    const midMat = new THREE.MeshLambertMaterial({ color: 0x785328 });
+    const darkMat = new THREE.MeshLambertMaterial({ color: 0x4e3518 });
+
+    // 8 stepped square pixel cubes running diagonally
+    for (let i = 0; i < 8; i++) {
+        const offset = (i - 3.5) * 0.042;
+        const mat = (i === 0 || i === 7) ? darkMat : (i % 2 === 0 ? midMat : lightMat);
+        const cube = new THREE.Mesh(geo, mat);
+        cube.position.set(offset, offset, 0);
+        cube.castShadow = true;
+        group.add(cube);
+    }
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -88,6 +108,8 @@ export class DroppedItem {
 
         if (this.id === 23) {
             this.mesh = createAppleMesh();
+        } else if (this.id === 20) {
+            this.mesh = createStickMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }

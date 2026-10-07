@@ -13,6 +13,38 @@ export const HOTBAR_BLOCKS = [
     { slot: 9, id: 9, name: 'Szkło', count: 64 }
 ];
 
+// Helper to create a pixel-perfect square Minecraft Stick canvas (16x16)
+export function createPixelStickCanvas() {
+    const iconCanvas = document.createElement('canvas');
+    iconCanvas.width = 16;
+    iconCanvas.height = 16;
+    iconCanvas.className = 'slot-icon';
+    const ctx = iconCanvas.getContext('2d');
+
+    // Square-pixel Minecraft stick (diagonal from top-right to bottom-left)
+    const stickPixels = [
+        // Top tip
+        [13, 2, '#4e3518'], [12, 2, '#785328'],
+        [13, 3, '#967040'], [12, 3, '#785328'], [11, 3, '#4e3518'],
+        [12, 4, '#967040'], [11, 4, '#785328'], [10, 4, '#4e3518'],
+        [11, 5, '#aa824a'], [10, 5, '#785328'], [9, 5, '#4e3518'],
+        [10, 6, '#967040'], [9, 6, '#785328'], [8, 6, '#4e3518'],
+        [9, 7, '#aa824a'], [8, 7, '#785328'], [7, 7, '#4e3518'],
+        [8, 8, '#967040'], [7, 8, '#785328'], [6, 8, '#4e3518'],
+        [7, 9, '#aa824a'], [6, 9, '#785328'], [5, 9, '#4e3518'],
+        [6, 10, '#967040'], [5, 10, '#785328'], [4, 10, '#4e3518'],
+        [5, 11, '#967040'], [4, 11, '#785328'], [3, 11, '#4e3518'],
+        [4, 12, '#785328'], [3, 12, '#4e3518'], [2, 12, '#38240f'],
+        [3, 13, '#4e3518'], [2, 13, '#38240f']
+    ];
+
+    for (const [x, y, color] of stickPixels) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, 1, 1);
+    }
+    return iconCanvas;
+}
+
 export class UI {
     constructor(player, world, survival = null, crafting = null, storage = null) {
         this.player = player;
@@ -89,12 +121,15 @@ export class UI {
             slot.title = item.name;
 
             // Create icon
-            if (item.id >= 20) {
+            if (item.id === 20) {
+                // Pixel-art square Minecraft Stick icon!
+                const stickCanvas = createPixelStickCanvas();
+                slot.appendChild(stickCanvas);
+            } else if (item.id >= 21) {
                 // Item icon emoji / badge
                 const itemSpan = document.createElement('span');
                 itemSpan.style.fontSize = '20px';
-                if (item.id === 20) itemSpan.innerText = '🥢';
-                else if (item.id === 21) itemSpan.innerText = '⛏️';
+                if (item.id === 21) itemSpan.innerText = '⛏️';
                 else if (item.id === 22) itemSpan.innerText = '⚒️';
                 else if (item.id === 23) itemSpan.innerText = '🍎';
                 slot.appendChild(itemSpan);
@@ -269,7 +304,7 @@ export class UI {
             const sIdx = parseInt(slotEl.dataset.slot, 10);
             const val = this.crafting.grid[sIdx];
             if (!val) {
-                slotEl.innerText = '';
+                slotEl.innerHTML = '';
                 slotEl.style.background = '#8b8b8b';
             } else {
                 let name = 'Blok';
@@ -277,7 +312,18 @@ export class UI {
                 else if (val === 8) name = 'Deski';
                 else if (val === 3) name = 'Kamień';
                 else if (val === 20) name = 'Patyk';
-                slotEl.innerText = name;
+
+                slotEl.innerHTML = '';
+                if (val === 20) {
+                    const canvas = createPixelStickCanvas();
+                    canvas.style.width = '28px';
+                    canvas.style.height = '28px';
+                    canvas.style.display = 'block';
+                    canvas.style.margin = 'auto';
+                    slotEl.appendChild(canvas);
+                } else {
+                    slotEl.innerText = name;
+                }
                 slotEl.style.background = '#555555';
                 slotEl.style.color = '#ffffff';
             }
@@ -287,7 +333,20 @@ export class UI {
         if (outputSlot) {
             const recipe = this.crafting.evaluateRecipe();
             if (recipe) {
-                outputSlot.innerText = `${recipe.item.name} (${recipe.count})`;
+                outputSlot.innerHTML = '';
+                if (recipe.item.id === 20) {
+                    const canvas = createPixelStickCanvas();
+                    canvas.style.width = '24px';
+                    canvas.style.height = '24px';
+                    canvas.style.verticalAlign = 'middle';
+                    canvas.style.marginRight = '6px';
+                    outputSlot.appendChild(canvas);
+                    const txt = document.createElement('span');
+                    txt.innerText = `${recipe.item.name} (${recipe.count})`;
+                    outputSlot.appendChild(txt);
+                } else {
+                    outputSlot.innerText = `${recipe.item.name} (${recipe.count})`;
+                }
                 outputSlot.style.background = '#15803d';
                 outputSlot.style.cursor = 'pointer';
             } else {
