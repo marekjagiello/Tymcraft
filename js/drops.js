@@ -239,10 +239,10 @@ export class DropsManager {
             dropId = 2;
             dropName = 'Ziemia';
         }
-        // Stone (3) drops Cobblestone (15)
+        // Stone (3) drops Stone (3) - remains the exact same realistic stone
         else if (blockId === 3) {
-            dropId = 15;
-            dropName = 'Bruk';
+            dropId = 3;
+            dropName = 'Kamień';
         }
 
         const drop = new DroppedItem(this.scene, this.world, dropId, dropName, x + 0.5, y + 0.5, z + 0.5);

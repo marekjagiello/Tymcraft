@@ -104,28 +104,46 @@ function createAtlas() {
         }
     });
 
-    // 3: STONE
+    // 3: STONE (Realistic natural rock with multi-scale geological formations)
     drawTile(TILES.STONE, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                // 1. Natural undulating rock strata / sedimentary bands
-                const strata = Math.sin(x * 0.45 + y * 0.3) * 7.0 + Math.cos(x * 0.25 - y * 0.4) * 5.0;
-                // 2. Soft 2x2 mineral cluster patches
-                const patch = (hash(Math.floor(x / 2), Math.floor(y / 2)) - 0.5) * 12.0;
-                // 3. Fine rock grain
-                const grain = (hash(x, y) - 0.5) * 10.0;
-                // 4. Subtle rock fissures / highlights for natural depth
-                let fissure = 0;
-                const h = hash(x * 3 + 1, y * 5 + 2);
-                if (h > 0.90) {
-                    fissure = -16;
-                } else if (h < 0.08) {
-                    fissure = 14;
+                // 1. Geological rock mass variation (bilinear smooth noise)
+                const gx = x / 4.0;
+                const gy = y / 4.0;
+                const ix = Math.floor(gx);
+                const iy = Math.floor(gy);
+                const fx = gx - ix;
+                const fy = gy - iy;
+                const g00 = hash(ix * 7 + 1, iy * 11 + 3);
+                const g10 = hash((ix + 1) * 7 + 1, iy * 11 + 3);
+                const g01 = hash(ix * 7 + 1, (iy + 1) * 11 + 3);
+                const g11 = hash((ix + 1) * 7 + 1, (iy + 1) * 11 + 3);
+                const smoothGeo = (
+                    g00 * (1 - fx) * (1 - fy) +
+                    g10 * fx * (1 - fy) +
+                    g01 * (1 - fx) * fy +
+                    g11 * fx * fy - 0.5
+                ) * 20.0;
+
+                // 2. Medium mineral clusters (2x2)
+                const cluster = (hash(Math.floor(x / 2) * 17 + 5, Math.floor(y / 2) * 19 + 7) - 0.5) * 14.0;
+
+                // 3. Fine mineral grain
+                const grain = (hash(x * 31 + 13, y * 37 + 17) - 0.5) * 11.0;
+
+                // 4. Realistic mineral flecks (quartz highlights & basalt crevices)
+                const fleckHash = hash(x * 53 + 7, y * 59 + 11);
+                let fleck = 0;
+                if (fleckHash > 0.88) {
+                    fleck = 14.0; // Quartz highlight
+                } else if (fleckHash < 0.12) {
+                    fleck = -16.0; // Basalt dark mineral crevice
                 }
 
-                const v = Math.max(80, Math.min(180, Math.round(126 + strata + patch + grain + fissure)));
-                // Subtle slate mineral tint
-                c.fillStyle = `rgb(${v - 2}, ${v}, ${v + 3})`;
+                const base = Math.max(75, Math.min(185, Math.round(124 + smoothGeo + cluster + grain + fleck)));
+                // Natural slate / granite mineral tint
+                c.fillStyle = `rgb(${base - 2}, ${base}, ${base + 3})`;
                 c.fillRect(x, y, 1, 1);
             }
         }
