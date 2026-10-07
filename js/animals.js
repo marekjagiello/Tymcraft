@@ -27,12 +27,13 @@ export function createPixelHeartMesh() {
 }
 
 export class Animal {
-    constructor(scene, world, type = 'pig', x = 32, z = 32, manager = null, isBaby = false) {
+    constructor(scene, world, type = 'pig', x = 32, z = 32, manager = null, isBaby = false, hasHelmet = false) {
         this.scene = scene;
         this.world = world;
         this.type = type;
         this.manager = manager;
         this.isBaby = isBaby;
+        this.hasHelmet = hasHelmet;
 
         this.group = new THREE.Group();
         this.legs = [];
@@ -319,6 +320,15 @@ export class Animal {
         rEye.position.set(0.1, 0.04, 0.2);
         this.head.add(lEye, rEye);
 
+        // Helmet (protects zombie from sunlight burning)
+        if (this.hasHelmet) {
+            const helmetMat = new THREE.MeshLambertMaterial({ color: 0x52525b }); // Stone/slate dark helmet
+            const helmetGeo = new THREE.BoxGeometry(0.44, 0.22, 0.44);
+            const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+            helmet.position.set(0, 0.12, 0);
+            this.head.add(helmet);
+        }
+
         // Torso / Body (0.44 x 0.62 x 0.26)
         const bodyGeo = new THREE.BoxGeometry(0.44, 0.62, 0.26);
         const body = new THREE.Mesh(bodyGeo, shirtMat);
@@ -506,8 +516,8 @@ export class Animal {
         if (this.type === 'zombie') {
             if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-            // Daytime burning in direct sunlight
-            if (isDay && !this.isDead) {
+            // Daytime burning in direct sunlight (only if exposed and WITHOUT helmet)
+            if (isDay && !this.isDead && !this.hasHelmet) {
                 const bx = Math.floor(this.position.x);
                 const bz = Math.floor(this.position.z);
                 const by = Math.floor(this.position.y);
@@ -520,10 +530,10 @@ export class Animal {
                 }
                 if (exposed) {
                     this.burnTimer = (this.burnTimer || 0) + dt;
-                    this.flashRed();
-                    if (this.burnTimer >= 1.0) {
+                    if (this.burnTimer >= 2.5) {
                         this.burnTimer = 0;
-                        this.onAttacked(2); // Sunlight fire damage
+                        this.flashRed();
+                        this.onAttacked(1); // 1 damage per 2.5s
                     }
                 }
             }
@@ -721,6 +731,14 @@ export class AnimalManager {
 
         // Gwarancja: jeśli z jakiegokolwiek powodu jest więcej niż 1 wąż, zabij wszystkie oprócz 1
         this.killSnakesExceptOne();
+
+        // 3. POCZĄTKOWY ZOMBIE (w zasięgu wzroku gracza z kamiennym hełmem chroniącym przed słońcem)
+        if (this.player && this.player.position) {
+            this.spawnZombieNearPlayer(this.player, 7.0, 5.0, true);
+        } else {
+            const initialZombie = new Animal(this.scene, this.world, 'zombie', 38, 38, this, false, true);
+            this.animals.push(initialZombie);
+        }
     }
 
     removeAnimal(animal) {
@@ -781,6 +799,16 @@ export class AnimalManager {
         return baby;
     }
 
+    spawnZombieNearPlayer(player = this.player, offsetX = 7.0, offsetZ = 5.0, hasHelmet = true) {
+        if (!player || !player.position) return null;
+        const px = THREE.MathUtils.clamp(player.position.x + offsetX, 3, WORLD_SIZE_X - 3);
+        const pz = THREE.MathUtils.clamp(player.position.z + offsetZ, 3, WORLD_SIZE_Z - 3);
+        const zombie = new Animal(this.scene, this.world, 'zombie', px, pz, this, false, hasHelmet);
+        this.animals.push(zombie);
+        console.log(`[AnimalManager] Zespawnowano Zombie na (${px.toFixed(1)}, ${pz.toFixed(1)}) z hełmem=${hasHelmet}`);
+        return zombie;
+    }
+
     update(dt, playerPosition = null, isDay = true) {
         // Automatyczne zabijanie nadmiarowych węży (utrzymywanie maksymalnie 1 węża na świecie bez żadnego przycisku)
         const snakes = this.animals.filter(a => a.type === 'snake');
@@ -788,21 +816,31 @@ export class AnimalManager {
             this.killSnakesExceptOne();
         }
 
-        // Nocny spawn Zombie
-        if (!isDay && playerPosition) {
-            this.nightSpawnTimer = (this.nightSpawnTimer || 0) + dt;
-            const zombieCount = this.animals.filter(a => a.type === 'zombie').length;
-            if (this.nightSpawnTimer >= 10.0 && zombieCount < 3) {
-                this.nightSpawnTimer = 0;
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 14 + Math.random() * 8;
-                const zx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
-                const zz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
-                const zombie = new Animal(this.scene, this.world, 'zombie', zx, zz, this);
-                this.animals.push(zombie);
-                console.log(`[Monster] Pojawił się Zombie w nocy na (${zx.toFixed(1)}, ${zz.toFixed(1)})!`);
-                if (this.ui) this.ui.showPopup("🧟 W ciemności nocy pojawił się Zombie!");
-            }
+        // Zarządzanie populacją Zombie
+        const zombieCount = this.animals.filter(a => a.type === 'zombie' && !a.isDead).length;
+        this.zombieSpawnTimer = (this.zombieSpawnTimer || 0) + dt;
+
+        // Jeśli na świecie nie ma żadnego Zombie, odlicz chwilę i zespawnuj nowego (w dzień z hełmem, w nocy bez)
+        if (zombieCount === 0 && this.zombieSpawnTimer >= 8.0 && playerPosition) {
+            this.zombieSpawnTimer = 0;
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 10 + Math.random() * 5;
+            const zx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
+            const zz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
+            const zombie = new Animal(this.scene, this.world, 'zombie', zx, zz, this, false, isDay);
+            this.animals.push(zombie);
+            console.log(`[Monster] Nowy Zombie pojawił się na (${zx.toFixed(1)}, ${zz.toFixed(1)}) (hełm=${isDay})!`);
+        } else if (!isDay && playerPosition && zombieCount < 3 && this.zombieSpawnTimer >= 15.0) {
+            // W nocy spawnuje się do 3 Zombie
+            this.zombieSpawnTimer = 0;
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 14 + Math.random() * 8;
+            const zx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
+            const zz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
+            const zombie = new Animal(this.scene, this.world, 'zombie', zx, zz, this, false, false);
+            this.animals.push(zombie);
+            console.log(`[Monster] Nocny Zombie pojawił się na (${zx.toFixed(1)}, ${zz.toFixed(1)})!`);
+            if (this.ui) this.ui.showPopup("🧟 W ciemności nocy pojawił się Zombie!");
         }
 
         // Update all animals

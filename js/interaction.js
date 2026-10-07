@@ -44,14 +44,23 @@ export class Interaction {
         let closestDist = maxDist;
 
         for (const animal of this.animals.animals) {
-            const animalPos = animal.position.clone().add(new THREE.Vector3(0, 0.3, 0));
-            const toAnimal = animalPos.clone().sub(origin);
-            const proj = toAnimal.dot(dir);
+            if (animal.isDead) continue;
+
+            const height = (animal.type === 'zombie') ? 1.85 : ((animal.type === 'snake') ? 0.35 : 0.85);
+            const hitRadius = (animal.type === 'snake') ? 0.80 : ((animal.type === 'zombie') ? 0.95 : 0.85);
+
+            // Center of animal vertical capsule
+            const center = animal.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
+            const toCenter = center.clone().sub(origin);
+            const proj = toCenter.dot(dir);
 
             if (proj > 0 && proj < closestDist) {
-                const perpDist = animalPos.distanceTo(origin.clone().addScaledVector(dir, proj));
-                const hitRadius = (animal.type === 'snake') ? 0.75 : 0.85;
-                if (perpDist < hitRadius) {
+                const rayPoint = origin.clone().addScaledVector(dir, proj);
+                const clampedY = THREE.MathUtils.clamp(rayPoint.y, animal.position.y, animal.position.y + height);
+                const closestAxisPoint = new THREE.Vector3(animal.position.x, clampedY, animal.position.z);
+                const distToAxis = rayPoint.distanceTo(closestAxisPoint);
+
+                if (distToAxis < hitRadius) {
                     closestDist = proj;
                     closestAnimal = animal;
                 }
