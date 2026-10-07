@@ -1,6 +1,52 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js';
 
+// Web Audio API sounds for combat
+let audioCtx = null;
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+export function playSwingSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(260, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+    } catch (_) {}
+}
+
+export function playHitSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+    } catch (_) {}
+}
+
 export class Interaction {
     constructor(scene, camera, world, player, getActiveBlockId, drops = null) {
         this.scene = scene;
@@ -30,6 +76,7 @@ export class Interaction {
         this.currentTarget = null;
         this.animals = null;
         this.ui = null;
+        this.buildFirstPersonHand();
         this.initEvents();
     }
 
@@ -77,7 +124,9 @@ export class Interaction {
             const activeItemId = this.getActiveBlockId();
 
             if (e.button === 0) {
-                // Left Click: Check if aimed at an animal (snake, sheep, pig)
+                this.triggerSwing();
+
+                // Left Click: Check if aimed at an animal (snake, sheep, pig, zombie)
                 const animal = this.raycastAnimal();
                 if (animal) {
                     if (activeItemId === 23) {
@@ -91,6 +140,10 @@ export class Interaction {
                         if (activeItemId === 24) damage = 5; // Wooden Sword
                         else if (activeItemId === 25) damage = 8; // Stone Sword
                         else if (activeItemId === 21 || activeItemId === 22) damage = 3.5; // Pickaxes
+
+                        playHitSound();
+                        const hitPos = animal.position.clone().add(new THREE.Vector3(0, 0.9, 0));
+                        this.spawnHitParticles(hitPos);
 
                         const wasAlive = animal.health > 0;
                         animal.onAttacked(damage, this.player.position);
@@ -242,8 +295,8 @@ export class Interaction {
             return;
         }
 
-        // 2. Tools (Pickaxes, Sticks) cannot be placed as blocks
-        if (activeItemId >= 20 && activeItemId <= 22) {
+        // 2. Tools & Weapons (Pickaxes, Sticks, Swords, Flesh) cannot be placed as blocks
+        if ((activeItemId >= 20 && activeItemId <= 22) || activeItemId === 24 || activeItemId === 25 || activeItemId === 26) {
             return;
         }
 
@@ -311,6 +364,103 @@ export class Interaction {
         }
     }
 
+    spawnHitParticles(pos) {
+        const pMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 }); // Golden critical spark
+        for (let i = 0; i < 8; i++) {
+            const p = new THREE.Mesh(this.particleGeo, pMat);
+            p.position.copy(pos).add(new THREE.Vector3(
+                (Math.random() - 0.5) * 0.4,
+                (Math.random() - 0.5) * 0.4,
+                (Math.random() - 0.5) * 0.4
+            ));
+            p.scale.set(0.65, 0.65, 0.65);
+            p.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 4.0,
+                1.5 + Math.random() * 2.5,
+                (Math.random() - 0.5) * 4.0
+            );
+            p.life = 0.35;
+            this.scene.add(p);
+            this.particles.push(p);
+        }
+    }
+
+    buildFirstPersonHand() {
+        this.handGroup = new THREE.Group();
+        this.handGroup.position.set(0.32, -0.26, -0.48);
+
+        // First-person Arm (Skin)
+        const armGeo = new THREE.BoxGeometry(0.11, 0.13, 0.38);
+        const armMat = new THREE.MeshLambertMaterial({ color: 0xd9a066 });
+        this.armMesh = new THREE.Mesh(armGeo, armMat);
+        this.armMesh.rotation.set(-0.25, 0.18, 0);
+        this.handGroup.add(this.armMesh);
+
+        // First-person Sword model
+        this.swordGroup = new THREE.Group();
+        this.swordGroup.position.set(0, 0.12, -0.16);
+
+        const bladeGeo = new THREE.BoxGeometry(0.05, 0.48, 0.035);
+        this.bladeMat = new THREE.MeshLambertMaterial({ color: 0x92400e }); // Wooden blade
+        const blade = new THREE.Mesh(bladeGeo, this.bladeMat);
+        blade.position.set(0, 0.18, 0);
+        this.swordGroup.add(blade);
+
+        const guardGeo = new THREE.BoxGeometry(0.16, 0.03, 0.05);
+        const guardMat = new THREE.MeshLambertMaterial({ color: 0x52525b });
+        const guard = new THREE.Mesh(guardGeo, guardMat);
+        guard.position.set(0, -0.05, 0);
+        this.swordGroup.add(guard);
+
+        this.swordGroup.rotation.set(-0.65, 0.1, 0);
+        this.swordGroup.visible = false;
+        this.handGroup.add(this.swordGroup);
+
+        this.camera.add(this.handGroup);
+        this.swingTime = 0;
+        this.isSwinging = false;
+    }
+
+    triggerSwing() {
+        this.isSwinging = true;
+        this.swingTime = 0;
+        playSwingSound();
+    }
+
+    updateHand(dt) {
+        if (!this.handGroup) return;
+
+        const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+        const isSword = (activeItemId === 24 || activeItemId === 25);
+        if (this.swordGroup) {
+            this.swordGroup.visible = isSword;
+            if (activeItemId === 25) {
+                this.bladeMat.color.setHex(0x78716c); // Stone sword
+            } else if (activeItemId === 24) {
+                this.bladeMat.color.setHex(0x92400e); // Wood sword
+            }
+        }
+
+        // Swing animation
+        if (this.isSwinging) {
+            this.swingTime += dt * 16.0;
+            if (this.swingTime >= Math.PI) {
+                this.swingTime = 0;
+                this.isSwinging = false;
+                this.handGroup.rotation.set(0, 0, 0);
+            } else {
+                const s = Math.sin(this.swingTime);
+                this.handGroup.rotation.x = -s * 0.65;
+                this.handGroup.rotation.y = s * 0.35;
+                this.handGroup.rotation.z = -s * 0.2;
+            }
+        } else {
+            // Gentle breathing bob
+            const bob = Math.sin(Date.now() * 0.0035) * 0.008;
+            this.handGroup.position.y = -0.26 + bob;
+        }
+    }
+
     updateHighlight() {
         if (this.currentTarget && this.currentTarget.hit) {
             this.highlightMesh.position.set(
@@ -325,6 +475,8 @@ export class Interaction {
     }
 
     update(dt) {
+        this.updateHand(dt);
+
         if (this.player.controls.isLocked) {
             this.currentTarget = this.raycastVoxels();
             this.updateHighlight();

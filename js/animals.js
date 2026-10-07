@@ -365,6 +365,22 @@ export class Animal {
 
         this.group.add(lLegPivot, rLegPivot);
         this.legs = [lLegPivot, rLegPivot];
+
+        // 3D Floating Health Bar above zombie head
+        this.healthBarGroup = new THREE.Group();
+        this.healthBarGroup.position.set(0, 1.95, 0);
+
+        const barBgGeo = new THREE.BoxGeometry(0.72, 0.09, 0.02);
+        const barBgMat = new THREE.MeshBasicMaterial({ color: 0x18181b });
+        const barBg = new THREE.Mesh(barBgGeo, barBgMat);
+        this.healthBarGroup.add(barBg);
+
+        const barFillGeo = new THREE.BoxGeometry(0.70, 0.07, 0.025);
+        this.barFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+        this.healthBarFill = new THREE.Mesh(barFillGeo, this.barFillMat);
+        this.healthBarGroup.add(this.healthBarFill);
+
+        this.group.add(this.healthBarGroup);
     }
 
     getGroundHeight(x, z) {
@@ -569,6 +585,24 @@ export class Animal {
                     } else {
                         this.state = 'walk';
                     }
+                }
+            }
+
+            // Update 3D Floating Health Bar
+            if (this.healthBarGroup && playerPosition) {
+                const angleToPlayer = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
+                this.healthBarGroup.rotation.y = -this.rotationY + angleToPlayer + Math.PI;
+
+                const hpRatio = Math.max(0, this.health / this.maxHealth);
+                this.healthBarFill.scale.x = hpRatio;
+                this.healthBarFill.position.x = -0.35 * (1 - hpRatio);
+
+                if (hpRatio < 0.35) {
+                    this.barFillMat.color.setHex(0xef4444); // Red
+                } else if (hpRatio < 0.65) {
+                    this.barFillMat.color.setHex(0xeab308); // Yellow
+                } else {
+                    this.barFillMat.color.setHex(0x22c55e); // Green
                 }
             }
         } else if (this.isTamed && playerPosition) {

@@ -10,7 +10,7 @@ export const HOTBAR_BLOCKS = [
     { slot: 6, id: 6, name: 'Piasek', count: 64 },
     { slot: 7, id: 7, name: 'Śnieg', count: 64 },
     { slot: 8, id: 8, name: 'Deski', count: 32 },
-    { slot: 9, id: 9, name: 'Szkło', count: 64 }
+    { slot: 9, id: 24, name: 'Drewniany Miecz', count: 1 }
 ];
 
 // Helper to create a pixel-perfect square Minecraft Stick canvas (16x16)
