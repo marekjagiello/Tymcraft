@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- Isometric Top Face Grid -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Ground drop shadow -->
+  <polygon points="128,248 238,185 128,125 18,185" fill="#000000" opacity="0.25" filter="url(#shadow)" />
+
+  <!-- Cube faces -->
+  <g id="minecraft-block">
+    <!-- Top Face (Grass) -->
+    <polygon points="128,24 232,84 128,144 24,84" fill="#5c8e32" stroke="#487226" stroke-width="2" stroke-linejoin="round"/>
+    
+    <!-- Top Face Texture Detail / Pixels -->
+    <polygon points="128,40 154,55 128,70 102,55" fill="#6ba63a"/>
+    <polygon points="80,68 106,83 80,98 54,83" fill="#6ba63a"/>
+    <polygon points="176,68 202,83 176,98 150,83" fill="#4d7729"/>
+    <polygon points="128,88 154,103 128,118 102,103" fill="#4d7729"/>
+    <polygon points="102,55 128,70 102,85 76,70" fill="#78b940"/>
+    <polygon points="154,55 180,70 154,85 128,70" fill="#55832e"/>
+    <polygon points="154,85 180,100 154,115 128,100" fill="#6ba63a"/>
+
+    <!-- Left Face (Dirt) -->
+    <polygon points="24,84 128,144 128,236 24,176" fill="#866043" stroke="#5c3e28" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Left Face Dirt Texture -->
+    <polygon points="36,110 58,123 58,143 36,130" fill="#725036"/>
+    <polygon points="76,133 98,146 98,166 76,153" fill="#996e4e"/>
+    <polygon points="46,145 68,158 68,178 46,165" fill="#63452e"/>
+    <polygon points="86,170 108,183 108,203 86,190" fill="#725036"/>
+    <polygon points="36,160 58,173 58,193 36,180" fill="#996e4e"/>
+    <!-- Left Face Grass Overhang -->
+    <polygon points="24,84 128,144 128,164 110,153 110,166 88,153 88,168 64,154 64,142 44,130 44,145 24,133" fill="#5c8e32" stroke="#487226" stroke-width="1.5"/>
+    <polygon points="44,115 64,127 64,140 44,128" fill="#4d7729"/>
+    <polygon points="88,140 110,153 110,166 88,153" fill="#6ba63a"/>
+
+    <!-- Right Face (Dirt in shadow) -->
+    <polygon points="128,144 232,84 232,176 128,236" fill="#6f4e36" stroke="#4d3422" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Right Face Dirt Texture -->
+    <polygon points="144,166 166,153 166,173 144,186" fill="#593e2a"/>
+    <polygon points="184,143 206,130 206,150 184,163" fill="#805b3f"/>
+    <polygon points="154,190 176,177 176,197 154,210" fill="#805b3f"/>
+    <polygon points="194,167 216,154 216,174 194,187" fill="#593e2a"/>
+    <!-- Right Face Grass Overhang -->
+    <polygon points="128,144 232,84 232,133 212,145 212,130 192,142 192,154 168,168 168,153 146,166 146,153 128,164" fill="#4d7729" stroke="#3d5e20" stroke-width="1.5"/>
+    <polygon points="168,140 192,126 192,140 168,154" fill="#3f631a"/>
+    <polygon points="138,156 156,145 156,158 138,169" fill="#5c8e32"/>
+  </g>
+</svg>
