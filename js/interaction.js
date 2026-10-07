@@ -93,8 +93,8 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'zombie') ? 1.85 : ((animal.type === 'snake') ? 0.35 : 0.85);
-            const hitRadius = (animal.type === 'snake') ? 0.80 : ((animal.type === 'zombie') ? 0.95 : 0.85);
+            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'snake') ? 0.35 : 0.85);
+            const hitRadius = (animal.type === 'snake') ? 0.80 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 0.95 : 0.85);
 
             // Center of animal vertical capsule
             const center = animal.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
@@ -126,7 +126,7 @@ export class Interaction {
             if (e.button === 0) {
                 this.triggerSwing();
 
-                // Left Click: Check if aimed at an animal (snake, sheep, pig, zombie)
+                // Left Click: Check if aimed at an animal (snake, sheep, pig, zombie, skeleton)
                 const animal = this.raycastAnimal();
                 if (animal) {
                     if (activeItemId === 23) {
@@ -151,11 +151,13 @@ export class Interaction {
                             let name = 'zwierzę';
                             if (animal.type === 'snake') name = 'węża';
                             else if (animal.type === 'zombie') name = 'Zombie';
+                            else if (animal.type === 'skeleton') name = 'Szkieleta';
                             else if (animal.type === 'pig') name = 'świnię';
                             else if (animal.type === 'sheep') name = 'owcę';
                             if (this.ui) this.ui.showPopup(`💥 Pokonano ${name}!`);
-                        } else if (animal.type === 'zombie' && this.ui) {
-                            this.ui.showPopup(`⚔️ Trafiono Zombie! (${animal.health}/${animal.maxHealth} HP)`);
+                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton') && this.ui) {
+                            const enemyName = animal.type === 'skeleton' ? 'Szkieleta' : 'Zombie';
+                            this.ui.showPopup(`⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`);
                         }
                         return;
                     }
@@ -295,8 +297,8 @@ export class Interaction {
             return;
         }
 
-        // 2. Tools & Weapons (Pickaxes, Sticks, Swords, Flesh) cannot be placed as blocks
-        if ((activeItemId >= 20 && activeItemId <= 22) || activeItemId === 24 || activeItemId === 25 || activeItemId === 26) {
+        // 2. Tools, Weapons, Bones & Arrows cannot be placed as blocks
+        if ((activeItemId >= 20 && activeItemId <= 22) || (activeItemId >= 24 && activeItemId <= 28)) {
             return;
         }
 

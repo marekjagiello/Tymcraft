@@ -94,6 +94,41 @@ function createRottenFleshMesh() {
     return group;
 }
 
+function createBoneMesh() {
+    const group = new THREE.Group();
+    const mat = new THREE.MeshLambertMaterial({ color: 0xe4e4e7 });
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.24, 0.06), mat);
+    group.add(shaft);
+    const knob1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.08), mat);
+    knob1.position.set(0, 0.12, 0);
+    const knob2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.08), mat);
+    knob2.position.set(0, -0.12, 0);
+    group.add(knob1, knob2);
+    group.rotation.z = Math.PI / 4;
+    return group;
+}
+
+function createArrowDropMesh() {
+    const group = new THREE.Group();
+    const woodMat = new THREE.MeshLambertMaterial({ color: 0xd97706 });
+    const tipMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+    const fletchMat = new THREE.MeshLambertMaterial({ color: 0xf8fafc });
+
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.03), woodMat);
+    group.add(shaft);
+
+    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.07), tipMat);
+    tip.position.set(0, 0.14, 0);
+    group.add(tip);
+
+    const fletch = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.06), fletchMat);
+    fletch.position.set(0, -0.12, 0);
+    group.add(fletch);
+
+    group.rotation.z = Math.PI / 4;
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -130,6 +165,10 @@ export class DroppedItem {
             this.mesh = createStickMesh();
         } else if (this.id === 26) {
             this.mesh = createRottenFleshMesh();
+        } else if (this.id === 27) {
+            this.mesh = createBoneMesh();
+        } else if (this.id === 28) {
+            this.mesh = createArrowDropMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }

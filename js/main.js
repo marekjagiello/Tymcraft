@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js';
 import { Player } from './player.js';
-import { Interaction } from './interaction.js?v=zombie7';
-import { AnimalManager } from './animals.js?v=zombie7';
-import { UI } from './ui.js?v=zombie7';
+import { Interaction } from './interaction.js?v=skeleton1';
+import { AnimalManager } from './animals.js?v=skeleton1';
+import { UI } from './ui.js?v=skeleton1';
 import { StorageManager } from './storage.js';
 import { SurvivalManager } from './survival.js';
 import { CraftingManager } from './crafting.js';

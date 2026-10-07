@@ -10,7 +10,9 @@ export const ITEMS = {
     APPLE: { id: 23, name: 'Jabłko', type: 'food', nutrition: 4, icon: 'apple' },
     WOOD_SWORD: { id: 24, name: 'Drewniany Miecz', type: 'weapon', damage: 4, icon: 'wood_sword' },
     STONE_SWORD: { id: 25, name: 'Kamienny Miecz', type: 'weapon', damage: 6, icon: 'stone_sword' },
-    ROTTEN_FLESH: { id: 26, name: 'Zgniłe Mięso', type: 'food', nutrition: 2, icon: 'flesh' }
+    ROTTEN_FLESH: { id: 26, name: 'Zgniłe Mięso', type: 'food', nutrition: 2, icon: 'flesh' },
+    BONE: { id: 27, name: 'Kość', type: 'item', icon: 'bone' },
+    ARROW: { id: 28, name: 'Strzała', type: 'item', icon: 'arrow' }
 };
 
 export class CraftingManager {

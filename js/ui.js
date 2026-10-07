@@ -135,6 +135,8 @@ export class UI {
                 else if (item.id === 24) itemSpan.innerText = '🗡️';
                 else if (item.id === 25) itemSpan.innerText = '⚔️';
                 else if (item.id === 26) itemSpan.innerText = '🥩';
+                else if (item.id === 27) itemSpan.innerText = '🦴';
+                else if (item.id === 28) itemSpan.innerText = '🏹';
                 slot.appendChild(itemSpan);
             } else {
                 // Voxel block texture icon from Atlas
@@ -489,11 +491,17 @@ export class UI {
 
         if (this.infoEl) {
             let zombieText = 'Brak';
+            let skeletonText = 'Brak';
             if (this.animals && this.animals.animals) {
                 const z = this.animals.animals.find(a => a.type === 'zombie' && !a.isDead);
                 if (z) {
                     const dist = z.position.distanceTo(this.player.position).toFixed(1);
                     zombieText = `${dist}m (HP: ${z.health}/${z.maxHealth})`;
+                }
+                const sk = this.animals.animals.find(a => a.type === 'skeleton' && !a.isDead);
+                if (sk) {
+                    const dist = sk.position.distanceTo(this.player.position).toFixed(1);
+                    skeletonText = `${dist}m (HP: ${sk.health}/${sk.maxHealth})`;
                 }
             }
 
@@ -501,7 +509,7 @@ export class UI {
                 <div><b>Minecraft Web POC</b> | FPS: ${this.fps}</div>
                 <div>Pozycja: X: ${px} | Y: ${py} | Z: ${pz}</div>
                 <div>Biom: <span class="badge">${biome}</span></div>
-                <div>Zombie: <b style="color: #4ade80">${zombieText}</b></div>
+                <div>Zombie: <b style="color: #4ade80">${zombieText}</b> | Szkielet: <b style="color: #e2e8f0">${skeletonText}</b></div>
                 <div>W ręku: <b>${activeItem.name}</b></div>
             `;
         }
