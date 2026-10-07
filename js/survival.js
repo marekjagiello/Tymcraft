@@ -1,4 +1,5 @@
 // Survival mechanics: Health, Hunger, Fall Damage, Starvation, and Eating
+import { eventBus } from './events.js';
 
 export class SurvivalManager {
     constructor(player, onStatsChange) {
@@ -22,6 +23,27 @@ export class SurvivalManager {
         this.deathOverlayEl = document.getElementById('death-overlay');
 
         this.initDeathScreen();
+        this.initEventListeners();
+    }
+
+    initEventListeners() {
+        this._handledByEvent = true;
+
+        eventBus.on('player:damage', (data) => {
+            const amount = typeof data === 'number' ? data : (data?.amount ?? 1);
+            const reason = typeof data === 'object' ? (data?.reason ?? 'damage') : 'damage';
+            this.takeDamage(amount, reason);
+        });
+
+        eventBus.on('player:heal', (data) => {
+            const amount = typeof data === 'number' ? data : (data?.amount ?? 1);
+            this.heal(amount);
+        });
+
+        eventBus.on('player:feed', (data) => {
+            const amount = typeof data === 'number' ? data : (data?.amount ?? 1);
+            this.feed(amount);
+        });
     }
 
     initDeathScreen() {
@@ -58,6 +80,10 @@ export class SurvivalManager {
         this.hunger = Math.min(this.maxHunger, this.hunger + amount);
         this.heal(1);
         this.onStatsChange(this.health, this.hunger);
+    }
+
+    eat(amount) {
+        this.feed(amount);
     }
 
     flashRedVignette() {

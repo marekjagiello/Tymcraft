@@ -1,5 +1,6 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js';
 import { ITEMS } from './crafting.js';
+import { eventBus } from './events.js';
 
 export const HOTBAR_BLOCKS = [
     { slot: 1, id: 1, name: 'Trawa', count: 64 },
@@ -73,6 +74,23 @@ export class UI {
         this.renderSurvivalBars(this.survival ? this.survival.health : 20, this.survival ? this.survival.hunger : 20);
         this.initEvents();
         this.initCraftingUI();
+        this.initBusEvents();
+    }
+
+    initBusEvents() {
+        this._handledByEvent = true;
+        eventBus.on('ui:popup', (text) => {
+            if (typeof text === 'string') this.showPopup(text);
+            else if (text?.message) this.showPopup(text.message);
+        });
+        eventBus.on('item:consume', () => {
+            this.consumeActiveItem();
+        });
+        eventBus.on('item:add', (data) => {
+            if (data && data.id) {
+                this.addItem(data.id, data.name || 'Przedmiot', data.count || 1);
+            }
+        });
     }
 
     getActiveBlockId() {

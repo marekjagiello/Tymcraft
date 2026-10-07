@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js';
 import { Player } from './player.js';
-import { Interaction } from './interaction.js?v=skeleton1';
-import { AnimalManager } from './animals.js?v=skeleton1';
-import { UI } from './ui.js?v=skeleton1';
+import { Interaction } from './interaction.js?v=arch1';
+import { AnimalManager } from './animals.js?v=arch1';
+import { UI } from './ui.js?v=arch1';
 import { StorageManager } from './storage.js';
 import { SurvivalManager } from './survival.js';
 import { CraftingManager } from './crafting.js';
 import { DropsManager } from './drops.js';
+import { eventBus } from './events.js';
 
 class Game {
     constructor() {
@@ -87,7 +88,7 @@ class Game {
         // 7. Drops System (floating mini-blocks and apples)
         this.drops = new DropsManager(this.scene, this.world);
 
-        // 8. Interaction (Mining, Placing, Tool speed, Food eating)
+        // 8. Interaction (Mining, Placing, Combat, Eating)
         this.interaction = new Interaction(
             this.scene,
             this.camera,
@@ -97,20 +98,14 @@ class Game {
             this.drops
         );
         this.interaction.survival = this.survival;
-        this.interaction.onItemConsumed = () => {
-            this.ui.consumeActiveItem();
-        };
-        this.interaction.onBlockPlaced = () => {
-            this.ui.consumeActiveItem();
-        };
+        this.interaction.ui = this.ui;
 
-        // 9. Animals
+        // 9. Entity / Animal System
         this.animals = new AnimalManager(this.scene, this.world, this.player);
         this.animals.survival = this.survival;
         this.animals.drops = this.drops;
         this.animals.ui = this.ui;
         this.interaction.animals = this.animals;
-        this.interaction.ui = this.ui;
         if (this.ui) this.ui.animals = this.animals;
 
         this.clock = new THREE.Clock();

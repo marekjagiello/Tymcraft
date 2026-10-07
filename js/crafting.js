@@ -1,19 +1,7 @@
-// 2x2 Crafting system and tool definitions
+// 2x2 Crafting system using centralized Item Registry
+import { ITEMS } from './items.js';
 
-export const ITEMS = {
-    WOOD_LOG: { id: 4, name: 'Drewno', type: 'block' },
-    PLANKS: { id: 8, name: 'Deski', type: 'block' },
-    STONE: { id: 3, name: 'Kamień', type: 'block' },
-    STICK: { id: 20, name: 'Patyk', type: 'item', icon: 'stick' },
-    WOOD_PICKAXE: { id: 21, name: 'Drewniany Kilof', type: 'tool', efficiency: 3.0, icon: 'wood_pick' },
-    STONE_PICKAXE: { id: 22, name: 'Kamienny Kilof', type: 'tool', efficiency: 5.5, icon: 'stone_pick' },
-    APPLE: { id: 23, name: 'Jabłko', type: 'food', nutrition: 4, icon: 'apple' },
-    WOOD_SWORD: { id: 24, name: 'Drewniany Miecz', type: 'weapon', damage: 4, icon: 'wood_sword' },
-    STONE_SWORD: { id: 25, name: 'Kamienny Miecz', type: 'weapon', damage: 6, icon: 'stone_sword' },
-    ROTTEN_FLESH: { id: 26, name: 'Zgniłe Mięso', type: 'food', nutrition: 2, icon: 'flesh' },
-    BONE: { id: 27, name: 'Kość', type: 'item', icon: 'bone' },
-    ARROW: { id: 28, name: 'Strzała', type: 'item', icon: 'arrow' }
-};
+export { ITEMS };
 
 export class CraftingManager {
     constructor(onInventoryChange) {

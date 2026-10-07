@@ -1,51 +1,11 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js';
+import { playSwingSound, playHitSound, playEatSound } from './audio.js';
+import { getItem, getItemDamage, isFood, isPlaceableBlock } from './items.js';
+import { eventBus } from './events.js';
 
-// Web Audio API sounds for combat
-let audioCtx = null;
-function getAudioContext() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-    return audioCtx;
-}
-
-export function playSwingSound() {
-    try {
-        const ctx = getAudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(260, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.08);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.08);
-    } catch (_) {}
-}
-
-export function playHitSound() {
-    try {
-        const ctx = getAudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(150, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.12);
-    } catch (_) {}
-}
+// Re-export audio helpers for backward compatibility
+export { playSwingSound, playHitSound };
 
 export class Interaction {
     constructor(scene, camera, world, player, getActiveBlockId, drops = null) {
@@ -76,6 +36,10 @@ export class Interaction {
         this.currentTarget = null;
         this.animals = null;
         this.ui = null;
+        this.survival = null;
+        this.onItemConsumed = null;
+        this.onBlockPlaced = null;
+
         this.buildFirstPersonHand();
         this.initEvents();
     }
@@ -121,7 +85,7 @@ export class Interaction {
         window.addEventListener('mousedown', (e) => {
             if (!this.player.controls.isLocked) return;
 
-            const activeItemId = this.getActiveBlockId();
+            const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
 
             if (e.button === 0) {
                 this.triggerSwing();
@@ -130,16 +94,15 @@ export class Interaction {
                 const animal = this.raycastAnimal();
                 if (animal) {
                     if (activeItemId === 23) {
-                        // Clicking with apple as if to attack/destroy feeds it instead: hearts appear!
+                        // Clicking with apple feeds it instead: hearts appear!
                         animal.interactWithApple();
+                        eventBus.emit('item:consume');
+                        eventBus.emit('ui:popup', '❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
                         if (this.onItemConsumed) this.onItemConsumed(23);
-                        if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca! 🐍");
+                        if (this.ui && !this.ui._handledByEvent) this.ui.showPopup('❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
                         return;
                     } else {
-                        let damage = 2;
-                        if (activeItemId === 24) damage = 5; // Wooden Sword
-                        else if (activeItemId === 25) damage = 8; // Stone Sword
-                        else if (activeItemId === 21 || activeItemId === 22) damage = 3.5; // Pickaxes
+                        const damage = getItemDamage(activeItemId, 2.0);
 
                         playHitSound();
                         const hitPos = animal.position.clone().add(new THREE.Vector3(0, 0.9, 0));
@@ -147,6 +110,7 @@ export class Interaction {
 
                         const wasAlive = animal.health > 0;
                         animal.onAttacked(damage, this.player.position);
+
                         if (wasAlive && animal.health <= 0) {
                             let name = 'zwierzę';
                             if (animal.type === 'snake') name = 'węża';
@@ -154,10 +118,15 @@ export class Interaction {
                             else if (animal.type === 'skeleton') name = 'Szkieleta';
                             else if (animal.type === 'pig') name = 'świnię';
                             else if (animal.type === 'sheep') name = 'owcę';
-                            if (this.ui) this.ui.showPopup(`💥 Pokonano ${name}!`);
-                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton') && this.ui) {
+
+                            const msg = `💥 Pokonano ${name}!`;
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton')) {
                             const enemyName = animal.type === 'skeleton' ? 'Szkieleta' : 'Zombie';
-                            this.ui.showPopup(`⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`);
+                            const msg = `⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`;
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
                         }
                         return;
                     }
@@ -171,16 +140,35 @@ export class Interaction {
                 const animal = this.raycastAnimal();
                 if (animal && activeItemId === 23) {
                     animal.interactWithApple();
+                    eventBus.emit('item:consume');
+                    eventBus.emit('ui:popup', '❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
                     if (this.onItemConsumed) this.onItemConsumed(23);
-                    if (this.ui) this.ui.showPopup("❤️ Nakarmiono węża! Pojawiły się serca! 🐍");
+                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup('❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
                     return;
                 }
 
-                // Eat Rotten Flesh (ID 26)
-                if (activeItemId === 26 && this.survival) {
-                    this.survival.eat(2);
-                    if (this.onItemConsumed) this.onItemConsumed(26);
-                    if (this.ui) this.ui.showPopup("🍖 Zjedzono zgniłe mięso (+2 głód)!");
+                // Eat Food (Apple or Rotten Flesh, or any food in registry)
+                if (isFood(activeItemId)) {
+                    const foodDef = getItem(activeItemId);
+                    const nutrition = foodDef?.nutrition || 2;
+                    const heals = foodDef?.heals || 0;
+
+                    playEatSound();
+                    eventBus.emit('player:feed', nutrition);
+                    if (heals > 0) eventBus.emit('player:heal', heals);
+                    eventBus.emit('item:consume');
+
+                    const msg = activeItemId === 23
+                        ? '🍎 Zjedzono jabłko (+4 głód)!'
+                        : `🍖 Zjedzono ${foodDef?.name || 'jedzenie'} (+${nutrition} głód)!`;
+
+                    eventBus.emit('ui:popup', msg);
+
+                    if (this.survival && !this.survival._handledByEvent) {
+                        this.survival.feed(nutrition);
+                    }
+                    if (this.onItemConsumed) this.onItemConsumed(activeItemId);
+                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
                     return;
                 }
 
@@ -223,7 +211,7 @@ export class Interaction {
 
         while (dist <= maxDist) {
             const blockId = this.world.getBlock(x, y, z);
-            if (blockId !== 0 && blockId !== 10) { // Hit solid non-water block
+            if (blockId !== 0 && blockId !== 10) { // Solid non-water block
                 return {
                     hit: true,
                     x, y, z,
@@ -268,37 +256,22 @@ export class Interaction {
         const { x, y, z, blockId } = this.currentTarget;
         if (blockId === 14) return; // Cannot break bedrock
 
-        // Spawn particles
         this.spawnBreakParticles(x + 0.5, y + 0.5, z + 0.5, blockId);
-
-        // Remove block from world
         this.world.setBlock(x, y, z, 0);
 
-        // Spawn 3D dropped item on the ground (mini-block or Apple from leaves)
         if (this.drops) {
             this.drops.spawnBlockDrop(x, y, z, blockId);
         }
 
-        // Re-check target
         this.currentTarget = this.raycastVoxels();
         this.updateHighlight();
     }
 
     placeBlock() {
-        const activeItemId = this.getActiveBlockId();
+        const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
 
-        // 1. If holding food (Apple: ID 23), eat it!
-        if (activeItemId === 23) {
-            if (this.survival) {
-                this.survival.feed(4);
-                console.log("[Interaction] Zjedzono jabłko! (+4 głód)");
-                if (this.onItemConsumed) this.onItemConsumed(23);
-            }
-            return;
-        }
-
-        // 2. Tools, Weapons, Bones & Arrows cannot be placed as blocks
-        if ((activeItemId >= 20 && activeItemId <= 22) || (activeItemId >= 24 && activeItemId <= 28)) {
+        // Guard: check if placeable block using Item Registry
+        if (!isPlaceableBlock(activeItemId)) {
             return;
         }
 
@@ -328,23 +301,24 @@ export class Interaction {
         }
 
         this.world.setBlock(placeX, placeY, placeZ, activeItemId);
+
+        eventBus.emit('item:consume');
         if (this.onBlockPlaced) {
             this.onBlockPlaced(activeItemId);
         }
 
-        // Re-check target
         this.currentTarget = this.raycastVoxels();
         this.updateHighlight();
     }
 
     spawnBreakParticles(x, y, z, blockId) {
-        let pColor = 0x866043; // default brown
-        if (blockId === 1) pColor = 0x588c34; // green
-        if (blockId === 3) pColor = 0x808080; // stone
-        if (blockId === 4) pColor = 0x6c5333; // wood
-        if (blockId === 5) pColor = 0x365e1d; // leaves
-        if (blockId === 6) pColor = 0xdbcd98; // sand
-        if (blockId === 7) pColor = 0xf0f5f5; // snow
+        let pColor = 0x866043;
+        if (blockId === 1) pColor = 0x588c34;
+        if (blockId === 3) pColor = 0x808080;
+        if (blockId === 4) pColor = 0x6c5333;
+        if (blockId === 5) pColor = 0x365e1d;
+        if (blockId === 6) pColor = 0xdbcd98;
+        if (blockId === 7) pColor = 0xf0f5f5;
 
         const pMat = new THREE.MeshLambertMaterial({ color: pColor });
 
@@ -360,14 +334,14 @@ export class Interaction {
                 Math.random() * 4 + 1,
                 (Math.random() - 0.5) * 4
             );
-            p.life = 0.5; // seconds
+            p.life = 0.5;
             this.scene.add(p);
             this.particles.push(p);
         }
     }
 
     spawnHitParticles(pos) {
-        const pMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 }); // Golden critical spark
+        const pMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
         for (let i = 0; i < 8; i++) {
             const p = new THREE.Mesh(this.particleGeo, pMat);
             p.position.copy(pos).add(new THREE.Vector3(
@@ -391,19 +365,17 @@ export class Interaction {
         this.handGroup = new THREE.Group();
         this.handGroup.position.set(0.32, -0.26, -0.48);
 
-        // First-person Arm (Skin)
         const armGeo = new THREE.BoxGeometry(0.11, 0.13, 0.38);
         const armMat = new THREE.MeshLambertMaterial({ color: 0xd9a066 });
         this.armMesh = new THREE.Mesh(armGeo, armMat);
         this.armMesh.rotation.set(-0.25, 0.18, 0);
         this.handGroup.add(this.armMesh);
 
-        // First-person Sword model
         this.swordGroup = new THREE.Group();
         this.swordGroup.position.set(0, 0.12, -0.16);
 
         const bladeGeo = new THREE.BoxGeometry(0.05, 0.48, 0.035);
-        this.bladeMat = new THREE.MeshLambertMaterial({ color: 0x92400e }); // Wooden blade
+        this.bladeMat = new THREE.MeshLambertMaterial({ color: 0x92400e });
         const blade = new THREE.Mesh(bladeGeo, this.bladeMat);
         blade.position.set(0, 0.18, 0);
         this.swordGroup.add(blade);
@@ -437,29 +409,24 @@ export class Interaction {
         if (this.swordGroup) {
             this.swordGroup.visible = isSword;
             if (activeItemId === 25) {
-                this.bladeMat.color.setHex(0x78716c); // Stone sword
+                this.bladeMat.color.setHex(0x78716c);
             } else if (activeItemId === 24) {
-                this.bladeMat.color.setHex(0x92400e); // Wood sword
+                this.bladeMat.color.setHex(0x92400e);
             }
         }
 
-        // Swing animation
         if (this.isSwinging) {
             this.swingTime += dt * 16.0;
             if (this.swingTime >= Math.PI) {
                 this.swingTime = 0;
                 this.isSwinging = false;
-                this.handGroup.rotation.set(0, 0, 0);
-            } else {
-                const s = Math.sin(this.swingTime);
-                this.handGroup.rotation.x = -s * 0.65;
-                this.handGroup.rotation.y = s * 0.35;
-                this.handGroup.rotation.z = -s * 0.2;
             }
+            const swingAngle = Math.sin(this.swingTime) * 0.75;
+            this.handGroup.rotation.x = -swingAngle * 1.1;
+            this.handGroup.rotation.y = swingAngle * 0.6;
+            this.handGroup.rotation.z = -swingAngle * 0.4;
         } else {
-            // Gentle breathing bob
-            const bob = Math.sin(Date.now() * 0.0035) * 0.008;
-            this.handGroup.position.y = -0.26 + bob;
+            this.handGroup.rotation.set(0, 0, 0);
         }
     }
 
@@ -477,27 +444,20 @@ export class Interaction {
     }
 
     update(dt) {
+        this.currentTarget = this.raycastVoxels();
+        this.updateHighlight();
         this.updateHand(dt);
 
-        if (this.player.controls.isLocked) {
-            this.currentTarget = this.raycastVoxels();
-            this.updateHighlight();
-        } else {
-            this.highlightMesh.visible = false;
-        }
-
-        // Update particles
+        // Update block break & hit particles
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             p.life -= dt;
             if (p.life <= 0) {
                 this.scene.remove(p);
-                p.geometry.dispose();
                 this.particles.splice(i, 1);
             } else {
-                p.velocity.y -= 15 * dt;
                 p.position.addScaledVector(p.velocity, dt);
-                p.scale.multiplyScalar(0.96);
+                p.velocity.y -= 14.0 * dt; // gravity
             }
         }
     }
