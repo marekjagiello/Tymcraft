@@ -52,7 +52,7 @@ else
 import sys, subprocess
 with open('$LOG_FILE', 'a') as f:
     p = subprocess.Popen(
-        [sys.executable, '-m', 'http.server', '$PORT'],
+        [sys.executable, 'server.py', str('$PORT')],
         cwd='$PROJECT_DIR',
         stdout=f,
         stderr=f,

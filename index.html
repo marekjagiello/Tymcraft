@@ -7,6 +7,55 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft Web POC</title>
+    <!-- Automatic browser error reporter -->
+    <script>
+    (function() {
+        function sendLog(type, message, stack) {
+            try {
+                fetch('/api/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: type || 'ERROR',
+                        message: String(message),
+                        stack: stack || ''
+                    }),
+                    keepalive: true
+                }).catch(function() {});
+            } catch(e) {}
+        }
+        window.logToServer = sendLog;
+
+        window.addEventListener('error', function(event) {
+            var msg = event.message || 'Unknown Error';
+            var stack = (event.error && event.error.stack) ? event.error.stack : (event.filename + ':' + event.lineno + ':' + event.colno);
+            sendLog('ERROR', msg, stack);
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            var reason = event.reason;
+            var stack = (reason && reason.stack) ? reason.stack : '';
+            sendLog('UNHANDLED_REJECTION', String(reason), stack);
+        });
+
+        var origError = console.error;
+        console.error = function() {
+            origError.apply(console, arguments);
+            var parts = [];
+            for (var i = 0; i < arguments.length; i++) {
+                var arg = arguments[i];
+                if (arg instanceof Error) {
+                    parts.push(arg.message + '\n' + (arg.stack || ''));
+                } else if (typeof arg === 'object') {
+                    try { parts.push(JSON.stringify(arg)); } catch(e) { parts.push(String(arg)); }
+                } else {
+                    parts.push(String(arg));
+                }
+            }
+            sendLog('CONSOLE_ERROR', parts.join(' '));
+        };
+    })();
+    </script>
     <link rel="stylesheet" href="./css/style.css?v=backpack2">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%235b8731'/><rect y='6' width='16' height='10' fill='%23866043'/></svg>">
     <script type="importmap">

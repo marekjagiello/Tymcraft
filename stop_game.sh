@@ -21,7 +21,7 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 # Zabezpieczenie: ubicie ewentualnego procesu po wzorcu jeśli PID_FILE wygasł
-if pkill -f "python.*http.server $PORT" 2>/dev/null; then
+if pkill -f "python.*(http\.server|server\.py).*$PORT" 2>/dev/null; then
     STOPPED=1
 fi
 

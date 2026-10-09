@@ -232,8 +232,14 @@ function initGame() {
         try {
             window.__gameInstance = new Game();
             console.log("[Game] Initialized successfully");
+            if (window.logToServer) {
+                window.logToServer('INFO', '[Game] Initialized successfully in browser');
+            }
         } catch (e) {
             console.error("[Game] Failed to initialize:", e);
+            if (window.logToServer) {
+                window.logToServer('ERROR', '[Game] Failed to initialize: ' + (e ? e.message : e), e ? e.stack : '');
+            }
         }
     }
 }
