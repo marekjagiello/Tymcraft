@@ -9,7 +9,8 @@ Voxel survival game prototype inspired by Minecraft, built in Vanilla JavaScript
 
 - No UI action buttons on screen — strictly prohibited by user (no reset buttons, kill buttons or debug triggers in HUD; all actions must be in-game keyboard/mouse controls).
 - Maintain strictly at most 1 Snake in the world (`killSnakesExceptOne()` in `AnimalManager`).
-- Never push or commit without verifying browser execution or user consent.
+- Commit after each change: Rób commit po każdej zakończonej zmianie (po jej przetestowaniu w przeglądarce), aby nie kumulować modyfikacji i w razie wystąpienia błędu móc precyzyjnie ustalić jego przyczynę.
+- Never push without verifying browser execution or user consent.
 
 ## Where things are
 
@@ -46,3 +47,7 @@ Voxel survival game prototype inspired by Minecraft, built in Vanilla JavaScript
 - Forgetting to bump `?v=...` leads to user seeing outdated cached code upon refresh.
 
 <!-- /bmad:context -->
+
+## Workflow & Git Guidelines
+
+- **Zasada częstych commitów (Atomic Commits)**: Po każdej wprowadzonej zmianie/funkcjonalności i jej pomyślnej weryfikacji w przeglądarce należy natychmiast utworzyć commit w git. Pozwala to na szybkie odnalezienie regresji oraz ustalenie źródła ewentualnych błędów.

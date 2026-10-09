@@ -1,10 +1,25 @@
+import os
 import sys
 import time
+import urllib.request
 from playwright.sync_api import sync_playwright
+
+def get_server_port():
+    if os.environ.get('PORT'):
+        return int(os.environ['PORT'])
+    for p in [8000, 8080]:
+        try:
+            with urllib.request.urlopen(f'http://127.0.0.1:{p}/index.html', timeout=0.5) as res:
+                if res.status == 200:
+                    return p
+        except Exception:
+            pass
+    return 8000
 
 def run_test():
     errors = []
     logs = []
+    port = get_server_port()
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -12,6 +27,7 @@ def run_test():
             args=[
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
                 '--use-gl=angle',
                 '--use-angle=swiftshader',
                 '--enable-webgl',
@@ -39,8 +55,9 @@ def run_test():
         page.on('pageerror', on_page_error)
 
         try:
-            print("1. Otwieranie http://127.0.0.1:8080/index.html ...")
-            response = page.goto('http://127.0.0.1:8080/index.html', wait_until='networkidle', timeout=15000)
+            url = f'http://127.0.0.1:{port}/index.html'
+            print(f"1. Otwieranie {url} ...")
+            response = page.goto(url, wait_until='networkidle', timeout=15000)
             assert response.status == 200, f"Błąd HTTP {response.status}"
 
             print("2. Oczekiwanie na zainicjalizowanie Canvasa Three.js...")
