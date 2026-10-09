@@ -44,7 +44,8 @@ export const BLOCK_DEF = {
     9: { name: 'Szkło (Glass)', tiles: [TILES.GLASS, TILES.GLASS, TILES.GLASS, TILES.GLASS, TILES.GLASS, TILES.GLASS], solid: true, transparent: true },
     10: { name: 'Woda (Water)', tiles: [TILES.WATER, TILES.WATER, TILES.WATER, TILES.WATER, TILES.WATER, TILES.WATER], solid: false, transparent: true },
     11: { name: 'Kaktus (Cactus)', tiles: [TILES.CACTUS_TOP, TILES.CACTUS_TOP, TILES.CACTUS_SIDE, TILES.CACTUS_SIDE, TILES.CACTUS_SIDE, TILES.CACTUS_SIDE], solid: true },
-    12: { name: 'Bruk (Cobblestone)', tiles: [TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE], solid: true }
+    12: { name: 'Bruk (Cobblestone)', tiles: [TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE], solid: true },
+    14: { name: 'Skała Macierzysta (Bedrock)', tiles: [TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK], solid: true }
 };
 
 // Build the canvas atlas

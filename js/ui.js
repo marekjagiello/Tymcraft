@@ -1,5 +1,6 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js';
 import { ITEMS } from './crafting.js';
+import { getItem } from './items.js';
 import { eventBus } from './events.js';
 
 export const HOTBAR_BLOCKS = [
@@ -9,10 +10,18 @@ export const HOTBAR_BLOCKS = [
     { slot: 4, id: 4, name: 'Drewno', count: 32 },
     { slot: 5, id: 5, name: 'Liście', count: 64 },
     { slot: 6, id: 6, name: 'Piasek', count: 64 },
-    { slot: 7, id: 7, name: 'Śnieg', count: 64 },
-    { slot: 8, id: 8, name: 'Deski', count: 32 },
+    { slot: 7, id: 29, name: 'Łuk', count: 1 },
+    { slot: 8, id: 28, name: 'Strzała', count: 64 },
     { slot: 9, id: 24, name: 'Drewniany Miecz', count: 1 }
 ];
+
+// 27 Backpack Slots (3 rows of 9 slots)
+export const BACKPACK_SLOTS = Array.from({ length: 27 }, (_, i) => ({
+    slot: i + 1,
+    id: 0,
+    name: 'Puste',
+    count: 0
+}));
 
 // Helper to create a pixel-perfect square Minecraft Stick canvas (16x16)
 export function createPixelStickCanvas() {
@@ -46,6 +55,44 @@ export function createPixelStickCanvas() {
     return iconCanvas;
 }
 
+// Universal item icon creator for hotbar and backpack slots
+export function createSlotItemIcon(itemId) {
+    if (!itemId || itemId <= 0) return null;
+    if (itemId === 20) {
+        return createPixelStickCanvas();
+    }
+    if (itemId >= 21) {
+        const itemSpan = document.createElement('span');
+        itemSpan.style.fontSize = '20px';
+        if (itemId === 21) itemSpan.innerText = '⛏️';
+        else if (itemId === 22) itemSpan.innerText = '⚒️';
+        else if (itemId === 23) itemSpan.innerText = '🍎';
+        else if (itemId === 24) itemSpan.innerText = '🗡️';
+        else if (itemId === 25) itemSpan.innerText = '⚔️';
+        else if (itemId === 26) itemSpan.innerText = '🥩';
+        else if (itemId === 27) itemSpan.innerText = '🦴';
+        else if (itemId === 28) itemSpan.innerText = '🎯';
+        else if (itemId === 29) itemSpan.innerText = '🏹';
+        return itemSpan;
+    }
+    if (itemId >= 1 && itemId <= 14) {
+        const iconCanvas = document.createElement('canvas');
+        iconCanvas.width = 16;
+        iconCanvas.height = 16;
+        iconCanvas.className = 'slot-icon';
+        const ctx = iconCanvas.getContext('2d');
+
+        const def = BLOCK_DEF[itemId];
+        const tileIdx = def?.tiles ? def.tiles[0] : 0;
+        const sx = (tileIdx % ATLAS_COLS) * TILE_SIZE;
+        const sy = Math.floor(tileIdx / ATLAS_COLS) * TILE_SIZE;
+
+        ctx.drawImage(AtlasCanvas, sx, sy, 16, 16, 0, 0, 16, 16);
+        return iconCanvas;
+    }
+    return null;
+}
+
 export class UI {
     constructor(player, world, survival = null, crafting = null, storage = null) {
         this.player = player;
@@ -66,11 +113,18 @@ export class UI {
 
         this.isCraftingOpen = false;
 
+        this.hotbarBlocks = HOTBAR_BLOCKS;
+        this.backpackSlots = BACKPACK_SLOTS;
+        this.cursorItem = null;
+        this.cursorItemEl = document.getElementById('cursor-item-display');
+
         this.fps = 60;
         this.lastFpsUpdate = performance.now();
         this.frameCount = 0;
 
         this.renderHotbar();
+        this.renderBackpackSlots();
+        this.renderModalHotbar();
         this.renderSurvivalBars(this.survival ? this.survival.health : 20, this.survival ? this.survival.hunger : 20);
         this.initEvents();
         this.initCraftingUI();
@@ -85,6 +139,11 @@ export class UI {
         });
         eventBus.on('item:consume', () => {
             this.consumeActiveItem();
+        });
+        eventBus.on('item:consume_specific', (data) => {
+            if (data && data.id) {
+                this.consumeItem(data.id, data.amount || 1);
+            }
         });
         eventBus.on('item:add', (data) => {
             if (data && data.id) {
@@ -132,45 +191,15 @@ export class UI {
     renderHotbar() {
         this.hotbarEl.innerHTML = '';
 
-        HOTBAR_BLOCKS.forEach((item, idx) => {
+        this.hotbarBlocks.forEach((item, idx) => {
             const slot = document.createElement('div');
             slot.className = `hotbar-slot ${idx === this.selectedSlotIndex ? 'active' : ''}`;
             slot.id = `slot-${idx}`;
             slot.title = item.name;
 
-            // Create icon
-            if (item.id === 20) {
-                // Pixel-art square Minecraft Stick icon!
-                const stickCanvas = createPixelStickCanvas();
-                slot.appendChild(stickCanvas);
-            } else if (item.id >= 21) {
-                // Item icon emoji / badge
-                const itemSpan = document.createElement('span');
-                itemSpan.style.fontSize = '20px';
-                if (item.id === 21) itemSpan.innerText = '⛏️';
-                else if (item.id === 22) itemSpan.innerText = '⚒️';
-                else if (item.id === 23) itemSpan.innerText = '🍎';
-                else if (item.id === 24) itemSpan.innerText = '🗡️';
-                else if (item.id === 25) itemSpan.innerText = '⚔️';
-                else if (item.id === 26) itemSpan.innerText = '🥩';
-                else if (item.id === 27) itemSpan.innerText = '🦴';
-                else if (item.id === 28) itemSpan.innerText = '🏹';
-                slot.appendChild(itemSpan);
-            } else {
-                // Voxel block texture icon from Atlas
-                const iconCanvas = document.createElement('canvas');
-                iconCanvas.width = 16;
-                iconCanvas.height = 16;
-                iconCanvas.className = 'slot-icon';
-                const ctx = iconCanvas.getContext('2d');
-
-                const def = BLOCK_DEF[item.id];
-                const tileIdx = def?.tiles ? def.tiles[0] : 0;
-                const sx = (tileIdx % ATLAS_COLS) * TILE_SIZE;
-                const sy = Math.floor(tileIdx / ATLAS_COLS) * TILE_SIZE;
-
-                ctx.drawImage(AtlasCanvas, sx, sy, 16, 16, 0, 0, 16, 16);
-                slot.appendChild(iconCanvas);
+            const icon = createSlotItemIcon(item.id);
+            if (icon) {
+                slot.appendChild(icon);
             }
 
             if (item.count !== undefined && item.count > 0) {
@@ -193,31 +222,196 @@ export class UI {
         });
     }
 
-    addItem(id, name, count = 1) {
-        let slot = HOTBAR_BLOCKS.find(s => s.id === id);
-        if (slot) {
-            slot.count = (slot.count || 0) + count;
+    renderBackpackSlots() {
+        const grid = document.getElementById('backpack-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        this.backpackSlots.forEach((item, idx) => {
+            const slotEl = document.createElement('div');
+            slotEl.className = 'inv-slot backpack-slot';
+            slotEl.dataset.backpackIndex = idx;
+            this.renderSlotContent(slotEl, item);
+
+            slotEl.addEventListener('click', () => {
+                this.handleSlotClick(item, 'backpack', idx);
+            });
+
+            grid.appendChild(slotEl);
+        });
+    }
+
+    renderModalHotbar() {
+        const grid = document.getElementById('modal-hotbar-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        this.hotbarBlocks.forEach((item, idx) => {
+            const slotEl = document.createElement('div');
+            slotEl.className = `inv-slot modal-hotbar-slot ${idx === this.selectedSlotIndex ? 'active-hotbar-slot' : ''}`;
+            slotEl.dataset.hotbarIndex = idx;
+            this.renderSlotContent(slotEl, item);
+
+            const numSpan = document.createElement('span');
+            numSpan.className = 'slot-num';
+            numSpan.innerText = idx + 1;
+            slotEl.appendChild(numSpan);
+
+            slotEl.addEventListener('click', () => {
+                this.handleSlotClick(item, 'hotbar', idx);
+            });
+
+            grid.appendChild(slotEl);
+        });
+    }
+
+    renderSlotContent(slotEl, item) {
+        slotEl.innerHTML = '';
+        if (item.id > 0 && item.count > 0) {
+            const icon = createSlotItemIcon(item.id);
+            if (icon) slotEl.appendChild(icon);
+
+            const countSpan = document.createElement('span');
+            countSpan.className = 'slot-count';
+            countSpan.innerText = item.count;
+            slotEl.appendChild(countSpan);
+            slotEl.title = `${item.name} (${item.count})`;
         } else {
-            slot = HOTBAR_BLOCKS.find(s => !s.count || s.count <= 0);
-            if (slot) {
-                slot.id = id;
-                slot.name = name;
-                slot.count = count;
-            } else {
-                HOTBAR_BLOCKS[this.selectedSlotIndex] = {
-                    slot: this.selectedSlotIndex + 1,
-                    id,
-                    name,
-                    count
+            slotEl.title = 'Puste';
+        }
+    }
+
+    handleSlotClick(itemRef, slotType, slotIndex) {
+        if (!this.cursorItem) {
+            // Pick up item stack into cursor
+            if (itemRef.id > 0 && itemRef.count > 0) {
+                this.cursorItem = {
+                    id: itemRef.id,
+                    name: itemRef.name,
+                    count: itemRef.count
                 };
+                itemRef.id = 0;
+                itemRef.name = 'Puste';
+                itemRef.count = 0;
+            }
+        } else {
+            // Deposit or swap with cursor item
+            if (itemRef.id === 0 || !itemRef.count || itemRef.count <= 0) {
+                itemRef.id = this.cursorItem.id;
+                itemRef.name = this.cursorItem.name;
+                itemRef.count = this.cursorItem.count;
+                this.cursorItem = null;
+            } else if (itemRef.id === this.cursorItem.id) {
+                const space = 64 - itemRef.count;
+                if (space > 0) {
+                    const toAdd = Math.min(space, this.cursorItem.count);
+                    itemRef.count += toAdd;
+                    this.cursorItem.count -= toAdd;
+                    if (this.cursorItem.count <= 0) {
+                        this.cursorItem = null;
+                    }
+                }
+            } else {
+                // Different item - swap
+                const temp = { id: itemRef.id, name: itemRef.name, count: itemRef.count };
+                itemRef.id = this.cursorItem.id;
+                itemRef.name = this.cursorItem.name;
+                itemRef.count = this.cursorItem.count;
+                this.cursorItem = temp;
             }
         }
+
         this.renderHotbar();
-        this.showPopup(`+${count} ${name}`);
+        this.renderBackpackSlots();
+        this.renderModalHotbar();
+        this.updateCursorItemDisplay();
+    }
+
+    updateCursorItemDisplay() {
+        if (!this.cursorItemEl) {
+            this.cursorItemEl = document.getElementById('cursor-item-display');
+        }
+        if (!this.cursorItemEl) return;
+
+        if (this.cursorItem && this.cursorItem.id > 0 && this.cursorItem.count > 0) {
+            this.cursorItemEl.innerHTML = '';
+            const icon = createSlotItemIcon(this.cursorItem.id);
+            if (icon) this.cursorItemEl.appendChild(icon);
+            const countSpan = document.createElement('span');
+            countSpan.className = 'slot-count';
+            countSpan.innerText = this.cursorItem.count;
+            this.cursorItemEl.appendChild(countSpan);
+            this.cursorItemEl.style.display = 'flex';
+        } else {
+            this.cursorItemEl.innerHTML = '';
+            this.cursorItemEl.style.display = 'none';
+        }
+    }
+
+    addItem(id, name, count = 1) {
+        let remaining = count;
+
+        // 1. Try to stack in hotbar
+        for (const slot of this.hotbarBlocks) {
+            if (slot.id === id && (slot.count || 0) < 64) {
+                const space = 64 - slot.count;
+                const toAdd = Math.min(space, remaining);
+                slot.count += toAdd;
+                remaining -= toAdd;
+                if (remaining <= 0) break;
+            }
+        }
+
+        // 2. Try to stack in backpack
+        if (remaining > 0) {
+            for (const slot of this.backpackSlots) {
+                if (slot.id === id && (slot.count || 0) < 64) {
+                    const space = 64 - slot.count;
+                    const toAdd = Math.min(space, remaining);
+                    slot.count += toAdd;
+                    remaining -= toAdd;
+                    if (remaining <= 0) break;
+                }
+            }
+        }
+
+        // 3. Put into first empty slot in hotbar
+        if (remaining > 0) {
+            const emptyHotbar = this.hotbarBlocks.find(s => !s.count || s.count <= 0 || s.id === 0);
+            if (emptyHotbar) {
+                emptyHotbar.id = id;
+                emptyHotbar.name = name;
+                emptyHotbar.count = remaining;
+                remaining = 0;
+            }
+        }
+
+        // 4. Put into first empty slot in backpack
+        if (remaining > 0) {
+            const emptyBackpack = this.backpackSlots.find(s => !s.count || s.count <= 0 || s.id === 0);
+            if (emptyBackpack) {
+                emptyBackpack.id = id;
+                emptyBackpack.name = name;
+                emptyBackpack.count = remaining;
+                remaining = 0;
+            }
+        }
+
+        if (remaining > 0) {
+            this.showPopup('⚠️ Ekwipunek i plecak są pełne!');
+        } else {
+            this.showPopup(`+${count} ${name}`);
+        }
+
+        this.renderHotbar();
+        if (this.isCraftingOpen) {
+            this.renderBackpackSlots();
+            this.renderModalHotbar();
+        }
     }
 
     consumeActiveItem() {
-        const item = HOTBAR_BLOCKS[this.selectedSlotIndex];
+        const item = this.hotbarBlocks[this.selectedSlotIndex];
         if (!item) return;
         if (item.count !== undefined) {
             item.count -= 1;
@@ -227,7 +421,59 @@ export class UI {
                 item.count = 0;
             }
             this.renderHotbar();
+            if (this.isCraftingOpen) {
+                this.renderModalHotbar();
+            }
         }
+    }
+
+    hasItem(itemId, minCount = 1) {
+        let total = 0;
+        for (const slot of this.hotbarBlocks) {
+            if (slot.id === itemId && slot.count > 0) total += slot.count;
+        }
+        for (const slot of this.backpackSlots) {
+            if (slot.id === itemId && slot.count > 0) total += slot.count;
+        }
+        return total >= minCount;
+    }
+
+    consumeItem(itemId, amount = 1) {
+        let needed = amount;
+        // 1. Try consuming from hotbar
+        for (let i = 0; i < this.hotbarBlocks.length && needed > 0; i++) {
+            const slot = this.hotbarBlocks[i];
+            if (slot.id === itemId && slot.count > 0) {
+                const take = Math.min(slot.count, needed);
+                slot.count -= take;
+                needed -= take;
+                if (slot.count <= 0) {
+                    slot.id = 0;
+                    slot.name = 'Puste';
+                    slot.count = 0;
+                }
+            }
+        }
+        // 2. Try consuming from backpack
+        for (let i = 0; i < this.backpackSlots.length && needed > 0; i++) {
+            const slot = this.backpackSlots[i];
+            if (slot.id === itemId && slot.count > 0) {
+                const take = Math.min(slot.count, needed);
+                slot.count -= take;
+                needed -= take;
+                if (slot.count <= 0) {
+                    slot.id = 0;
+                    slot.name = 'Puste';
+                    slot.count = 0;
+                }
+            }
+        }
+        this.renderHotbar();
+        if (this.isCraftingOpen) {
+            this.renderBackpackSlots();
+            this.renderModalHotbar();
+        }
+        return needed === 0;
     }
 
     showPopup(text) {
@@ -266,12 +512,22 @@ export class UI {
     toggleCraftingModal() {
         this.isCraftingOpen = !this.isCraftingOpen;
         if (this.isCraftingOpen) {
+            if (this.overlayEl) this.overlayEl.style.display = 'none';
             this.player.controls.unlock();
             this.craftingModalEl.style.display = 'block';
+            this.renderBackpackSlots();
+            this.renderModalHotbar();
             this.updateCraftingDisplay();
         } else {
+            if (this.cursorItem) {
+                this.addItem(this.cursorItem.id, this.cursorItem.name, this.cursorItem.count);
+                this.cursorItem = null;
+                this.updateCursorItemDisplay();
+            }
             this.craftingModalEl.style.display = 'none';
-            this.player.controls.lock();
+            if (!this.survival?.isDead) {
+                this.player.controls.lock();
+            }
         }
     }
 
@@ -289,15 +545,36 @@ export class UI {
                 const sIdx = parseInt(slotEl.dataset.slot, 10);
                 const currentVal = this.crafting.grid[sIdx];
 
-                // If slot empty: place currently selected hotbar item into it
-                if (!currentVal) {
-                    const activeItem = HOTBAR_BLOCKS[this.selectedSlotIndex];
-                    this.crafting.setSlot(sIdx, activeItem.id);
-                } else {
-                    // Empty slot
+                if (this.cursorItem) {
+                    this.crafting.setSlot(sIdx, this.cursorItem.id);
+                    this.cursorItem.count -= 1;
+                    if (this.cursorItem.count <= 0) {
+                        this.cursorItem = null;
+                    }
+                } else if (currentVal) {
+                    const itemDef = getItem(currentVal) || { name: 'Przedmiot' };
+                    this.cursorItem = {
+                        id: currentVal,
+                        name: itemDef.name || 'Przedmiot',
+                        count: 1
+                    };
                     this.crafting.setSlot(sIdx, null);
+                } else {
+                    const activeItem = this.hotbarBlocks[this.selectedSlotIndex];
+                    if (activeItem && activeItem.id > 0 && activeItem.count > 0) {
+                        this.crafting.setSlot(sIdx, activeItem.id);
+                        activeItem.count -= 1;
+                        if (activeItem.count <= 0) {
+                            activeItem.id = 0;
+                            activeItem.name = 'Puste';
+                            activeItem.count = 0;
+                        }
+                        this.renderHotbar();
+                        this.renderModalHotbar();
+                    }
                 }
                 this.updateCraftingDisplay();
+                this.updateCursorItemDisplay();
             });
         });
 
@@ -306,15 +583,22 @@ export class UI {
             outputSlot.addEventListener('click', () => {
                 const result = this.crafting.craft();
                 if (result) {
-                    // Place crafted item into current active slot!
-                    HOTBAR_BLOCKS[this.selectedSlotIndex] = {
-                        slot: this.selectedSlotIndex + 1,
-                        id: result.item.id,
-                        name: result.item.name,
-                        count: result.count
-                    };
+                    if (!this.cursorItem) {
+                        this.cursorItem = {
+                            id: result.item.id,
+                            name: result.item.name,
+                            count: result.count
+                        };
+                    } else if (this.cursorItem.id === result.item.id) {
+                        this.cursorItem.count += result.count;
+                    } else {
+                        this.addItem(result.item.id, result.item.name, result.count);
+                    }
                     this.renderHotbar();
+                    this.renderBackpackSlots();
+                    this.renderModalHotbar();
                     this.updateCraftingDisplay();
+                    this.updateCursorItemDisplay();
                     console.log(`[Crafting] Stworzono: ${result.item.name} x${result.count}`);
                 }
             });
@@ -330,22 +614,13 @@ export class UI {
                 slotEl.innerHTML = '';
                 slotEl.style.background = '#8b8b8b';
             } else {
-                let name = 'Blok';
-                if (val === 4) name = 'Drewno';
-                else if (val === 8) name = 'Deski';
-                else if (val === 3) name = 'Kamień';
-                else if (val === 20) name = 'Patyk';
-
                 slotEl.innerHTML = '';
-                if (val === 20) {
-                    const canvas = createPixelStickCanvas();
-                    canvas.style.width = '28px';
-                    canvas.style.height = '28px';
-                    canvas.style.display = 'block';
-                    canvas.style.margin = 'auto';
-                    slotEl.appendChild(canvas);
+                const icon = createSlotItemIcon(val);
+                if (icon) {
+                    slotEl.appendChild(icon);
                 } else {
-                    slotEl.innerText = name;
+                    const itemDef = getItem(val);
+                    slotEl.innerText = itemDef ? itemDef.name : 'Blok';
                 }
                 slotEl.style.background = '#555555';
                 slotEl.style.color = '#ffffff';
@@ -357,19 +632,15 @@ export class UI {
             const recipe = this.crafting.evaluateRecipe();
             if (recipe) {
                 outputSlot.innerHTML = '';
-                if (recipe.item.id === 20) {
-                    const canvas = createPixelStickCanvas();
-                    canvas.style.width = '24px';
-                    canvas.style.height = '24px';
-                    canvas.style.verticalAlign = 'middle';
-                    canvas.style.marginRight = '6px';
-                    outputSlot.appendChild(canvas);
-                    const txt = document.createElement('span');
-                    txt.innerText = `${recipe.item.name} (${recipe.count})`;
-                    outputSlot.appendChild(txt);
-                } else {
-                    outputSlot.innerText = `${recipe.item.name} (${recipe.count})`;
+                const icon = createSlotItemIcon(recipe.item.id);
+                if (icon) {
+                    icon.style.marginRight = '6px';
+                    icon.style.verticalAlign = 'middle';
+                    outputSlot.appendChild(icon);
                 }
+                const txt = document.createElement('span');
+                txt.innerText = `${recipe.item.name} (${recipe.count})`;
+                outputSlot.appendChild(txt);
                 outputSlot.style.background = '#15803d';
                 outputSlot.style.cursor = 'pointer';
             } else {
@@ -381,22 +652,35 @@ export class UI {
     }
 
     initEvents() {
-        // Keyboard 1-9 & 'E' for inventory/crafting
+        // Keyboard 1-9 & 'R' or 'E' for backpack/inventory/crafting
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyE') {
+            const isR = e.code === 'KeyR' || e.key === 'r' || e.key === 'R';
+            const isE = e.code === 'KeyE' || e.key === 'e' || e.key === 'E';
+            if (isR || isE) {
                 e.preventDefault();
                 this.toggleCraftingModal();
                 return;
             }
 
-            if (e.code === 'Escape' && this.isCraftingOpen) {
-                this.toggleCraftingModal();
-                return;
+            if (e.code === 'Escape' || e.key === 'Escape') {
+                if (this.isCraftingOpen) {
+                    e.preventDefault();
+                    this.toggleCraftingModal();
+                    return;
+                }
             }
 
             const num = parseInt(e.key, 10);
             if (!isNaN(num) && num >= 1 && num <= 9) {
                 this.selectSlot(num - 1);
+            }
+        });
+
+        // Mouse move to track cursor item preview
+        window.addEventListener('mousemove', (e) => {
+            if (this.isCraftingOpen && this.cursorItem && this.cursorItemEl) {
+                this.cursorItemEl.style.left = `${e.clientX + 10}px`;
+                this.cursorItemEl.style.top = `${e.clientY + 10}px`;
             }
         });
 
@@ -410,18 +694,27 @@ export class UI {
             }
         });
 
-        // Menu Buttons
+        // Menu Buttons & Start Game handling
+        const startGame = () => {
+            if (this.isCraftingOpen) {
+                this.toggleCraftingModal();
+            }
+            this.overlayEl.style.display = 'none';
+            this.hideResetConfirmation();
+            try {
+                this.player.controls.lock();
+            } catch (err) {
+                console.warn("[UI] Pointer lock error:", err);
+            }
+        };
+
         const resumeBtn = document.getElementById('resume-game-btn');
         if (resumeBtn) {
             resumeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (!this.isCraftingOpen) {
-                    this.player.controls.lock();
-                }
+                startGame();
             });
         }
-
-
 
         const resetBtn = document.getElementById('reset-world-btn');
         if (resetBtn) {
@@ -454,10 +747,19 @@ export class UI {
 
         // Pointer Lock events
         this.overlayEl.addEventListener('click', (e) => {
-            if (!this.isCraftingOpen && !e.target.closest('#reset-confirm-box') && !e.target.closest('#reset-world-btn')) {
-                this.player.controls.lock();
+            if (!e.target.closest('#reset-confirm-box') && !e.target.closest('#reset-world-btn')) {
+                startGame();
             }
         });
+
+        // Clicking on game canvas also locks controls if menu is closed
+        if (this.player && this.player.domElement) {
+            this.player.domElement.addEventListener('click', () => {
+                if (this.overlayEl.style.display === 'none' && !this.isCraftingOpen && !this.survival?.isDead) {
+                    this.player.controls.lock();
+                }
+            });
+        }
 
         this.player.controls.addEventListener('lock', () => {
             this.overlayEl.style.display = 'none';
@@ -528,7 +830,7 @@ export class UI {
                 <div>Pozycja: X: ${px} | Y: ${py} | Z: ${pz}</div>
                 <div>Biom: <span class="badge">${biome}</span></div>
                 <div>Zombie: <b style="color: #4ade80">${zombieText}</b> | Szkielet: <b style="color: #e2e8f0">${skeletonText}</b></div>
-                <div>W ręku: <b>${activeItem.name}</b></div>
+                <div>W ręku: <b>${activeItem ? activeItem.name : 'Puste'}</b></div>
             `;
         }
     }

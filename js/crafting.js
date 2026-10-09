@@ -62,6 +62,18 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 7. Bow (Łuk): Any 3 Sticks in 2x2 grid
+        if (nonNulls.length === 3 && nonNulls.every(id => id === 20)) {
+            this.output = { item: ITEMS.BOW, count: 1 };
+            return this.output;
+        }
+
+        // 8. Arrows (4 Strzały): 1 Stick + 1 Stone/Cobblestone/Bone
+        if (nonNulls.length === 2 && nonNulls.includes(20) && (nonNulls.includes(3) || nonNulls.includes(11) || nonNulls.includes(27))) {
+            this.output = { item: ITEMS.ARROW, count: 4 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

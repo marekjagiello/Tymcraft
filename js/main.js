@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js';
-import { Player } from './player.js';
-import { Interaction } from './interaction.js?v=arch1';
-import { AnimalManager } from './animals.js?v=arch1';
-import { UI } from './ui.js?v=arch1';
-import { StorageManager } from './storage.js';
-import { SurvivalManager } from './survival.js';
-import { CraftingManager } from './crafting.js';
-import { DropsManager } from './drops.js';
-import { eventBus } from './events.js';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=world_gen4';
+import { Player } from './player.js?v=world_gen4';
+import { Interaction } from './interaction.js?v=world_gen4';
+import { AnimalManager } from './animals.js?v=world_gen4';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=world_gen4';
+import { StorageManager } from './storage.js?v=world_gen4';
+import { SurvivalManager } from './survival.js?v=world_gen4';
+import { CraftingManager } from './crafting.js?v=world_gen4';
+import { DropsManager } from './drops.js?v=world_gen4';
+import { eventBus } from './events.js?v=world_gen4';
 
 class Game {
     constructor() {
@@ -60,6 +60,48 @@ class Game {
         this.storage = new StorageManager();
         const savedState = this.storage.loadPlayerState();
 
+        // Restore saved inventory/backpack if present
+        if (savedState) {
+            if (savedState.hotbar && Array.isArray(savedState.hotbar)) {
+                savedState.hotbar.forEach((s, idx) => {
+                    if (HOTBAR_BLOCKS[idx]) {
+                        HOTBAR_BLOCKS[idx].id = s.id ?? HOTBAR_BLOCKS[idx].id;
+                        HOTBAR_BLOCKS[idx].name = s.name ?? HOTBAR_BLOCKS[idx].name;
+                        HOTBAR_BLOCKS[idx].count = s.count ?? HOTBAR_BLOCKS[idx].count;
+                    }
+                });
+            }
+            if (savedState.backpack && Array.isArray(savedState.backpack)) {
+                savedState.backpack.forEach((s, idx) => {
+                    if (BACKPACK_SLOTS[idx]) {
+                        BACKPACK_SLOTS[idx].id = s.id ?? 0;
+                        BACKPACK_SLOTS[idx].name = s.name ?? 'Puste';
+                        BACKPACK_SLOTS[idx].count = s.count ?? 0;
+                    }
+                });
+            }
+        }
+
+        // Guarantee that player has access to Bow (29) and Arrows (28)
+        const hasBow = HOTBAR_BLOCKS.some(s => s.id === 29) || BACKPACK_SLOTS.some(s => s.id === 29);
+        if (!hasBow) {
+            const freeSlot = HOTBAR_BLOCKS.find(s => s.id === 0 || !s.count) || BACKPACK_SLOTS.find(s => s.id === 0 || !s.count);
+            if (freeSlot) {
+                freeSlot.id = 29;
+                freeSlot.name = 'Łuk';
+                freeSlot.count = 1;
+            }
+        }
+        const hasArrows = HOTBAR_BLOCKS.some(s => s.id === 28) || BACKPACK_SLOTS.some(s => s.id === 28);
+        if (!hasArrows) {
+            const freeSlot = HOTBAR_BLOCKS.find(s => s.id === 0 || !s.count) || BACKPACK_SLOTS.find(s => s.id === 0 || !s.count);
+            if (freeSlot) {
+                freeSlot.id = 28;
+                freeSlot.name = 'Strzała';
+                freeSlot.count = 64;
+            }
+        }
+
         // 2. World System (persists placed/broken blocks)
         this.world = new World(this.scene, 4242, this.storage);
 
@@ -71,15 +113,15 @@ class Game {
             if (this.ui) this.ui.renderSurvivalBars(hp, hunger);
         });
         if (savedState) {
-            if (typeof savedState.health === 'number') this.survival.health = savedState.health;
-            if (typeof savedState.hunger === 'number') this.survival.hunger = savedState.hunger;
+            if (typeof savedState.health === 'number') this.survival.health = savedState.health > 0 ? savedState.health : 20;
+            if (typeof savedState.hunger === 'number') this.survival.hunger = savedState.hunger > 0 ? savedState.hunger : 20;
         }
         this.player.onFallLanding = (vel) => this.survival.handleFallLanding(vel);
 
         // 5. Crafting System (2x2 Grid)
         this.crafting = new CraftingManager();
 
-        // 6. UI & HUD (Hearts, Hunger, 2x2 Crafting modal, Reset button)
+        // 6. UI & HUD (Hearts, Hunger, Backpack modal, Reset button)
         this.ui = new UI(this.player, this.world, this.survival, this.crafting, this.storage);
         if (savedState && typeof savedState.selectedSlot === 'number') {
             this.ui.selectSlot(savedState.selectedSlot);
@@ -128,8 +170,8 @@ class Game {
 
         const angle = this.dayTime * Math.PI * 2;
         const radius = 120;
-        const centerX = WORLD_SIZE_X / 2;
-        const centerZ = WORLD_SIZE_Z / 2;
+        const centerX = this.player ? this.player.position.x : WORLD_SIZE_X / 2;
+        const centerZ = this.player ? this.player.position.z : WORLD_SIZE_Z / 2;
 
         const sunY = Math.sin(angle) * radius;
         const sunX = centerX + Math.cos(angle) * radius;
@@ -160,14 +202,16 @@ class Game {
 
         const dt = Math.min(this.clock.getDelta(), 0.1);
 
-        this.player.update(dt);
+        const activeItemId = this.ui ? this.ui.getActiveBlockId() : 0;
+        const isDrawingBow = this.interaction ? this.interaction.isDrawingBow : false;
+        this.player.update(dt, activeItemId, isDrawingBow);
         this.interaction.update(dt);
         this.drops.update(dt, this.player.position, (id, name) => {
             this.ui.addItem(id, name, 1);
         });
         const isDay = this.sun ? this.sun.position.y > 0 : true;
         this.animals.update(dt, this.player.position, isDay);
-        this.world.update();
+        this.world.update(this.player ? this.player.position : null);
         this.survival.update(dt);
         this.ui.update();
         this.updateDayNight(dt);
@@ -175,7 +219,7 @@ class Game {
         // Auto-save player state every 5 seconds
         this.autoSaveTimer += dt;
         if (this.autoSaveTimer >= 5.0) {
-            this.storage.savePlayer(this.player, this.survival, this.ui.selectedSlotIndex);
+            this.storage.savePlayer(this.player, this.survival, this.ui.selectedSlotIndex, this.ui.hotbarBlocks, this.ui.backpackSlots);
             this.autoSaveTimer = 0;
         }
 

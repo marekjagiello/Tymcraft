@@ -110,18 +110,12 @@ export class Pig extends Mob {
             const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
             const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
 
-            if (nextX < 2 || nextX > WORLD_SIZE_X - 2 || nextZ < 2 || nextZ > WORLD_SIZE_Z - 2) {
-                this.targetRotationY += Math.PI;
-                this.state = 'idle';
-                this.stateTimer = 1.5;
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y > 1.15) {
+                this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
             } else {
-                const groundAtTarget = this.getGroundHeight(nextX, nextZ);
-                if (groundAtTarget - this.position.y > 1.15) {
-                    this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
-                } else {
-                    this.position.x = nextX;
-                    this.position.z = nextZ;
-                }
+                this.position.x = nextX;
+                this.position.z = nextZ;
             }
 
             const swing = Math.sin(this.animTime) * 0.6;
@@ -222,18 +216,12 @@ export class Sheep extends Mob {
             const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
             const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
 
-            if (nextX < 2 || nextX > WORLD_SIZE_X - 2 || nextZ < 2 || nextZ > WORLD_SIZE_Z - 2) {
-                this.targetRotationY += Math.PI;
-                this.state = 'idle';
-                this.stateTimer = 1.5;
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y > 1.15) {
+                this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
             } else {
-                const groundAtTarget = this.getGroundHeight(nextX, nextZ);
-                if (groundAtTarget - this.position.y > 1.15) {
-                    this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
-                } else {
-                    this.position.x = nextX;
-                    this.position.z = nextZ;
-                }
+                this.position.x = nextX;
+                this.position.z = nextZ;
             }
 
             const swing = Math.sin(this.animTime) * 0.6;
@@ -465,18 +453,12 @@ export class Snake extends Mob {
             const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
             const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
 
-            if (nextX < 2 || nextX > WORLD_SIZE_X - 2 || nextZ < 2 || nextZ > WORLD_SIZE_Z - 2) {
-                this.targetRotationY += Math.PI;
-                this.state = 'idle';
-                this.stateTimer = 1.5;
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y > 1.15) {
+                this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
             } else {
-                const groundAtTarget = this.getGroundHeight(nextX, nextZ);
-                if (groundAtTarget - this.position.y > 1.15) {
-                    this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
-                } else {
-                    this.position.x = nextX;
-                    this.position.z = nextZ;
-                }
+                this.position.x = nextX;
+                this.position.z = nextZ;
             }
 
             for (let i = 0; i < this.segments.length; i++) {

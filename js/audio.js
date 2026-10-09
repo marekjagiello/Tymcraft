@@ -69,6 +69,25 @@ export function playBowShootSound() {
     } catch (_) {}
 }
 
+export function playBowDrawSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(130, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(240, ctx.currentTime + 0.22);
+        gain.gain.setValueAtTime(0.045, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.22);
+    } catch (_) {}
+}
+
+
 export function playEatSound() {
     try {
         const ctx = getAudioContext();

@@ -1,18 +1,24 @@
 import * as THREE from 'three';
 import { Entity } from './entity.js';
 import { eventBus } from '../events.js';
+import { playHitSound } from '../audio.js';
 
 export class FlyingArrow extends Entity {
-    constructor(scene, world, origin, direction, shooter = 'skeleton') {
+    constructor(scene, world, origin, direction, shooter = 'skeleton', damage = 5) {
         super(scene, world, origin.x, origin.y, origin.z);
         this.shooter = shooter;
+        this.damage = damage;
         this.isStuck = false;
         this.stuckTimer = 0;
         this.lifetime = 0;
 
-        const speed = 21.0;
+        const speed = shooter === 'player' ? 28.0 : 21.0;
         this.velocity = direction.clone().normalize().multiplyScalar(speed);
-        this.velocity.y += 1.8; // subtle ballistic arc
+        if (shooter === 'skeleton') {
+            this.velocity.y += 1.8; // subtle ballistic arc
+        } else {
+            this.velocity.y += 0.5; // very slight arc for player arrow
+        }
 
         this.buildMesh();
         this.group.position.copy(this.position);
@@ -47,7 +53,7 @@ export class FlyingArrow extends Entity {
         }
     }
 
-    update(dt, player = null, survival = null, ui = null) {
+    update(dt, player = null, survival = null, ui = null, animals = null) {
         if (this.isDead) return;
 
         if (this.isStuck) {
@@ -72,8 +78,8 @@ export class FlyingArrow extends Entity {
         this.group.position.copy(this.position);
         this.updateRotation();
 
-        // Check player collision
-        if (player && player.position) {
+        // Check player collision (when shot by skeleton)
+        if (this.shooter === 'skeleton' && player && player.position) {
             const playerCenter = player.position.clone().add(new THREE.Vector3(0, 0.9, 0));
             const distToPlayer = this.position.distanceTo(playerCenter);
             if (distToPlayer < 0.85) {
@@ -89,6 +95,49 @@ export class FlyingArrow extends Entity {
                 }
                 this.destroy();
                 return;
+            }
+        }
+
+        // Check animal / mob collision (when shot by player)
+        if (this.shooter === 'player' && animals && Array.isArray(animals)) {
+            for (const mob of animals) {
+                if (!mob || mob.isDead) continue;
+                const height = (mob.type === 'zombie' || mob.type === 'skeleton') ? 1.85 : ((mob.type === 'snake') ? 0.35 : 0.85);
+                const hitRadius = (mob.type === 'snake') ? 0.80 : ((mob.type === 'zombie' || mob.type === 'skeleton') ? 0.95 : 0.85);
+
+                const center = mob.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
+                const dist = this.position.distanceTo(center);
+
+                if (dist < hitRadius) {
+                    playHitSound();
+                    const wasAlive = mob.health > 0;
+                    const knockbackOrigin = this.position.clone().sub(this.velocity.clone().normalize().multiplyScalar(2.0));
+                    mob.onAttacked(this.damage, knockbackOrigin);
+
+                    let name = 'zwierzę';
+                    if (mob.type === 'snake') name = 'Węża';
+                    else if (mob.type === 'zombie') name = 'Zombie';
+                    else if (mob.type === 'skeleton') name = 'Szkieleta';
+                    else if (mob.type === 'pig') name = 'Świnię';
+                    else if (mob.type === 'sheep') name = 'Owcę';
+
+                    if (wasAlive && mob.health <= 0) {
+                        const msg = `🏹💥 Trafienie! Pokonano ${name}!`;
+                        eventBus.emit('ui:popup', msg);
+                        if (ui && !ui._handledByEvent) ui.showPopup(msg);
+                    } else if (mob.type === 'zombie' || mob.type === 'skeleton') {
+                        const enemyName = mob.type === 'skeleton' ? 'Szkieleta' : 'Zombie';
+                        const msg = `🏹 Trafiono ${enemyName}! (${mob.health}/${mob.maxHealth} HP)`;
+                        eventBus.emit('ui:popup', msg);
+                        if (ui && !ui._handledByEvent) ui.showPopup(msg);
+                    } else {
+                        const msg = `🏹 Trafiono ${name}! (${mob.health}/${mob.maxHealth} HP)`;
+                        eventBus.emit('ui:popup', msg);
+                        if (ui && !ui._handledByEvent) ui.showPopup(msg);
+                    }
+                    this.destroy();
+                    return;
+                }
             }
         }
 

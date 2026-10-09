@@ -34,7 +34,8 @@ export const ITEMS = {
     STONE_SWORD: { id: 25, name: 'Kamienny Miecz', type: ITEM_TYPES.WEAPON, damage: 8.0, efficiency: 1.0, icon: 'stone_sword' },
     ROTTEN_FLESH: { id: 26, name: 'Zgniłe Mięso', type: ITEM_TYPES.FOOD, nutrition: 2, heals: 0, icon: 'flesh' },
     BONE: { id: 27, name: 'Kość', type: ITEM_TYPES.MATERIAL, icon: 'bone' },
-    ARROW: { id: 28, name: 'Strzała', type: ITEM_TYPES.MATERIAL, icon: 'arrow' }
+    ARROW: { id: 28, name: 'Strzała', type: ITEM_TYPES.MATERIAL, icon: 'arrow' },
+    BOW: { id: 29, name: 'Łuk', type: ITEM_TYPES.WEAPON, damage: 7.0, efficiency: 1.0, icon: 'bow' }
 };
 
 // Fast lookup map by ID
@@ -77,3 +78,12 @@ export function isPlaceableBlock(id) {
     const item = getItem(id);
     return item ? Boolean(item.placeable) : false;
 }
+
+export function isBow(id) {
+    return id === 29;
+}
+
+export function isArrow(id) {
+    return id === 28;
+}
+

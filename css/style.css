@@ -385,7 +385,7 @@ body, html {
     filter: drop-shadow(1px 1px 1px #000);
 }
 
-/* 2x2 Crafting & Inventory Modal */
+/* 2x2 Crafting & Backpack/Inventory Modal */
 #crafting-modal {
     position: absolute;
     top: 50%;
@@ -395,20 +395,23 @@ body, html {
     border: 3px solid #ffffff;
     border-right-color: #555555;
     border-bottom-color: #555555;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-    padding: 16px 20px;
-    z-index: 90;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+    padding: 14px 18px;
+    z-index: 200;
     display: none;
     color: #333333;
     font-family: monospace;
-    width: 380px;
+    width: 440px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-size: 14px;
     font-weight: bold;
 }
@@ -423,27 +426,33 @@ body, html {
     border-radius: 3px;
 }
 
+.modal-top-section {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
 .crafting-section {
+    flex: 1.1;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 12px;
     background: #8b8b8b;
-    padding: 14px;
+    padding: 10px;
     border: 2px solid #373737;
-    margin-bottom: 14px;
     border-radius: 4px;
 }
 
 .crafting-grid-2x2 {
     display: grid;
-    grid-template-columns: 44px 44px;
+    grid-template-columns: 40px 40px;
     gap: 4px;
 }
 
 .craft-slot, .output-slot {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     background: #8b8b8b;
     border: 2px solid #373737;
     border-top-color: #373737;
@@ -467,19 +476,107 @@ body, html {
 }
 
 .crafting-arrow {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     color: #ffffff;
 }
 
 .crafting-recipe-hint {
-    font-size: 11px;
-    color: #4b5563;
-    margin-bottom: 12px;
-    line-height: 1.4;
+    flex: 1;
+    font-size: 10.5px;
+    color: #374151;
     background: #e5e5e5;
     padding: 8px;
     border-radius: 4px;
+    line-height: 1.35;
+    border: 1px solid #d1d5db;
+}
+
+.inv-section-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #1f2937;
+    margin: 6px 0 4px 2px;
+    letter-spacing: 0.3px;
+}
+
+.slots-grid-9x3 {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 4px;
+    background: #8b8b8b;
+    padding: 5px;
+    border: 2px solid #373737;
+    border-top-color: #373737;
+    border-left-color: #373737;
+    border-right-color: #ffffff;
+    border-bottom-color: #ffffff;
+    border-radius: 3px;
+    margin-bottom: 6px;
+}
+
+.slots-grid-9x1 {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 4px;
+    background: #8b8b8b;
+    padding: 5px;
+    border: 2px solid #373737;
+    border-top-color: #373737;
+    border-left-color: #373737;
+    border-right-color: #ffffff;
+    border-bottom-color: #ffffff;
+    border-radius: 3px;
+    margin-bottom: 6px;
+}
+
+.inv-slot {
+    width: 39px;
+    height: 39px;
+    background: #8b8b8b;
+    border: 2px solid #373737;
+    border-top-color: #373737;
+    border-left-color: #373737;
+    border-right-color: #ffffff;
+    border-bottom-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.08s;
+}
+
+.inv-slot:hover {
+    background: #a3a3a3;
+    outline: 2px solid #facc15;
+}
+
+.inv-slot.active-hotbar-slot {
+    outline: 2px solid #3b82f6;
+    background: #9ca3af;
+}
+
+.inv-footer-tip {
+    font-size: 10px;
+    color: #4b5563;
+    text-align: center;
+    margin-top: 4px;
+    line-height: 1.3;
+}
+
+.cursor-item-preview {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.7));
+    transform: translate(-50%, -50%);
 }
 
 /* Death Overlay */

@@ -38,7 +38,7 @@ export class StorageManager {
         }, 800);
     }
 
-    savePlayer(player, survival, selectedSlot) {
+    savePlayer(player, survival, selectedSlot, hotbar = null, backpack = null) {
         if (!player || !survival) return;
         const state = {
             position: {
@@ -49,6 +49,8 @@ export class StorageManager {
             health: survival.health,
             hunger: survival.hunger,
             selectedSlot: selectedSlot ?? 0,
+            hotbar: hotbar ? hotbar.map(s => ({ slot: s.slot, id: s.id, name: s.name, count: s.count })) : undefined,
+            backpack: backpack ? backpack.map(s => ({ slot: s.slot, id: s.id, name: s.name, count: s.count })) : undefined,
             savedAt: Date.now()
         };
 

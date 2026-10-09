@@ -58,22 +58,6 @@ export class EntityManager {
 
         // Gwarancja: jeśli z jakiegokolwiek powodu jest więcej niż 1 wąż, zabij wszystkie oprócz 1
         this.killSnakesExceptOne();
-
-        // 3. POCZĄTKOWY ZOMBIE (wprost przed oczami gracza z kamiennym hełmem chroniącym przed słońcem)
-        if (this.player && this.player.position) {
-            this.spawnZombieInFrontOfPlayer(this.player, 5.0, true);
-        } else {
-            const initialZombie = new Zombie(this.scene, this.world, 32, 27, this, true);
-            this.animals.push(initialZombie);
-        }
-
-        // 4. POCZĄTKOWY SZKIELET (w zasięgu wzroku gracza z łukiem i kamiennym hełmem)
-        if (this.player && this.player.position) {
-            this.spawnSkeletonInFrontOfPlayer(this.player, 7.5, true);
-        } else {
-            const initialSkeleton = new Skeleton(this.scene, this.world, 34, 25, this, true);
-            this.animals.push(initialSkeleton);
-        }
     }
 
     removeAnimal(animal) {
@@ -117,8 +101,8 @@ export class EntityManager {
 
     spawnSnakeNearPlayer(player = this.player, offsetX = 3.0, offsetZ = 2.0) {
         if (!player || !player.position) return null;
-        const px = THREE.MathUtils.clamp(player.position.x + offsetX, 3, WORLD_SIZE_X - 3);
-        const pz = THREE.MathUtils.clamp(player.position.z + offsetZ, 3, WORLD_SIZE_Z - 3);
+        const px = player.position.x + offsetX;
+        const pz = player.position.z + offsetZ;
         const snake = new Snake(this.scene, this.world, px, pz, this);
         this.animals.push(snake);
         console.log(`[EntityManager] Zespawnowano pomarańczowego węża obok gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
@@ -133,7 +117,7 @@ export class EntityManager {
         return baby;
     }
 
-    spawnZombieInFrontOfPlayer(player = this.player, distance = 5.0, hasHelmet = true) {
+    spawnZombieInFrontOfPlayer(player = this.player, distance = 5.0, hasHelmet = false) {
         if (!player || !player.position) return null;
         let dirX = 0;
         let dirZ = -1;
@@ -147,15 +131,15 @@ export class EntityManager {
                 dirZ = forward.z;
             }
         }
-        const px = THREE.MathUtils.clamp(player.position.x + dirX * distance, 3, WORLD_SIZE_X - 3);
-        const pz = THREE.MathUtils.clamp(player.position.z + dirZ * distance, 3, WORLD_SIZE_Z - 3);
+        const px = player.position.x + dirX * distance;
+        const pz = player.position.z + dirZ * distance;
         const zombie = new Zombie(this.scene, this.world, px, pz, this, hasHelmet);
         this.animals.push(zombie);
         console.log(`[EntityManager] Zespawnowano Zombie na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)}) z hełmem=${hasHelmet}`);
         return zombie;
     }
 
-    spawnSkeletonInFrontOfPlayer(player = this.player, distance = 7.5, hasHelmet = true) {
+    spawnSkeletonInFrontOfPlayer(player = this.player, distance = 7.5, hasHelmet = false) {
         if (!player || !player.position) return null;
         let dirX = 0;
         let dirZ = -1;
@@ -169,16 +153,16 @@ export class EntityManager {
                 dirZ = forward.z;
             }
         }
-        const px = THREE.MathUtils.clamp(player.position.x + dirX * distance, 3, WORLD_SIZE_X - 3);
-        const pz = THREE.MathUtils.clamp(player.position.z + dirZ * distance, 3, WORLD_SIZE_Z - 3);
+        const px = player.position.x + dirX * distance;
+        const pz = player.position.z + dirZ * distance;
         const skeleton = new Skeleton(this.scene, this.world, px, pz, this, hasHelmet);
         this.animals.push(skeleton);
         console.log(`[EntityManager] Zespawnowano Szkieleta na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)}) z hełmem=${hasHelmet}`);
         return skeleton;
     }
 
-    spawnArrow(origin, direction) {
-        const arrow = new FlyingArrow(this.scene, this.world, origin, direction, 'skeleton');
+    spawnArrow(origin, direction, shooter = 'skeleton', damage = 5) {
+        const arrow = new FlyingArrow(this.scene, this.world, origin, direction, shooter, damage);
         this.arrows.push(arrow);
         return arrow;
     }
@@ -190,56 +174,48 @@ export class EntityManager {
             this.killSnakesExceptOne();
         }
 
-        // Zarządzanie populacją Zombie
-        const zombieCount = this.animals.filter(a => a.type === 'zombie' && !a.isDead).length;
-        this.zombieSpawnTimer = (this.zombieSpawnTimer || 0) + dt;
+        // Zarządzanie populacją Zombie (wyłącznie w nocy)
+        if (!isDay && playerPosition) {
+            const zombieCount = this.animals.filter(a => a.type === 'zombie' && !a.isDead).length;
+            this.zombieSpawnTimer = (this.zombieSpawnTimer || 0) + dt;
 
-        if (zombieCount === 0 && this.zombieSpawnTimer >= 8.0 && playerPosition) {
+            // W nocy spawnuje się do 3 Zombie bez hełmu
+            if (zombieCount < 3 && this.zombieSpawnTimer >= 8.0) {
+                this.zombieSpawnTimer = 0;
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 12 + Math.random() * 8;
+                const zx = playerPosition.x + Math.cos(angle) * dist;
+                const zz = playerPosition.z + Math.sin(angle) * dist;
+                const zombie = new Zombie(this.scene, this.world, zx, zz, this, false);
+                this.animals.push(zombie);
+                console.log(`[Monster] Nocny Zombie pojawił się na (${zx.toFixed(1)}, ${zz.toFixed(1)})!`);
+                eventBus.emit('ui:popup', '🧟 W ciemności nocy pojawił się Zombie!');
+                if (this.ui) this.ui.showPopup('🧟 W ciemności nocy pojawił się Zombie!');
+            }
+        } else {
             this.zombieSpawnTimer = 0;
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 10 + Math.random() * 5;
-            const zx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
-            const zz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
-            const zombie = new Zombie(this.scene, this.world, zx, zz, this, isDay);
-            this.animals.push(zombie);
-            console.log(`[Monster] Nowy Zombie pojawił się na (${zx.toFixed(1)}, ${zz.toFixed(1)}) (hełm=${isDay})!`);
-        } else if (!isDay && playerPosition && zombieCount < 3 && this.zombieSpawnTimer >= 15.0) {
-            this.zombieSpawnTimer = 0;
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 14 + Math.random() * 8;
-            const zx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
-            const zz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
-            const zombie = new Zombie(this.scene, this.world, zx, zz, this, false);
-            this.animals.push(zombie);
-            console.log(`[Monster] Nocny Zombie pojawił się na (${zx.toFixed(1)}, ${zz.toFixed(1)})!`);
-            eventBus.emit('ui:popup', '🧟 W ciemności nocy pojawił się Zombie!');
-            if (this.ui) this.ui.showPopup('🧟 W ciemności nocy pojawił się Zombie!');
         }
 
-        // Zarządzanie populacją Szkieletów
-        const skeletonCount = this.animals.filter(a => a.type === 'skeleton' && !a.isDead).length;
-        this.skeletonSpawnTimer = (this.skeletonSpawnTimer || 0) + dt;
+        // Zarządzanie populacją Szkieletów (wyłącznie w nocy)
+        if (!isDay && playerPosition) {
+            const skeletonCount = this.animals.filter(a => a.type === 'skeleton' && !a.isDead).length;
+            this.skeletonSpawnTimer = (this.skeletonSpawnTimer || 0) + dt;
 
-        if (skeletonCount === 0 && this.skeletonSpawnTimer >= 10.0 && playerPosition) {
+            // W nocy spawnuje się do 2 Szkieletów bez hełmu
+            if (skeletonCount < 2 && this.skeletonSpawnTimer >= 10.0) {
+                this.skeletonSpawnTimer = 0;
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 14 + Math.random() * 8;
+                const sx = playerPosition.x + Math.cos(angle) * dist;
+                const sz = playerPosition.z + Math.sin(angle) * dist;
+                const skeleton = new Skeleton(this.scene, this.world, sx, sz, this, false);
+                this.animals.push(skeleton);
+                console.log(`[Monster] Nocny Szkielet pojawił się na (${sx.toFixed(1)}, ${sz.toFixed(1)})!`);
+                eventBus.emit('ui:popup', '🏹 W ciemności nocy pojawił się Szkielet z łukiem!');
+                if (this.ui) this.ui.showPopup('🏹 W ciemności nocy pojawił się Szkielet z łukiem!');
+            }
+        } else {
             this.skeletonSpawnTimer = 0;
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 12 + Math.random() * 5;
-            const sx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
-            const sz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
-            const skeleton = new Skeleton(this.scene, this.world, sx, sz, this, isDay);
-            this.animals.push(skeleton);
-            console.log(`[Monster] Nowy Szkielet pojawił się na (${sx.toFixed(1)}, ${sz.toFixed(1)}) (hełm=${isDay})!`);
-        } else if (!isDay && playerPosition && skeletonCount < 2 && this.skeletonSpawnTimer >= 18.0) {
-            this.skeletonSpawnTimer = 0;
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 15 + Math.random() * 8;
-            const sx = THREE.MathUtils.clamp(playerPosition.x + Math.cos(angle) * dist, 3, WORLD_SIZE_X - 3);
-            const sz = THREE.MathUtils.clamp(playerPosition.z + Math.sin(angle) * dist, 3, WORLD_SIZE_Z - 3);
-            const skeleton = new Skeleton(this.scene, this.world, sx, sz, this, false);
-            this.animals.push(skeleton);
-            console.log(`[Monster] Nocny Szkielet pojawił się na (${sx.toFixed(1)}, ${sz.toFixed(1)})!`);
-            eventBus.emit('ui:popup', '🏹 W ciemności nocy pojawił się Szkielet z łukiem!');
-            if (this.ui) this.ui.showPopup('🏹 W ciemności nocy pojawił się Szkielet z łukiem!');
         }
 
         // Update all entities
@@ -250,7 +226,7 @@ export class EntityManager {
         // Update flying arrows
         for (let i = this.arrows.length - 1; i >= 0; i--) {
             const arrow = this.arrows[i];
-            arrow.update(dt, this.player, this.survival, this.ui);
+            arrow.update(dt, this.player, this.survival, this.ui, this.animals);
             if (arrow.isDead) {
                 this.arrows.splice(i, 1);
             }

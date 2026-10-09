@@ -2,9 +2,12 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft Web POC</title>
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/style.css?v=backpack2">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%235b8731'/><rect y='6' width='16' height='10' fill='%23866043'/></svg>">
     <script type="importmap">
     {
@@ -35,32 +38,49 @@
         <div id="hotbar"></div>
     </div>
 
-    <!-- 2x2 Crafting & Inventory Modal -->
+    <!-- 2x2 Crafting & Backpack/Inventory Modal -->
     <div id="crafting-modal">
         <div class="modal-header">
-            <span>Rzemiosło (Crafting 2x2)</span>
+            <span>🎒 Plecak i Ekwipunek Gracza <small style="opacity:0.75; font-size:11px;">[Klawisz R / E]</small></span>
             <button id="close-crafting-btn" class="close-modal-btn">✕</button>
         </div>
-        <div class="crafting-section">
-            <div class="crafting-grid-2x2">
-                <div class="craft-slot" data-slot="0" title="Slot 1"></div>
-                <div class="craft-slot" data-slot="1" title="Slot 2"></div>
-                <div class="craft-slot" data-slot="2" title="Slot 3"></div>
-                <div class="craft-slot" data-slot="3" title="Slot 4"></div>
+        <div class="modal-top-section">
+            <div class="crafting-section">
+                <div class="crafting-grid-2x2">
+                    <div class="craft-slot" data-slot="0" title="Slot 1"></div>
+                    <div class="craft-slot" data-slot="1" title="Slot 2"></div>
+                    <div class="craft-slot" data-slot="2" title="Slot 3"></div>
+                    <div class="craft-slot" data-slot="3" title="Slot 4"></div>
+                </div>
+                <div class="crafting-arrow">➔</div>
+                <div class="output-slot" id="craft-output-slot" title="Wynik">Puste</div>
             </div>
-            <div class="crafting-arrow">➔</div>
-            <div class="output-slot" id="craft-output-slot" title="Wynik">Puste</div>
+            <div class="crafting-recipe-hint">
+                <b>Przepisy 2x2:</b><br>
+                • 1x Drewno ➔ 4x Deski<br>
+                • 2x Deski w pionie ➔ 4x Patyki<br>
+                • 2x Deski/Kamień + 1x Patyk ➔ Kilof<br>
+                • 1x Deski/Kamień + 1x Patyk ➔ Miecz<br>
+                • 3x Patyki ➔ 🏹 Łuk<br>
+                • 1x Patyk + 1x Kamień/Kość ➔ 🎯 4x Strzały
+            </div>
         </div>
-        <div class="crafting-recipe-hint">
-            <b>Przepisy:</b><br>
-            • 1x Drewno ➔ 4x Deski<br>
-            • 2x Deski w pionie ➔ 4x Patyki<br>
-            • 2x Deski (góra) + 1x Patyk (dół) ➔ Drewniany Kilof<br>
-            • 2x Kamień (góra) + 1x Patyk (dół) ➔ Kamienny Kilof<br>
-            • 1x Deski (góra) + 1x Patyk (dół) ➔ Drewniany Miecz<br>
-            • 1x Kamień (góra) + 1x Patyk (dół) ➔ Kamienny Miecz
+
+        <!-- Backpack: 27 slots (3 rows x 9 columns) -->
+        <div class="inv-section-title">🎒 Plecak gracza (27 miejsc)</div>
+        <div id="backpack-grid" class="slots-grid-9x3"></div>
+
+        <!-- Hotbar: 9 slots (1 row x 9 columns) -->
+        <div class="inv-section-title">⚔️ Pasek podręczny (1 - 9)</div>
+        <div id="modal-hotbar-grid" class="slots-grid-9x1"></div>
+
+        <div class="inv-footer-tip">
+            💡 LPM: przenieś / zamień • Klawisz <b>R</b> lub <b>E</b>: zamknij plecak • <b>V</b>: widok 3. osoby
         </div>
     </div>
+
+    <!-- Floating Cursor Item Display -->
+    <div id="cursor-item-display" class="cursor-item-preview" style="display: none;"></div>
 
     <!-- Death Screen Overlay -->
     <div id="death-overlay">
@@ -71,7 +91,7 @@
     <div id="start-overlay">
         <div class="overlay-card">
             <h1 class="overlay-title" id="menu-title">MINECRAFT POC</h1>
-            <p class="overlay-subtitle" id="menu-subtitle">Prototyp w Three.js — biomy, survival, crafting 2x2 i zapis świata</p>
+            <p class="overlay-subtitle" id="menu-subtitle">Prototyp w Three.js — biomy, survival, plecak gracza, crafting 2x2 i zapis świata</p>
             
             <div class="controls-list">
                 <div class="control-item">
@@ -90,10 +110,13 @@
                     <span class="key-badge">LPM</span> Wydobywanie (niszczenie)
                 </div>
                 <div class="control-item">
-                    <span class="key-badge">PPM</span> Stawianie / Jedzenie
+                    <span class="key-badge">PPM</span> Stawianie / Jedzenie / 🏹 Łuk
                 </div>
                 <div class="control-item">
-                    <span class="key-badge">E</span> Crafting & Ekwipunek
+                    <span class="key-badge">R / E</span> Plecak & Ekwipunek
+                </div>
+                <div class="control-item">
+                    <span class="key-badge">V</span> Widok 3. os. (Plecak)
                 </div>
                 <div class="control-item">
                     <span class="key-badge">Esc</span> Menu gry / Pauza
@@ -131,6 +154,6 @@
     </div>
 
     <!-- Main Game Script (ES Module) -->
-    <script type="module" src="./js/main.js?v=arch1"></script>
+    <script type="module" src="./js/main.js?v=world_gen4"></script>
 </body>
 </html>

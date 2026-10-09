@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js';
-import { playSwingSound, playHitSound, playEatSound } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock } from './items.js';
+import { playSwingSound, playHitSound, playEatSound, playBowShootSound, playBowDrawSound } from './audio.js';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js';
 import { eventBus } from './events.js';
 
 // Re-export audio helpers for backward compatibility
-export { playSwingSound, playHitSound };
+export { playSwingSound, playHitSound, playBowShootSound };
 
 export class Interaction {
     constructor(scene, camera, world, player, getActiveBlockId, drops = null) {
@@ -39,6 +39,12 @@ export class Interaction {
         this.survival = null;
         this.onItemConsumed = null;
         this.onBlockPlaced = null;
+
+        // Bow mechanics state
+        this.isDrawingBow = false;
+        this.bowCharge = 0.0;
+        this.bowDrawTime = 0.0;
+        this.bowRecoil = 0.0;
 
         this.buildFirstPersonHand();
         this.initEvents();
@@ -135,8 +141,21 @@ export class Interaction {
                 // Otherwise Break Block
                 this.breakBlock();
             } else if (e.button === 2) {
-                // Right Click: Check if feeding animal with apple
+                // Right Click: Check if shooting bow
                 e.preventDefault();
+
+                if (isBow(activeItemId)) {
+                    if (this.ui && !this.ui.hasItem(28)) {
+                        const msg = '⚠️ Brak strzał w ekwipunku! Stwórz je w craftingu (R) z patyka i kamienia/kości.';
+                        eventBus.emit('ui:popup', msg);
+                        if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+                        return;
+                    }
+                    this.startBowDraw();
+                    return;
+                }
+
+                // Check if feeding animal with apple
                 const animal = this.raycastAnimal();
                 if (animal && activeItemId === 23) {
                     animal.interactWithApple();
@@ -176,12 +195,86 @@ export class Interaction {
             }
         });
 
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 2 && this.isDrawingBow) {
+                this.releaseBow();
+            }
+        });
+
+        if (this.player && this.player.controls) {
+            this.player.controls.addEventListener('unlock', () => {
+                this.cancelBowDraw();
+            });
+        }
+
         // Prevent context menu in game
         window.addEventListener('contextmenu', (e) => {
             if (this.player.controls.isLocked) {
                 e.preventDefault();
             }
         });
+    }
+
+    startBowDraw() {
+        this.isDrawingBow = true;
+        this.bowDrawTime = 0.0;
+        this.bowCharge = 0.0;
+        playBowDrawSound();
+    }
+
+    releaseBow() {
+        if (!this.isDrawingBow) return;
+
+        if (this.bowCharge >= 0.15) {
+            let consumed = false;
+            if (this.ui) {
+                consumed = this.ui.consumeItem(28, 1);
+            } else {
+                eventBus.emit('item:consume_specific', { id: 28, amount: 1 });
+                consumed = true;
+            }
+
+            if (consumed) {
+                playBowShootSound();
+                const dir = new THREE.Vector3();
+                this.camera.getWorldDirection(dir);
+                const origin = this.camera.position.clone().addScaledVector(dir, 0.4);
+
+                const damage = Math.round(4 + this.bowCharge * 6); // 4 do 10 obrażeń
+                const speed = 18.0 + this.bowCharge * 18.0; // 18 do 36 m/s
+
+                if (this.animals && this.animals.spawnArrow) {
+                    const arrow = this.animals.spawnArrow(origin, dir, 'player', damage);
+                    if (arrow) {
+                        arrow.velocity = dir.clone().multiplyScalar(speed);
+                    }
+                }
+
+                // Odskok łuku po wystrzale (recoil kick)
+                this.bowRecoil = 0.14;
+
+                if (this.bowCharge >= 0.9) {
+                    eventBus.emit('ui:popup', '🏹 Maksymalny strzał z łuku! (10 obrażeń)');
+                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup('🏹 Maksymalny strzał z łuku! (10 obrażeń)');
+                }
+            } else {
+                const msg = '⚠️ Brak strzał w ekwipunku!';
+                eventBus.emit('ui:popup', msg);
+                if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+            }
+        }
+
+        this.cancelBowDraw();
+    }
+
+    cancelBowDraw() {
+        this.isDrawingBow = false;
+        this.bowCharge = 0.0;
+        this.bowDrawTime = 0.0;
+        if (this.camera) {
+            this.camera.fov = 75;
+            this.camera.updateProjectionMatrix();
+        }
     }
 
     // Fast Voxel Traversal algorithm (Amanatides & Woo DDA)
@@ -390,6 +483,69 @@ export class Interaction {
         this.swordGroup.visible = false;
         this.handGroup.add(this.swordGroup);
 
+        // 3D FIRST-PERSON BOW MODEL
+        this.bowGroup = new THREE.Group();
+        this.bowGroup.position.set(-0.06, 0.12, -0.16);
+        this.bowGroup.rotation.set(-0.25, 0.35, -0.12);
+
+        const bowWoodMat = new THREE.MeshLambertMaterial({ color: 0x78350f });
+        const bowHandleMat = new THREE.MeshLambertMaterial({ color: 0x451a03 });
+        const bowStringMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+
+        // Center handle grip
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.14, 0.05), bowHandleMat);
+        this.bowGroup.add(handle);
+
+        // Upper stave
+        const upperStave = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.22, 0.035), bowWoodMat);
+        upperStave.position.set(0, 0.16, -0.06);
+        upperStave.rotation.x = -Math.PI / 6;
+        this.bowGroup.add(upperStave);
+
+        const upperTip = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.10, 0.03), bowWoodMat);
+        upperTip.position.set(0, 0.29, -0.14);
+        upperTip.rotation.x = -Math.PI / 3;
+        this.bowGroup.add(upperTip);
+
+        // Lower stave
+        const lowerStave = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.22, 0.035), bowWoodMat);
+        lowerStave.position.set(0, -0.16, -0.06);
+        lowerStave.rotation.x = Math.PI / 6;
+        this.bowGroup.add(lowerStave);
+
+        const lowerTip = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.10, 0.03), bowWoodMat);
+        lowerTip.position.set(0, -0.29, -0.14);
+        lowerTip.rotation.x = Math.PI / 3;
+        this.bowGroup.add(lowerTip);
+
+        // Bowstring (upper and lower segments meeting at arrow notch)
+        this.bowStringUpper = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.34, 0.012), bowStringMat);
+        this.bowStringUpper.position.set(0, 0.16, -0.12);
+        this.bowGroup.add(this.bowStringUpper);
+
+        this.bowStringLower = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.34, 0.012), bowStringMat);
+        this.bowStringLower.position.set(0, -0.16, -0.12);
+        this.bowGroup.add(this.bowStringLower);
+
+        // First-person arrow loaded in bow
+        this.fpArrowGroup = new THREE.Group();
+        const fpShaft = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.55), new THREE.MeshLambertMaterial({ color: 0xd97706 }));
+        this.fpArrowGroup.add(fpShaft);
+
+        const fpTip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.08), new THREE.MeshLambertMaterial({ color: 0x334155 }));
+        fpTip.position.set(0, 0, -0.29);
+        this.fpArrowGroup.add(fpTip);
+
+        const fpFletch = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.08), new THREE.MeshLambertMaterial({ color: 0xf8fafc }));
+        fpFletch.position.set(0, 0, 0.24);
+        this.fpArrowGroup.add(fpFletch);
+
+        this.fpArrowGroup.position.set(0, 0, -0.06);
+        this.bowGroup.add(this.fpArrowGroup);
+
+        this.bowGroup.visible = false;
+        this.handGroup.add(this.bowGroup);
+
         this.camera.add(this.handGroup);
         this.swingTime = 0;
         this.isSwinging = false;
@@ -404,14 +560,88 @@ export class Interaction {
     updateHand(dt) {
         if (!this.handGroup) return;
 
+        if (this.player && this.player.cameraMode === 1) {
+            this.handGroup.visible = false;
+            return;
+        } else {
+            this.handGroup.visible = true;
+        }
+
         const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
         const isSword = (activeItemId === 24 || activeItemId === 25);
+        const isHoldingBow = (activeItemId === 29);
+
         if (this.swordGroup) {
             this.swordGroup.visible = isSword;
             if (activeItemId === 25) {
                 this.bladeMat.color.setHex(0x78716c);
             } else if (activeItemId === 24) {
                 this.bladeMat.color.setHex(0x92400e);
+            }
+        }
+
+        if (this.bowGroup) {
+            this.bowGroup.visible = isHoldingBow;
+        }
+
+        if (this.bowRecoil > 0) {
+            this.bowRecoil = Math.max(0, this.bowRecoil - dt * 1.5);
+        }
+
+        if (isHoldingBow) {
+            if (this.isDrawingBow) {
+                this.bowDrawTime += dt;
+                this.bowCharge = Math.min(1.0, this.bowDrawTime / 0.70);
+
+                // Dynamic FOV zoom when aiming (Minecraft style)
+                const targetFov = 75 - 12 * this.bowCharge;
+                this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 12);
+                this.camera.updateProjectionMatrix();
+
+                // Pull back bowstring and arrow
+                const pull = -0.16 * this.bowCharge;
+                this.fpArrowGroup.position.z = -0.06 + pull;
+                this.bowStringUpper.position.z = -0.12 + pull * 0.7;
+                this.bowStringUpper.rotation.x = -0.22 * this.bowCharge;
+                this.bowStringLower.position.z = -0.12 + pull * 0.7;
+                this.bowStringLower.rotation.x = 0.22 * this.bowCharge;
+
+                // Center hand into archery stance
+                this.handGroup.position.set(
+                    0.32 - 0.22 * this.bowCharge,
+                    -0.26 + 0.10 * this.bowCharge,
+                    -0.48 + this.bowRecoil
+                );
+                this.handGroup.rotation.set(
+                    -0.12 * this.bowCharge,
+                    0.20 * this.bowCharge,
+                    -0.08 * this.bowCharge
+                );
+                return;
+            } else {
+                // Holding bow in relaxed stance
+                this.fpArrowGroup.position.z = -0.06;
+                this.bowStringUpper.position.z = -0.12;
+                this.bowStringUpper.rotation.x = 0;
+                this.bowStringLower.position.z = -0.12;
+                this.bowStringLower.rotation.x = 0;
+
+                this.handGroup.position.set(0.32, -0.26, -0.48 + this.bowRecoil);
+
+                // Smoothly restore default FOV
+                if (Math.abs(this.camera.fov - 75) > 0.05) {
+                    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, 75, dt * 14);
+                    this.camera.updateProjectionMatrix();
+                }
+            }
+        } else {
+            if (this.isDrawingBow) {
+                this.cancelBowDraw();
+            }
+            this.handGroup.position.set(0.32, -0.26, -0.48);
+            if (Math.abs(this.camera.fov - 75) > 0.05) {
+                this.camera.fov = 75;
+                this.camera.updateProjectionMatrix();
             }
         }
 
@@ -425,7 +655,7 @@ export class Interaction {
             this.handGroup.rotation.x = -swingAngle * 1.1;
             this.handGroup.rotation.y = swingAngle * 0.6;
             this.handGroup.rotation.z = -swingAngle * 0.4;
-        } else {
+        } else if (!isHoldingBow || !this.isDrawingBow) {
             this.handGroup.rotation.set(0, 0, 0);
         }
     }

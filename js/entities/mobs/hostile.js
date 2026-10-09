@@ -112,25 +112,27 @@ export class Zombie extends Mob {
     update(dt, playerPosition = null, isDay = true) {
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-        // Daylight burning in direct sunlight without helmet
-        if (isDay && !this.isDead && !this.hasHelmet) {
+        // Daylight burning - Zombie natychmiast ginie na słońcu (gdy jest dzień i brak osłony od góry)
+        if (isDay && !this.isDead) {
             const bx = Math.floor(this.position.x);
             const bz = Math.floor(this.position.z);
             const by = Math.floor(this.position.y);
             let exposed = true;
-            for (let y = by + 2; y < WORLD_HEIGHT; y++) {
-                if (this.world.isSolid(bx, y, bz)) {
-                    exposed = false;
-                    break;
+            if (this.world) {
+                for (let y = by + 2; y < WORLD_HEIGHT; y++) {
+                    if (this.world.isSolid(bx, y, bz)) {
+                        exposed = false;
+                        break;
+                    }
                 }
             }
             if (exposed) {
-                this.burnTimer = (this.burnTimer || 0) + dt;
-                if (this.burnTimer >= 2.5) {
-                    this.burnTimer = 0;
-                    this.flashRed();
-                    this.onAttacked(1);
+                eventBus.emit('ui:popup', '☀️ Zombie natychmiast spłonął w promieniach słońca!');
+                if (this.manager && this.manager.ui && !this.manager.ui._handledByEvent) {
+                    this.manager.ui.showPopup('☀️ Zombie natychmiast spłonął w promieniach słońca!');
                 }
+                this.die();
+                return;
             }
         }
 
@@ -176,12 +178,10 @@ export class Zombie extends Mob {
             const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
             const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
 
-            if (nextX >= 2 && nextX <= WORLD_SIZE_X - 2 && nextZ >= 2 && nextZ <= WORLD_SIZE_Z - 2) {
-                const groundAtTarget = this.getGroundHeight(nextX, nextZ);
-                if (groundAtTarget - this.position.y <= 1.15) {
-                    this.position.x = nextX;
-                    this.position.z = nextZ;
-                }
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y <= 1.15) {
+                this.position.x = nextX;
+                this.position.z = nextZ;
             }
 
             const swing = Math.sin(this.animTime) * 0.65;
@@ -363,25 +363,27 @@ export class Skeleton extends Mob {
     update(dt, playerPosition = null, isDay = true) {
         if (this.shootCooldown > 0) this.shootCooldown -= dt;
 
-        // Daylight burning
-        if (isDay && !this.isDead && !this.hasHelmet) {
+        // Daylight burning - Szkielet natychmiast ginie na słońcu (gdy jest dzień i brak osłony od góry)
+        if (isDay && !this.isDead) {
             const bx = Math.floor(this.position.x);
             const bz = Math.floor(this.position.z);
             const by = Math.floor(this.position.y);
             let exposed = true;
-            for (let y = by + 2; y < WORLD_HEIGHT; y++) {
-                if (this.world.isSolid(bx, y, bz)) {
-                    exposed = false;
-                    break;
+            if (this.world) {
+                for (let y = by + 2; y < WORLD_HEIGHT; y++) {
+                    if (this.world.isSolid(bx, y, bz)) {
+                        exposed = false;
+                        break;
+                    }
                 }
             }
             if (exposed) {
-                this.burnTimer = (this.burnTimer || 0) + dt;
-                if (this.burnTimer >= 2.5) {
-                    this.burnTimer = 0;
-                    this.flashRed();
-                    this.onAttacked(1);
+                eventBus.emit('ui:popup', '☀️ Szkielet natychmiast spłonął w promieniach słońca!');
+                if (this.manager && this.manager.ui && !this.manager.ui._handledByEvent) {
+                    this.manager.ui.showPopup('☀️ Szkielet natychmiast spłonął w promieniach słońca!');
                 }
+                this.die();
+                return;
             }
         }
 
@@ -428,12 +430,10 @@ export class Skeleton extends Mob {
             const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
             const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
 
-            if (nextX >= 2 && nextX <= WORLD_SIZE_X - 2 && nextZ >= 2 && nextZ <= WORLD_SIZE_Z - 2) {
-                const groundAtTarget = this.getGroundHeight(nextX, nextZ);
-                if (groundAtTarget - this.position.y <= 1.15) {
-                    this.position.x = nextX;
-                    this.position.z = nextZ;
-                }
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y <= 1.15) {
+                this.position.x = nextX;
+                this.position.z = nextZ;
             }
 
             const swing = Math.sin(this.animTime) * 0.65;
@@ -445,12 +445,10 @@ export class Skeleton extends Mob {
             const nextX = this.position.x - fwd.x * (this.walkSpeed * 0.85) * dt;
             const nextZ = this.position.z - fwd.z * (this.walkSpeed * 0.85) * dt;
 
-            if (nextX >= 2 && nextX <= WORLD_SIZE_X - 2 && nextZ >= 2 && nextZ <= WORLD_SIZE_Z - 2) {
-                const groundAtTarget = this.getGroundHeight(nextX, nextZ);
-                if (Math.abs(groundAtTarget - this.position.y) <= 1.15) {
-                    this.position.x = nextX;
-                    this.position.z = nextZ;
-                }
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (Math.abs(groundAtTarget - this.position.y) <= 1.15) {
+                this.position.x = nextX;
+                this.position.z = nextZ;
             }
 
             const swing = Math.sin(this.animTime) * 0.65;
