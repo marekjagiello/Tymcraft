@@ -185,3 +185,19 @@ export function playExplosionSound() {
     } catch (_) {}
 }
 
+export function speakDirtikCry() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance('Ja to Dircik, a ty chciałeś mnie zabić!');
+            utter.lang = 'pl-PL';
+            utter.pitch = 1.35;
+            utter.rate = 1.15;
+            window.speechSynthesis.speak(utter);
+        } catch (e) {
+            console.warn('[Speech] Could not speak Dirtik cry:', e);
+        }
+    }
+}
+
+

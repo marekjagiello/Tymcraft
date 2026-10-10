@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, speakDirtikCry } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js';
 
 export class Zombie extends Mob {
@@ -965,17 +965,18 @@ export class Dirtik extends Mob {
         }
 
         playHitSound();
+        speakDirtikCry();
 
         // Little hop
         this.position.y += 0.3;
 
         // Battle cry on screen!
-        const msg = '🗣️ „Ja to Dirtik, a tyś chciał mnie zabić!” 🗡️🟫';
+        const msg = '🗣️ „Ja to Dircik, a ty chciałeś mnie zabić!” 🗡️🟫';
         eventBus.emit('ui:popup', msg);
         if (this.manager?.ui) {
             this.manager.ui.showPopup(msg);
         }
-        console.log('[Dirtik] Obudził się z okrzykiem: Ja to Dirtik, a tyś chciał mnie zabić!');
+        console.log('[Dirtik] Obudził się z okrzykiem: Ja to Dircik, a ty chciałeś mnie zabić!');
     }
 
     onAttacked(damage = 2, attackerPos = null) {
