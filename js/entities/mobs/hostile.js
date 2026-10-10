@@ -3,7 +3,8 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHissSound, playExplosionSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound } from '../../audio.js';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js';
 
 export class Zombie extends Mob {
     constructor(scene, world, x = 32, z = 32, manager = null, hasHelmet = false) {
@@ -802,6 +803,281 @@ export class Creeper extends Mob {
             for (const leg of this.legs) {
                 leg.rotation.x *= 0.8;
             }
+        }
+
+        this.updateFooting(dt);
+    }
+}
+
+export class Dirtik extends Mob {
+    constructor(scene, world, x = 32, z = 32, manager = null) {
+        super(scene, world, 'dirtik', x, z, manager);
+        this.maxHealth = 8;
+        this.health = 8;
+        this.walkSpeed = 1.45;
+        this.isAwakened = false;
+        this.attackCooldown = 0;
+        this.swingTime = 0;
+
+        this.buildModels();
+        this.buildHealthBar(1.4);
+        if (this.healthBarGroup) {
+            this.healthBarGroup.visible = false; // Hidden while disguised
+        }
+        this.snapToGround();
+        this.scene.add(this.group);
+    }
+
+    buildModels() {
+        // --- 1. Disguised Mode: standard dirt cube (1x1x1) sitting on the ground ---
+        this.disguisedGroup = new THREE.Group();
+
+        const dirtGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
+        const def = BLOCK_DEF[2]; // Dirt block definition
+        const faceTileIndices = [
+            def.tiles[5], def.tiles[4], def.tiles[0], def.tiles[1], def.tiles[2], def.tiles[3]
+        ];
+        const uvs = [];
+        for (let f = 0; f < 6; f++) {
+            const { u0, v0, u1, v1 } = getTileUV(faceTileIndices[f]);
+            uvs.push(u0, v1, u1, v1, u0, v0, u1, v0);
+        }
+        dirtGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        const dirtMesh = new THREE.Mesh(dirtGeo, AtlasMaterial);
+        dirtMesh.position.set(0, 0.49, 0);
+        dirtMesh.castShadow = true;
+        dirtMesh.receiveShadow = true;
+        this.disguisedGroup.add(dirtMesh);
+
+        this.group.add(this.disguisedGroup);
+
+        // --- 2. Awakened Mode: dirt-block creature holding Diamond Sword ---
+        this.awakenedGroup = new THREE.Group();
+        this.awakenedGroup.visible = false;
+
+        const dirtMat = new THREE.MeshLambertMaterial({ color: 0x854d0e });       // Warm dirt brown
+        const darkDirtMat = new THREE.MeshLambertMaterial({ color: 0x713f12 });   // Dark dirt spots
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });          // Curious white eyes
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0x1c1917 });        // Dark pupils
+
+        // Head (0.36 x 0.36 x 0.36)
+        const headGeo = new THREE.BoxGeometry(0.36, 0.36, 0.36);
+        this.head = new THREE.Mesh(headGeo, dirtMat);
+        this.head.position.set(0, 0.88, 0);
+        this.head.castShadow = true;
+        this.awakenedGroup.add(this.head);
+
+        // Eyes
+        const eyeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.02);
+        const lEye = new THREE.Mesh(eyeGeo, eyeMat);
+        lEye.position.set(-0.09, 0.03, 0.185);
+        const rEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rEye.position.set(0.09, 0.03, 0.185);
+        this.head.add(lEye, rEye);
+
+        const pupilGeo = new THREE.BoxGeometry(0.04, 0.04, 0.025);
+        const lPupil = new THREE.Mesh(pupilGeo, pupilMat);
+        lPupil.position.set(-0.08, 0.02, 0.19);
+        const rPupil = new THREE.Mesh(pupilGeo, pupilMat);
+        rPupil.position.set(0.10, 0.02, 0.19);
+        this.head.add(lPupil, rPupil);
+
+        // Body / Torso (0.34 x 0.44 x 0.24)
+        const bodyGeo = new THREE.BoxGeometry(0.34, 0.44, 0.24);
+        this.body = new THREE.Mesh(bodyGeo, darkDirtMat);
+        this.body.position.set(0, 0.52, 0);
+        this.body.castShadow = true;
+        this.awakenedGroup.add(this.body);
+
+        // Left Arm (0.10 x 0.34 x 0.10)
+        const armGeo = new THREE.BoxGeometry(0.10, 0.34, 0.10);
+        this.lArm = new THREE.Mesh(armGeo, dirtMat);
+        this.lArm.position.set(-0.23, 0.52, 0);
+        this.awakenedGroup.add(this.lArm);
+
+        // Right Arm (holds the Diamond Sword!)
+        this.rArm = new THREE.Mesh(armGeo, dirtMat);
+        this.rArm.position.set(0.23, 0.52, 0);
+        this.awakenedGroup.add(this.rArm);
+
+        // Diamond Sword in right hand!
+        this.swordMesh = new THREE.Group();
+        this.swordMesh.position.set(0, -0.14, 0.12);
+        this.swordMesh.rotation.set(-0.8, 0, 0);
+
+        // Cyan Glowing Diamond Blade
+        const bladeGeo = new THREE.BoxGeometry(0.05, 0.46, 0.035);
+        const bladeMat = new THREE.MeshLambertMaterial({
+            color: 0x38bdf8,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.5
+        });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+        blade.position.set(0, 0.20, 0);
+        this.swordMesh.add(blade);
+
+        // Crossguard
+        const guardGeo = new THREE.BoxGeometry(0.16, 0.03, 0.05);
+        const guardMat = new THREE.MeshLambertMaterial({ color: 0x0369a1 });
+        const guard = new THREE.Mesh(guardGeo, guardMat);
+        guard.position.set(0, -0.04, 0);
+        this.swordMesh.add(guard);
+
+        // Handle
+        const handleGeo = new THREE.BoxGeometry(0.04, 0.10, 0.04);
+        const handleMat = new THREE.MeshLambertMaterial({ color: 0x78350f });
+        const handle = new THREE.Mesh(handleGeo, handleMat);
+        handle.position.set(0, -0.09, 0);
+        this.swordMesh.add(handle);
+
+        this.rArm.add(this.swordMesh);
+
+        // 2 Legs (0.13 x 0.30 x 0.13)
+        const legGeo = new THREE.BoxGeometry(0.13, 0.30, 0.13);
+        this.legs = [
+            new THREE.Mesh(legGeo, dirtMat),
+            new THREE.Mesh(legGeo, dirtMat)
+        ];
+        this.legs[0].position.set(-0.09, 0.15, 0);
+        this.legs[1].position.set(0.09, 0.15, 0);
+        this.awakenedGroup.add(this.legs[0]);
+        this.awakenedGroup.add(this.legs[1]);
+
+        this.group.add(this.awakenedGroup);
+    }
+
+    awaken() {
+        if (this.isAwakened || this.isDead) return;
+        this.isAwakened = true;
+
+        this.disguisedGroup.visible = false;
+        this.awakenedGroup.visible = true;
+        if (this.healthBarGroup) {
+            this.healthBarGroup.visible = true;
+        }
+
+        // Small pop dust
+        if (this.manager?.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position.clone().add(new THREE.Vector3(0, 0.5, 0)));
+        }
+
+        playHitSound();
+
+        // Little hop
+        this.position.y += 0.3;
+
+        // Battle cry on screen!
+        const msg = '🗣️ „Ja to Dirtik, a tyś chciał mnie zabić!” 🗡️🟫';
+        eventBus.emit('ui:popup', msg);
+        if (this.manager?.ui) {
+            this.manager.ui.showPopup(msg);
+        }
+        console.log('[Dirtik] Obudził się z okrzykiem: Ja to Dirtik, a tyś chciał mnie zabić!');
+    }
+
+    die() {
+        if (this.isDead) return;
+
+        // Slain by player: drop a lot of Dirt blocks (4 to 6)!
+        if (this.manager && this.manager.drops) {
+            const count = 4 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < count; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    2,
+                    'Ziemia',
+                    this.position.x + (Math.random() - 0.5) * 0.4,
+                    this.position.y + 0.3,
+                    this.position.z + (Math.random() - 0.5) * 0.4
+                );
+                this.manager.drops.items.push(drop);
+            }
+            console.log(`[Drops] Z pokonanego Dirtika wypadło ${count} klocków Ziemi!`);
+        }
+
+        super.die();
+    }
+
+    update(dt, playerPosition = null, isDay = true) {
+        if (this.isDead) return;
+
+        // If still disguised, stay still and keep disguised
+        if (!this.isAwakened) {
+            this.updateFooting(dt);
+            return;
+        }
+
+        this.updateHealthBar(playerPosition);
+
+        let distToPlayer = 999;
+        if (playerPosition) {
+            distToPlayer = this.position.distanceTo(playerPosition);
+        }
+
+        // Hostile chasing behavior
+        if (distToPlayer < 24.0) {
+            this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
+            this.state = 'walk';
+
+            // Attack with Diamond Sword if close!
+            if (distToPlayer <= 2.0) {
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown -= dt;
+                } else {
+                    this.attackCooldown = 0.85;
+                    this.swingTime = 0.35; // Trigger arm swing
+
+                    playHitSound();
+
+                    // Deal 1 heart (2 HP)
+                    if (this.manager?.survival) {
+                        this.manager.survival.takeDamage(2, 'Cios Dirtika diamentowym mieczem! 🗡️');
+                    }
+                }
+            } else {
+                if (this.attackCooldown > 0) this.attackCooldown -= dt;
+            }
+        } else {
+            this.state = 'idle';
+        }
+
+        // Sword swing animation
+        if (this.swingTime > 0) {
+            this.swingTime -= dt;
+            this.rArm.rotation.x = -1.2 + Math.sin(this.swingTime * 15) * 0.8;
+        } else {
+            this.rArm.rotation.x = -0.3;
+        }
+
+        // Smooth rotation
+        let diff = this.targetRotationY - this.rotationY;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.rotationY += diff * 4 * dt;
+        this.group.rotation.y = this.rotationY;
+
+        // Walking
+        if (this.state === 'walk') {
+            this.animTime += dt * 8.0;
+            const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotationY);
+            const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
+            const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
+
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y <= 1.15) {
+                this.position.x = nextX;
+                this.position.z = nextZ;
+            }
+
+            const swing = Math.sin(this.animTime) * 0.65;
+            this.legs[0].rotation.x = swing;
+            this.legs[1].rotation.x = -swing;
+            this.lArm.rotation.x = -swing;
+        } else {
+            this.legs[0].rotation.x *= 0.8;
+            this.legs[1].rotation.x *= 0.8;
+            this.lArm.rotation.x *= 0.8;
         }
 
         this.updateFooting(dt);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake } from './mobs/passive.js?v=creeper_2';
-import { Zombie, Skeleton, Creeper } from './mobs/hostile.js?v=creeper_2';
+import { Pig, Sheep, Snake } from './mobs/passive.js?v=dirtik_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=dirtik_1';
 import { FlyingArrow } from './projectile.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../world.js';
 import { eventBus } from '../events.js';
@@ -62,6 +62,12 @@ export class EntityManager {
         // 3. Początkowy Creeper wędrujący po świecie
         const creeper = new Creeper(this.scene, this.world, 40, 25, this);
         this.animals.push(creeper);
+
+        // 4. Początkowe Dirtiki ukryte jako klocki ziemi
+        const dirtik1 = new Dirtik(this.scene, this.world, 34, 32, this);
+        this.animals.push(dirtik1);
+        const dirtik2 = new Dirtik(this.scene, this.world, 24, 38, this);
+        this.animals.push(dirtik2);
     }
 
     removeAnimal(animal) {
@@ -185,6 +191,28 @@ export class EntityManager {
         this.animals.push(creeper);
         console.log(`[EntityManager] Zespawnowano Creepera na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
         return creeper;
+    }
+
+    spawnDirtikInFrontOfPlayer(player = this.player, distance = 4.0) {
+        if (!player || !player.position) return null;
+        let dirX = 0;
+        let dirZ = -1;
+        if (player.camera) {
+            const forward = new THREE.Vector3();
+            player.camera.getWorldDirection(forward);
+            forward.y = 0;
+            if (forward.lengthSq() > 0.01) {
+                forward.normalize();
+                dirX = forward.x;
+                dirZ = forward.z;
+            }
+        }
+        const px = player.position.x + dirX * distance;
+        const pz = player.position.z + dirZ * distance;
+        const dirtik = new Dirtik(this.scene, this.world, px, pz, this);
+        this.animals.push(dirtik);
+        console.log(`[EntityManager] Zespawnowano ukrytego Dirtika na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
+        return dirtik;
     }
 
     spawnArrow(origin, direction, shooter = 'skeleton', damage = 5) {

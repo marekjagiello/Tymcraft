@@ -63,8 +63,8 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'snake') ? 0.35 : 0.85));
-            const hitRadius = (animal.type === 'snake') ? 0.80 : ((animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper') ? 0.95 : 0.85);
+            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)));
+            const hitRadius = (animal.type === 'snake') ? 0.80 : 0.95;
 
             // Center of animal vertical capsule
             const center = animal.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
@@ -96,9 +96,13 @@ export class Interaction {
             if (e.button === 0) {
                 this.triggerSwing();
 
-                // Left Click: Check if aimed at an animal (snake, sheep, pig, zombie, skeleton)
+                // Left Click: Check if aimed at an animal (snake, sheep, pig, zombie, skeleton, creeper, dirtik)
                 const animal = this.raycastAnimal();
                 if (animal) {
+                    if (animal.type === 'dirtik' && !animal.isAwakened) {
+                        animal.awaken();
+                        return;
+                    }
                     if (activeItemId === 23) {
                         // Clicking with apple feeds it instead: hearts appear!
                         animal.interactWithApple();
@@ -123,14 +127,15 @@ export class Interaction {
                             else if (animal.type === 'zombie') name = 'Zombie';
                             else if (animal.type === 'skeleton') name = 'Szkieleta';
                             else if (animal.type === 'creeper') name = 'Creepera';
+                            else if (animal.type === 'dirtik') name = 'Dirtika';
                             else if (animal.type === 'pig') name = 'świnię';
                             else if (animal.type === 'sheep') name = 'owcę';
 
                             const msg = `💥 Pokonano ${name}!`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
-                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper')) {
-                            const enemyName = animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : 'Zombie');
+                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
+                            const enemyName = animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie'));
                             const msg = `⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
@@ -156,8 +161,15 @@ export class Interaction {
                     return;
                 }
 
+                // Check if right-clicking disguised Dirtik
+                const targetAnimal = this.raycastAnimal();
+                if (targetAnimal && targetAnimal.type === 'dirtik' && !targetAnimal.isAwakened) {
+                    targetAnimal.awaken();
+                    return;
+                }
+
                 // Check if feeding animal with apple
-                const animal = this.raycastAnimal();
+                const animal = targetAnimal;
                 if (animal && activeItemId === 23) {
                     animal.interactWithApple();
                     eventBus.emit('item:consume');
@@ -350,6 +362,19 @@ export class Interaction {
         const { x, y, z, blockId } = this.currentTarget;
         if (blockId === 14) return; // Cannot break bedrock
 
+        // Check if breaking near/under disguised Dirtik
+        if (this.animals && this.animals.animals) {
+            for (const a of this.animals.animals) {
+                if (a.type === 'dirtik' && !a.isAwakened) {
+                    const dist = a.position.distanceTo(new THREE.Vector3(x + 0.5, y, z + 0.5));
+                    if (dist < 1.15) {
+                        a.awaken();
+                        return;
+                    }
+                }
+            }
+        }
+
         // Ruda Rubinu (16) wymaga Diamentowego Kilofa (33)
         const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
         if (blockId === 16 && activeItemId !== 33) {
@@ -408,6 +433,20 @@ export class Interaction {
 
         if (intersectsPlayer) {
             return; // Don't place inside player
+        }
+
+        // Check if placing a block on a disguised Dirtik
+        if (this.animals && this.animals.animals) {
+            for (const a of this.animals.animals) {
+                if (a.type === 'dirtik' && !a.isAwakened) {
+                    const distPlaced = a.position.distanceTo(new THREE.Vector3(placeX + 0.5, placeY, placeZ + 0.5));
+                    const distClicked = a.position.distanceTo(new THREE.Vector3(x + 0.5, y, z + 0.5));
+                    if (distPlaced < 1.15 || distClicked < 1.15) {
+                        a.awaken();
+                        return;
+                    }
+                }
+            }
         }
 
         this.world.setBlock(placeX, placeY, placeZ, activeItemId);

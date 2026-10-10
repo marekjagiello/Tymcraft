@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=creeper_2';
-import { Player } from './player.js?v=creeper_2';
-import { Interaction } from './interaction.js?v=creeper_2';
-import { AnimalManager } from './animals.js?v=creeper_2';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=creeper_2';
-import { StorageManager } from './storage.js?v=creeper_2';
-import { SurvivalManager } from './survival.js?v=creeper_2';
-import { CraftingManager } from './crafting.js?v=creeper_2';
-import { DropsManager } from './drops.js?v=creeper_2';
-import { eventBus } from './events.js?v=creeper_2';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=dirtik_1';
+import { Player } from './player.js?v=dirtik_1';
+import { Interaction } from './interaction.js?v=dirtik_1';
+import { AnimalManager } from './animals.js?v=dirtik_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=dirtik_1';
+import { StorageManager } from './storage.js?v=dirtik_1';
+import { SurvivalManager } from './survival.js?v=dirtik_1';
+import { CraftingManager } from './crafting.js?v=dirtik_1';
+import { DropsManager } from './drops.js?v=dirtik_1';
+import { eventBus } from './events.js?v=dirtik_1';
 
 class Game {
     constructor() {
@@ -154,6 +154,7 @@ class Game {
         if (typeof window !== 'undefined') {
             window.game = this;
             window.spawnCreeper = () => this.animals.spawnCreeperInFrontOfPlayer(this.player, 5.0);
+            window.spawnDirtik = () => this.animals.spawnDirtikInFrontOfPlayer(this.player, 4.0);
         }
 
         this.clock = new THREE.Clock();
