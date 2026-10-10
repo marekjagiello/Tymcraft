@@ -317,6 +317,17 @@ export class World {
                     }
                 }
 
+                // Ruby Ore generation (czerwony rubin, 30% szansy w głębokich żyłach skalnych, y <= 10)
+                for (let y = 2; y <= 10; y++) {
+                    const lIdx = this.localIndex(lx, y, lz);
+                    if (chunk.voxels[lIdx] === 3) { // Stone
+                        const rNoise = this.caveNoise.noise3D((x + 1337) * 0.17, y * 0.24, (z + 1337) * 0.17);
+                        if (rNoise > 0.44) { // ~30% szansy w skupiskach
+                            chunk.voxels[lIdx] = 16; // Ruby Ore!
+                        }
+                    }
+                }
+
                 // Trees / Cacti planning on solid surface
                 if (h > SEA_LEVEL) {
                     const surfBlock = chunk.voxels[this.localIndex(lx, h, lz)];

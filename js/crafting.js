@@ -92,6 +92,12 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 12. Ruby Sword (Rubinowy Miecz - One-Hit Kill 20 HP): Top 1 Rubin, Bottom 1 Patyk (pionowo)
+        if ((s0 === 34 && s2 === 20 && !s1 && !s3) || (s1 === 34 && s3 === 20 && !s0 && !s2)) {
+            this.output = { item: ITEMS.RUBY_SWORD, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

@@ -349,11 +349,27 @@ export class Interaction {
         const { x, y, z, blockId } = this.currentTarget;
         if (blockId === 14) return; // Cannot break bedrock
 
+        // Ruda Rubinu (16) wymaga Diamentowego Kilofa (33)
+        const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+        if (blockId === 16 && activeItemId !== 33) {
+            playHitSound();
+            const msg = '⚠️ Rudę Rubinu można wykopać tylko Diamentowym Kilofem! ⛏️💎';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+            return;
+        }
+
         this.spawnBreakParticles(x + 0.5, y + 0.5, z + 0.5, blockId);
         this.world.setBlock(x, y, z, 0);
 
         if (this.drops) {
             this.drops.spawnBlockDrop(x, y, z, blockId);
+        }
+
+        if (blockId === 16) {
+            const msg = '🔴 Wykopano potężny Rubin! ✨';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
         }
 
         this.currentTarget = this.raycastVoxels();

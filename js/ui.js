@@ -86,9 +86,17 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '⛏️';
             itemSpan.style.filter = 'drop-shadow(0 0 5px #38bdf8)';
         }
+        else if (itemId === 34) {
+            itemSpan.innerText = '🔴';
+            itemSpan.style.filter = 'drop-shadow(0 0 6px #ef4444)';
+        }
+        else if (itemId === 35) {
+            itemSpan.innerText = '🗡️';
+            itemSpan.style.filter = 'drop-shadow(0 0 7px #ef4444)';
+        }
         return itemSpan;
     }
-    if (itemId >= 1 && itemId <= 15) {
+    if (itemId >= 1 && itemId <= 16) {
         const iconCanvas = document.createElement('canvas');
         iconCanvas.width = 16;
         iconCanvas.height = 16;

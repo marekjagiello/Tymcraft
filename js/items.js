@@ -25,6 +25,7 @@ export const ITEMS = {
     COAL_ORE: { id: 13, name: 'Ruda Węgla', type: ITEM_TYPES.BLOCK, placeable: true },
     BEDROCK: { id: 14, name: 'Skała Macierzysta', type: ITEM_TYPES.BLOCK, placeable: false },
     DIAMOND_ORE: { id: 15, name: 'Ruda Diamentu', type: ITEM_TYPES.BLOCK, placeable: true },
+    RUBY_ORE: { id: 16, name: 'Ruda Rubinu', type: ITEM_TYPES.BLOCK, placeable: true },
 
     // Craftable materials & drops (IDs 20+)
     STICK: { id: 20, name: 'Patyk', type: ITEM_TYPES.MATERIAL, icon: 'stick' },
@@ -40,7 +41,9 @@ export const ITEMS = {
     DIAMOND: { id: 30, name: 'Diament', type: ITEM_TYPES.MATERIAL, icon: 'diamond' },
     DIAMOND_SWORD: { id: 31, name: 'Diamentowy Miecz', type: ITEM_TYPES.WEAPON, damage: 14.0, efficiency: 1.0, icon: 'diamond_sword' },
     DIAMOND_ARMOR: { id: 32, name: 'Diamentowa Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'diamond_armor' },
-    DIAMOND_PICKAXE: { id: 33, name: 'Diamentowy Kilof', type: ITEM_TYPES.TOOL, efficiency: 10.0, damage: 6.0, icon: 'diamond_pick' }
+    DIAMOND_PICKAXE: { id: 33, name: 'Diamentowy Kilof', type: ITEM_TYPES.TOOL, efficiency: 10.0, damage: 6.0, icon: 'diamond_pick' },
+    RUBY: { id: 34, name: 'Rubin', type: ITEM_TYPES.MATERIAL, icon: 'ruby' },
+    RUBY_SWORD: { id: 35, name: 'Rubinowy Miecz', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'ruby_sword' }
 };
 
 // Fast lookup map by ID
@@ -79,7 +82,7 @@ export function isTool(id) {
 }
 
 export function isPlaceableBlock(id) {
-    if (id < 1 || id > 15) return false;
+    if (id < 1 || id > 16) return false;
     const item = getItem(id);
     return item ? Boolean(item.placeable) : false;
 }
