@@ -161,6 +161,12 @@ export class Interaction {
                     return;
                 }
 
+                // Check if throwing Gunpowder (ID: 36)
+                if (activeItemId === 36) {
+                    this.throwGunpowder();
+                    return;
+                }
+
                 // Check if right-clicking disguised Dirtik
                 const targetAnimal = this.raycastAnimal();
                 if (targetAnimal && targetAnimal.type === 'dirtik' && !targetAnimal.isAwakened) {
@@ -290,6 +296,32 @@ export class Interaction {
         }
     }
 
+    throwGunpowder() {
+        const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+        if (activeItemId !== 36) return;
+
+        eventBus.emit('item:consume');
+        if (this.onItemConsumed) {
+            this.onItemConsumed(36);
+        }
+
+        this.triggerSwing();
+
+        const origin = this.camera.position.clone();
+        const dir = new THREE.Vector3();
+        this.camera.getWorldDirection(dir);
+        origin.addScaledVector(dir, 0.4);
+
+        if (this.animals && this.animals.spawnThrownGunpowder) {
+            this.animals.spawnThrownGunpowder(origin, dir);
+        }
+
+        eventBus.emit('ui:popup', '🧨 Rzucono ładunek prochu!');
+        if (this.ui && !this.ui._handledByEvent) {
+            this.ui.showPopup('🧨 Rzucono ładunek prochu!');
+        }
+    }
+
     // Fast Voxel Traversal algorithm (Amanatides & Woo DDA)
     raycastVoxels(maxDist = this.reachDistance) {
         const origin = this.camera.position.clone();
@@ -375,8 +407,18 @@ export class Interaction {
             }
         }
 
-        // Ruda Rubinu (16) wymaga Diamentowego Kilofa (33)
         const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+
+        // Ruda Diamentu (15) wymaga co najmniej Kamiennego Kilofa (22) lub Diamentowego Kilofa (33)
+        if (blockId === 15 && activeItemId !== 22 && activeItemId !== 33) {
+            playHitSound();
+            const msg = '⚠️ Rudę Diamentu można wykopać tylko Kamiennym lub Diamentowym Kilofem! ⛏️';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+            return;
+        }
+
+        // Ruda Rubinu (16) wymaga Diamentowego Kilofa (33)
         if (blockId === 16 && activeItemId !== 33) {
             playHitSound();
             const msg = '⚠️ Rudę Rubinu można wykopać tylko Diamentowym Kilofem! ⛏️💎';
@@ -390,6 +432,12 @@ export class Interaction {
 
         if (this.drops) {
             this.drops.spawnBlockDrop(x, y, z, blockId);
+        }
+
+        if (blockId === 15) {
+            const msg = '💎 Wykopano cenny Diament! ✨';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
         }
 
         if (blockId === 16) {

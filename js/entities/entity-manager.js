@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake } from './mobs/passive.js?v=dirtik_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=dirtik_1';
-import { FlyingArrow } from './projectile.js';
+import { Pig, Sheep, Snake } from './mobs/passive.js?v=throw_gunpowder_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=throw_gunpowder_1';
+import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=throw_gunpowder_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -12,6 +12,7 @@ export class EntityManager {
         this.player = player;
         this.animals = [];
         this.arrows = [];
+        this.thrownProjectiles = [];
 
         // Optional direct references for backward-compatibility
         this.survival = null;
@@ -221,6 +222,12 @@ export class EntityManager {
         return arrow;
     }
 
+    spawnThrownGunpowder(origin, direction) {
+        const bomb = new ThrownGunpowder(this.scene, this.world, origin, direction, this);
+        this.thrownProjectiles.push(bomb);
+        return bomb;
+    }
+
     update(dt, playerPosition = null, isDay = true) {
         // Automatyczne utrzymywanie maksymalnie 1 węża na świecie
         const snakes = this.animals.filter(a => a.type === 'snake');
@@ -305,6 +312,15 @@ export class EntityManager {
             arrow.update(dt, this.player, this.survival, this.ui, this.animals);
             if (arrow.isDead) {
                 this.arrows.splice(i, 1);
+            }
+        }
+
+        // Update thrown gunpowder bombs
+        for (let i = this.thrownProjectiles.length - 1; i >= 0; i--) {
+            const bomb = this.thrownProjectiles[i];
+            bomb.update(dt, this.player, this.survival, this.ui, this.animals);
+            if (bomb.isDead || bomb.isExploded) {
+                this.thrownProjectiles.splice(i, 1);
             }
         }
 
