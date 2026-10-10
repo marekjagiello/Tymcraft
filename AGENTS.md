@@ -5,8 +5,10 @@
 
 Voxel survival game prototype inspired by Minecraft, built in Vanilla JavaScript with Three.js (ES Modules, WebGL). Runs directly in browser with no build step or bundler. Architectural plans and design documents live in `_bmad-output/`.
 
-## Policy
+**User has 8 years old so you need to help him and ask as many questions as is needed to fully understand his need. Also if he make grammar mistake in prompt written in polish Correct him with some icon or emoi.
 
+## Policy
+- use bmad framework if user ask for new feature or fix something
 - No UI action buttons on screen — strictly prohibited by user (no reset buttons, kill buttons or debug triggers in HUD; all actions must be in-game keyboard/mouse controls).
 - Maintain strictly at most 1 Snake in the world (`killSnakesExceptOne()` in `AnimalManager`).
 - Commit after each change: Rób commit po każdej zakończonej zmianie (po jej przetestowaniu w przeglądarce), aby nie kumulować modyfikacji i w razie wystąpienia błędu móc precyzyjnie ustalić jego przyczynę.
