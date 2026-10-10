@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake } from './mobs/passive.js';
-import { Zombie, Skeleton } from './mobs/hostile.js';
+import { Pig, Sheep, Snake } from './mobs/passive.js?v=creeper_2';
+import { Zombie, Skeleton, Creeper } from './mobs/hostile.js?v=creeper_2';
 import { FlyingArrow } from './projectile.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../world.js';
 import { eventBus } from '../events.js';
@@ -58,6 +58,10 @@ export class EntityManager {
 
         // Gwarancja: jeśli z jakiegokolwiek powodu jest więcej niż 1 wąż, zabij wszystkie oprócz 1
         this.killSnakesExceptOne();
+
+        // 3. Początkowy Creeper wędrujący po świecie
+        const creeper = new Creeper(this.scene, this.world, 40, 25, this);
+        this.animals.push(creeper);
     }
 
     removeAnimal(animal) {
@@ -161,6 +165,28 @@ export class EntityManager {
         return skeleton;
     }
 
+    spawnCreeperInFrontOfPlayer(player = this.player, distance = 6.0) {
+        if (!player || !player.position) return null;
+        let dirX = 0;
+        let dirZ = -1;
+        if (player.camera) {
+            const forward = new THREE.Vector3();
+            player.camera.getWorldDirection(forward);
+            forward.y = 0;
+            if (forward.lengthSq() > 0.01) {
+                forward.normalize();
+                dirX = forward.x;
+                dirZ = forward.z;
+            }
+        }
+        const px = player.position.x + dirX * distance;
+        const pz = player.position.z + dirZ * distance;
+        const creeper = new Creeper(this.scene, this.world, px, pz, this);
+        this.animals.push(creeper);
+        console.log(`[EntityManager] Zespawnowano Creepera na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
+        return creeper;
+    }
+
     spawnArrow(origin, direction, shooter = 'skeleton', damage = 5) {
         const arrow = new FlyingArrow(this.scene, this.world, origin, direction, shooter, damage);
         this.arrows.push(arrow);
@@ -216,6 +242,28 @@ export class EntityManager {
             }
         } else {
             this.skeletonSpawnTimer = 0;
+        }
+
+        // Zarządzanie populacją Creeperów (wyłącznie w nocy)
+        if (!isDay && playerPosition) {
+            const creeperCount = this.animals.filter(a => a.type === 'creeper' && !a.isDead).length;
+            this.creeperSpawnTimer = (this.creeperSpawnTimer || 0) + dt;
+
+            // W nocy spawnuje się do 2 Creeperów
+            if (creeperCount < 2 && this.creeperSpawnTimer >= 12.0) {
+                this.creeperSpawnTimer = 0;
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 14 + Math.random() * 8;
+                const cx = playerPosition.x + Math.cos(angle) * dist;
+                const cz = playerPosition.z + Math.sin(angle) * dist;
+                const creeper = new Creeper(this.scene, this.world, cx, cz, this);
+                this.animals.push(creeper);
+                console.log(`[Monster] Nocny Creeper pojawił się na (${cx.toFixed(1)}, ${cz.toFixed(1)})!`);
+                eventBus.emit('ui:popup', '🟩 W ciemności nocy pojawił się cichy Creeper!');
+                if (this.ui) this.ui.showPopup('🟩 W ciemności nocy pojawił się cichy Creeper!');
+            }
+        } else {
+            this.creeperSpawnTimer = 0;
         }
 
         // Update all entities

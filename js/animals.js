@@ -1,8 +1,8 @@
 // Backward compatibility adapter and unified export facade for entities
-import { Pig, Sheep, Snake, createPixelHeartMesh } from './entities/mobs/passive.js?v=caves_diamonds_1';
-import { Zombie, Skeleton } from './entities/mobs/hostile.js?v=caves_diamonds_1';
-import { FlyingArrow } from './entities/projectile.js?v=caves_diamonds_1';
-import { EntityManager } from './entities/entity-manager.js?v=caves_diamonds_1';
+import { Pig, Sheep, Snake, createPixelHeartMesh } from './entities/mobs/passive.js?v=creeper_2';
+import { Zombie, Skeleton, Creeper } from './entities/mobs/hostile.js?v=creeper_2';
+import { FlyingArrow } from './entities/projectile.js?v=creeper_2';
+import { EntityManager } from './entities/entity-manager.js?v=creeper_2';
 
 export {
     createPixelHeartMesh,
@@ -12,6 +12,7 @@ export {
     Snake,
     Zombie,
     Skeleton,
+    Creeper,
     EntityManager
 };
 
@@ -21,6 +22,8 @@ export class Animal {
         switch (type) {
             case 'snake':
                 return new Snake(scene, world, x, z, manager, isBaby);
+            case 'creeper':
+                return new Creeper(scene, world, x, z, manager);
             case 'zombie':
                 return new Zombie(scene, world, x, z, manager, hasHelmet);
             case 'skeleton':

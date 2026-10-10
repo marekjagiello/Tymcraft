@@ -63,8 +63,8 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'snake') ? 0.35 : 0.85);
-            const hitRadius = (animal.type === 'snake') ? 0.80 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 0.95 : 0.85);
+            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'snake') ? 0.35 : 0.85));
+            const hitRadius = (animal.type === 'snake') ? 0.80 : ((animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper') ? 0.95 : 0.85);
 
             // Center of animal vertical capsule
             const center = animal.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
@@ -122,14 +122,15 @@ export class Interaction {
                             if (animal.type === 'snake') name = 'węża';
                             else if (animal.type === 'zombie') name = 'Zombie';
                             else if (animal.type === 'skeleton') name = 'Szkieleta';
+                            else if (animal.type === 'creeper') name = 'Creepera';
                             else if (animal.type === 'pig') name = 'świnię';
                             else if (animal.type === 'sheep') name = 'owcę';
 
                             const msg = `💥 Pokonano ${name}!`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
-                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton')) {
-                            const enemyName = animal.type === 'skeleton' ? 'Szkieleta' : 'Zombie';
+                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper')) {
+                            const enemyName = animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : 'Zombie');
                             const msg = `⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);

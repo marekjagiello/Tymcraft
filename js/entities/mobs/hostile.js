@@ -3,6 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
+import { playHissSound, playExplosionSound } from '../../audio.js';
 
 export class Zombie extends Mob {
     constructor(scene, world, x = 32, z = 32, manager = null, hasHelmet = false) {
@@ -487,6 +488,320 @@ export class Skeleton extends Mob {
         } else {
             this.legs[0].rotation.x *= 0.8;
             this.legs[1].rotation.x *= 0.8;
+        }
+
+        this.updateFooting(dt);
+    }
+}
+
+export class Creeper extends Mob {
+    constructor(scene, world, x = 32, z = 32, manager = null) {
+        super(scene, world, 'creeper', x, z, manager);
+        this.maxHealth = 10;
+        this.health = 10;
+        this.walkSpeed = 1.25;
+        this.isFusing = false;
+        this.fuseTimer = 0;
+        this.fuseDuration = 1.0; // 1.0s selected by user!
+        this.flashWhiteState = false;
+        this.flashTimer = 0;
+
+        this.buildModel();
+        this.buildHealthBar(1.65);
+        this.snapToGround();
+        this.scene.add(this.group);
+    }
+
+    buildModel() {
+        // Classic Minecraft Creeper Green palette
+        this.skinMat = new THREE.MeshLambertMaterial({ color: 0x4ade80 });
+        this.darkSkinMat = new THREE.MeshLambertMaterial({ color: 0x16a34a });
+        this.faceMat = new THREE.MeshLambertMaterial({ color: 0x111827 });
+
+        // Head (0.42 x 0.42 x 0.42)
+        const headGeo = new THREE.BoxGeometry(0.42, 0.42, 0.42);
+        this.head = new THREE.Mesh(headGeo, this.skinMat);
+        this.head.position.set(0, 1.15, 0);
+        this.head.castShadow = true;
+        this.group.add(this.head);
+
+        // Face details: eyes, nose, mouth corners
+        const eyeGeo = new THREE.BoxGeometry(0.09, 0.09, 0.02);
+        const lEye = new THREE.Mesh(eyeGeo, this.faceMat);
+        lEye.position.set(-0.11, 0.06, 0.215);
+        this.head.add(lEye);
+
+        const rEye = new THREE.Mesh(eyeGeo, this.faceMat);
+        rEye.position.set(0.11, 0.06, 0.215);
+        this.head.add(rEye);
+
+        const noseGeo = new THREE.BoxGeometry(0.09, 0.09, 0.02);
+        const nose = new THREE.Mesh(noseGeo, this.faceMat);
+        nose.position.set(0, -0.01, 0.215);
+        this.head.add(nose);
+
+        const mouthSideGeo = new THREE.BoxGeometry(0.06, 0.12, 0.02);
+        const mouthL = new THREE.Mesh(mouthSideGeo, this.faceMat);
+        mouthL.position.set(-0.06, -0.09, 0.215);
+        const mouthR = new THREE.Mesh(mouthSideGeo, this.faceMat);
+        mouthR.position.set(0.06, -0.09, 0.215);
+        this.head.add(mouthL, mouthR);
+
+        const mouthCornerGeo = new THREE.BoxGeometry(0.05, 0.09, 0.02);
+        const cornerL = new THREE.Mesh(mouthCornerGeo, this.faceMat);
+        cornerL.position.set(-0.12, -0.11, 0.215);
+        const cornerR = new THREE.Mesh(mouthCornerGeo, this.faceMat);
+        cornerR.position.set(0.12, -0.11, 0.215);
+        this.head.add(cornerL, cornerR);
+
+        // Torso / Body (0.38 x 0.62 x 0.26)
+        const bodyGeo = new THREE.BoxGeometry(0.38, 0.62, 0.26);
+        this.body = new THREE.Mesh(bodyGeo, this.skinMat);
+        this.body.position.set(0, 0.64, 0);
+        this.body.castShadow = true;
+        this.group.add(this.body);
+
+        const bellyGeo = new THREE.BoxGeometry(0.24, 0.44, 0.02);
+        const belly = new THREE.Mesh(bellyGeo, this.darkSkinMat);
+        belly.position.set(0, 0, 0.135);
+        this.body.add(belly);
+
+        // 4 Animated Legs: 2 Front, 2 Back
+        const legGeo = new THREE.BoxGeometry(0.16, 0.36, 0.16);
+        const legMat = this.skinMat;
+
+        const legConfigs = [
+            { x: -0.11, z: 0.11 },
+            { x: 0.11, z: 0.11 },
+            { x: -0.11, z: -0.11 },
+            { x: 0.11, z: -0.11 }
+        ];
+
+        this.legs = [];
+        for (const cfg of legConfigs) {
+            const leg = new THREE.Mesh(legGeo, legMat);
+            leg.position.set(cfg.x, 0.18, cfg.z);
+            leg.castShadow = true;
+            this.group.add(leg);
+            this.legs.push(leg);
+        }
+    }
+
+    explode() {
+        if (this.isDead) return;
+
+        playExplosionSound();
+
+        // 1. Particle burst
+        if (this.manager && this.manager.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position.clone().add(new THREE.Vector3(0, 0.5, 0)));
+        }
+
+        // 2. Destroys 5x5 blocks in the world (as user requested: A1)
+        const cx = Math.floor(this.position.x);
+        const cy = Math.floor(this.position.y);
+        const cz = Math.floor(this.position.z);
+
+        let destroyedBlocksCount = 0;
+        for (let dx = -2; dx <= 2; dx++) {
+            for (let dz = -2; dz <= 2; dz++) {
+                for (let dy = -1; dy <= 2; dy++) {
+                    const distSq = dx * dx + (dy * 1.1) * (dy * 1.1) + dz * dz;
+                    if (distSq <= 6.8) {
+                        const bx = cx + dx;
+                        const by = cy + dy;
+                        const bz = cz + dz;
+
+                        if (bx < 0 || bx >= WORLD_SIZE_X || bz < 0 || bz >= WORLD_SIZE_Z || by < 1 || by >= WORLD_HEIGHT) {
+                            continue;
+                        }
+
+                        const blockId = this.world.getBlock(bx, by, bz);
+                        // Cannot destroy air (0) or Bedrock (14)
+                        if (blockId > 0 && blockId !== 14) {
+                            this.world.setBlock(bx, by, bz, 0);
+                            destroyedBlocksCount++;
+
+                            // 75% chance to drop block so player can collect the exploded blocks
+                            if (this.manager && this.manager.drops && Math.random() < 0.75) {
+                                if (typeof this.manager.drops.spawnBlockDrop === 'function') {
+                                    this.manager.drops.spawnBlockDrop(bx, by, bz, blockId);
+                                } else if (typeof this.manager.drops.spawn === 'function') {
+                                    this.manager.drops.spawn(bx, by, bz, blockId);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log(`[Creeper] Wybuch na 5x5 kratek! Zniszczono ${destroyedBlocksCount} klocków.`);
+
+        // 3. Deal damage to player (exactly 3 HP damage = 1.5 hearts, as user requested: A2)
+        if (this.manager && this.manager.player) {
+            const playerPos = this.manager.player.position;
+            if (playerPos) {
+                const distToPlayer = this.position.distanceTo(playerPos);
+                if (distToPlayer <= 3.8) {
+                    if (this.manager.survival) {
+                        this.manager.survival.takeDamage(3, 'Wybuch Creepera 💥');
+                    }
+                }
+            }
+        }
+
+        // 4. Damage nearby mobs in 5x5 area
+        if (this.manager && this.manager.animals) {
+            for (const other of this.manager.animals) {
+                if (other !== this && !other.isDead && other.position) {
+                    const dist = this.position.distanceTo(other.position);
+                    if (dist <= 3.8) {
+                        other.onAttacked(12, this.position);
+                    }
+                }
+            }
+        }
+
+        eventBus.emit('ui:popup', '💥 BUM! Wybuch Creepera!');
+        if (this.manager?.ui) {
+            this.manager.ui.showPopup('💥 BUM! Wybuch Creepera!');
+        }
+
+        this.die(true);
+    }
+
+    die(exploded = false) {
+        if (this.isDead) return;
+
+        // When killed by player sword/arrow BEFORE exploding -> Drop Gunpowder (ID 36)!
+        if (!exploded && this.manager && this.manager.drops) {
+            const count = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < count; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    36,
+                    'Proch Strzelniczy',
+                    this.position.x + (Math.random() - 0.5) * 0.4,
+                    this.position.y + 0.3,
+                    this.position.z + (Math.random() - 0.5) * 0.4
+                );
+                this.manager.drops.items.push(drop);
+            }
+            console.log(`[Drops] Creeper upuścił Proch Strzelniczy (ID: 36) x${count}!`);
+        }
+
+        super.die();
+    }
+
+    update(dt, playerPosition = null, isDay = true) {
+        if (this.isDead) return;
+
+        this.updateHealthBar(playerPosition);
+
+        let distToPlayer = 999;
+        if (playerPosition) {
+            distToPlayer = this.position.distanceTo(playerPosition);
+        }
+
+        const detectRange = 15.0;
+        const fuseRange = 3.2;
+        const defuseRange = 4.8;
+
+        if (distToPlayer <= detectRange) {
+            this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
+
+            if (distToPlayer <= fuseRange) {
+                if (!this.isFusing) {
+                    this.isFusing = true;
+                    this.fuseTimer = 0;
+                    playHissSound(1.0);
+                    eventBus.emit('ui:popup', '⚠️ Sssss... Creeper zaraz wybuchnie!');
+                    if (this.manager?.ui) {
+                        this.manager.ui.showPopup('⚠️ Sssss... Creeper zaraz wybuchnie!');
+                    }
+                }
+
+                this.state = 'idle';
+                this.fuseTimer += dt;
+
+                // Visual swelling (scale 1.0 -> 1.28)
+                const swell = 1.0 + (this.fuseTimer / this.fuseDuration) * 0.28;
+                this.group.scale.set(swell, swell, swell);
+
+                // Flashing white
+                this.flashTimer += dt;
+                if (this.flashTimer >= 0.12) {
+                    this.flashTimer = 0;
+                    this.flashWhiteState = !this.flashWhiteState;
+                    const c = this.flashWhiteState ? 0xffffff : 0x4ade80;
+                    this.skinMat.color.setHex(c);
+                }
+
+                if (this.fuseTimer >= this.fuseDuration) {
+                    this.explode();
+                    return;
+                }
+            } else if (distToPlayer > defuseRange && this.isFusing) {
+                // Defused! Player ran away
+                this.isFusing = false;
+                this.fuseTimer = 0;
+                this.group.scale.set(1.0, 1.0, 1.0);
+                this.skinMat.color.setHex(0x4ade80);
+                this.state = 'walk';
+            } else {
+                if (!this.isFusing) {
+                    this.state = 'walk';
+                }
+            }
+        } else {
+            if (this.isFusing) {
+                this.isFusing = false;
+                this.fuseTimer = 0;
+                this.group.scale.set(1.0, 1.0, 1.0);
+                this.skinMat.color.setHex(0x4ade80);
+            }
+
+            this.stateTimer -= dt;
+            if (this.stateTimer <= 0) {
+                this.stateTimer = 1.5 + Math.random() * 3.5;
+                if (Math.random() < 0.5) {
+                    this.state = 'walk';
+                    this.targetRotationY = Math.random() * Math.PI * 2;
+                } else {
+                    this.state = 'idle';
+                }
+            }
+        }
+
+        let diff = this.targetRotationY - this.rotationY;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.rotationY += diff * 4 * dt;
+        this.group.rotation.y = this.rotationY;
+
+        if (this.state === 'walk') {
+            this.animTime += dt * 8.0;
+            const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotationY);
+            const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
+            const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
+
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y <= 1.15) {
+                this.position.x = nextX;
+                this.position.z = nextZ;
+            }
+
+            const swing = Math.sin(this.animTime) * 0.6;
+            this.legs[0].rotation.x = swing;
+            this.legs[1].rotation.x = -swing;
+            this.legs[2].rotation.x = -swing;
+            this.legs[3].rotation.x = swing;
+        } else {
+            for (const leg of this.legs) {
+                leg.rotation.x *= 0.8;
+            }
         }
 
         this.updateFooting(dt);

@@ -159,6 +159,33 @@ function createRubyMesh() {
     return group;
 }
 
+// Helper to create a 3D Gunpowder pouch/pile drop mesh
+function createGunpowderMesh() {
+    const group = new THREE.Group();
+    const bagMat = new THREE.MeshLambertMaterial({ color: 0x374151 });
+    const stringMat = new THREE.MeshLambertMaterial({ color: 0xef4444 });
+
+    // Main pouch body
+    const baseGeo = new THREE.BoxGeometry(0.18, 0.16, 0.18);
+    const base = new THREE.Mesh(baseGeo, bagMat);
+    base.castShadow = true;
+    group.add(base);
+
+    // Tied neck
+    const neckGeo = new THREE.BoxGeometry(0.10, 0.08, 0.10);
+    const neck = new THREE.Mesh(neckGeo, bagMat);
+    neck.position.y = 0.11;
+    group.add(neck);
+
+    // Red fuse/string tie
+    const stringGeo = new THREE.BoxGeometry(0.13, 0.03, 0.13);
+    const string = new THREE.Mesh(stringGeo, stringMat);
+    string.position.y = 0.08;
+    group.add(string);
+
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -203,6 +230,8 @@ export class DroppedItem {
             this.mesh = createDiamondMesh();
         } else if (this.id === 34) {
             this.mesh = createRubyMesh();
+        } else if (this.id === 36) {
+            this.mesh = createGunpowderMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
@@ -307,7 +336,11 @@ export class DropsManager {
         this.items = [];
     }
 
-    // Called when a block is mined
+    // Called when a block is mined or exploded
+    spawn(x, y, z, blockId) {
+        return this.spawnBlockDrop(x, y, z, blockId);
+    }
+
     spawnBlockDrop(x, y, z, blockId) {
         // Water (10), Bedrock (14), Air (0) don't drop
         if (blockId === 0 || blockId === 10 || blockId === 14) return;
@@ -346,6 +379,11 @@ export class DropsManager {
         else if (blockId === 16) {
             dropId = 34;
             dropName = 'Rubin';
+        }
+        // Gunpowder (36)
+        else if (blockId === 36) {
+            dropId = 36;
+            dropName = 'Proch Strzelniczy';
         }
 
         const drop = new DroppedItem(this.scene, this.world, dropId, dropName, x + 0.5, y + 0.5, z + 0.5);

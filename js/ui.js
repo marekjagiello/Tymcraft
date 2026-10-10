@@ -94,6 +94,10 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🗡️';
             itemSpan.style.filter = 'drop-shadow(0 0 7px #ef4444)';
         }
+        else if (itemId === 36) {
+            itemSpan.innerText = '🧨';
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #e11d48)';
+        }
         return itemSpan;
     }
     if (itemId >= 1 && itemId <= 16) {

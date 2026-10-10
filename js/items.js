@@ -43,7 +43,8 @@ export const ITEMS = {
     DIAMOND_ARMOR: { id: 32, name: 'Diamentowa Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'diamond_armor' },
     DIAMOND_PICKAXE: { id: 33, name: 'Diamentowy Kilof', type: ITEM_TYPES.TOOL, efficiency: 10.0, damage: 6.0, icon: 'diamond_pick' },
     RUBY: { id: 34, name: 'Rubin', type: ITEM_TYPES.MATERIAL, icon: 'ruby' },
-    RUBY_SWORD: { id: 35, name: 'Rubinowy Miecz', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'ruby_sword' }
+    RUBY_SWORD: { id: 35, name: 'Rubinowy Miecz', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'ruby_sword' },
+    GUNPOWDER: { id: 36, name: 'Proch Strzelniczy', type: ITEM_TYPES.MATERIAL, icon: 'gunpowder' }
 };
 
 // Fast lookup map by ID
