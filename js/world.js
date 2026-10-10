@@ -306,24 +306,32 @@ export class World {
                     }
                 }
 
-                // Diamond Ore generation (rare underground veins in deep stone, y <= 12)
-                for (let y = 2; y <= 12; y++) {
+                // Diamond Ore generation (mega głęboko pod ziemią, y <= 10, dokładnie 20% szansy)
+                for (let y = 2; y <= 10; y++) {
                     const lIdx = this.localIndex(lx, y, lz);
                     if (chunk.voxels[lIdx] === 3) { // Stone
-                        const dNoise = this.caveNoise.noise3D((x + 777) * 0.16, y * 0.22, (z + 777) * 0.16);
-                        if (dNoise > 0.54) {
-                            chunk.voxels[lIdx] = 15; // Diamond Ore!
+                        const dVein = this.caveNoise.noise3D((x + 777) * 0.18, y * 0.25, (z + 777) * 0.18);
+                        if (dVein > 0.48) {
+                            const hash = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453;
+                            const prob = hash - Math.floor(hash);
+                            if (prob < 0.20) { // Dokładnie 20% szansy na diament
+                                chunk.voxels[lIdx] = 15; // Diamond Ore!
+                            }
                         }
                     }
                 }
 
-                // Ruby Ore generation (czerwony rubin, 30% szansy w głębokich żyłach skalnych, y <= 10)
-                for (let y = 2; y <= 10; y++) {
+                // Ruby Ore generation (mega głęboko tuż nad bedrockiem, y <= 7, dokładnie 10% szansy)
+                for (let y = 2; y <= 7; y++) {
                     const lIdx = this.localIndex(lx, y, lz);
                     if (chunk.voxels[lIdx] === 3) { // Stone
-                        const rNoise = this.caveNoise.noise3D((x + 1337) * 0.17, y * 0.24, (z + 1337) * 0.17);
-                        if (rNoise > 0.44) { // ~30% szansy w skupiskach
-                            chunk.voxels[lIdx] = 16; // Ruby Ore!
+                        const rVein = this.caveNoise.noise3D((x + 1337) * 0.19, y * 0.26, (z + 1337) * 0.19);
+                        if (rVein > 0.48) {
+                            const hash = Math.sin(x * 39.346 + y * 11.135 + z * 83.185) * 43758.5453;
+                            const prob = hash - Math.floor(hash);
+                            if (prob < 0.10) { // Dokładnie 10% szansy na rubin
+                                chunk.voxels[lIdx] = 16; // Ruby Ore!
+                            }
                         }
                     }
                 }
