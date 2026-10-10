@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake } from './mobs/passive.js?v=throw_gunpowder_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=throw_gunpowder_1';
-import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=throw_gunpowder_1';
-import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../world.js';
+import { Pig, Sheep, Snake } from './mobs/passive.js?v=dirtik_fix_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=dirtik_fix_1';
+import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=dirtik_fix_1';
+import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
 export class EntityManager {
@@ -64,11 +64,52 @@ export class EntityManager {
         const creeper = new Creeper(this.scene, this.world, 40, 25, this);
         this.animals.push(creeper);
 
-        // 4. Początkowe Dirtiki ukryte jako klocki ziemi
-        const dirtik1 = new Dirtik(this.scene, this.world, 34, 32, this);
-        this.animals.push(dirtik1);
-        const dirtik2 = new Dirtik(this.scene, this.world, 24, 38, this);
-        this.animals.push(dirtik2);
+        // 4. Początkowe Dirtiki ukryte jako klocki ziemi w pobliżu gracza
+        const startX = (this.player && this.player.position) ? this.player.position.x : 32;
+        const startZ = (this.player && this.player.position) ? this.player.position.z : 32;
+        for (let i = 0; i < 3; i++) {
+            this.spawnDirtikNear(startX, startZ, 6 + i * 4, 14 + i * 4);
+        }
+    }
+
+    getGroundHeight(x, z) {
+        const bx = Math.floor(x);
+        const bz = Math.floor(z);
+        for (let y = WORLD_HEIGHT - 1; y >= 0; y--) {
+            const block = this.world.getBlock(bx, y, bz);
+            if (block === 5) continue; // Skip tree leaves
+            if (this.world.isSolid(bx, y, bz)) {
+                return y + 1;
+            }
+        }
+        return 10;
+    }
+
+    spawnDirtikNear(centerX, centerZ, minDist = 8, maxDist = 20) {
+        for (let attempt = 0; attempt < 25; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = minDist + Math.random() * (maxDist - minDist);
+            const bx = Math.floor(centerX + Math.cos(angle) * dist);
+            const bz = Math.floor(centerZ + Math.sin(angle) * dist);
+
+            const gy = this.getGroundHeight(bx, bz);
+            const groundBlockId = this.world.getBlock(bx, gy - 1, bz);
+
+            // Must be solid land (Grass, Dirt, Stone, Sand, Cobble, etc.), NOT water (10) or leaves (5)
+            if (!groundBlockId || groundBlockId === 10 || groundBlockId === 5) continue;
+            // Space above ground block must be air
+            if (this.world.getBlock(bx, gy, bz) !== 0 || this.world.getBlock(bx, gy + 1, bz) !== 0) continue;
+
+            // Check if too close to another active animal
+            const tooClose = this.animals.some(a => !a.isDead && Math.hypot(a.position.x - (bx + 0.5), a.position.z - (bz + 0.5)) < 2.0);
+            if (tooClose) continue;
+
+            const dirtik = new Dirtik(this.scene, this.world, bx + 0.5, bz + 0.5, this);
+            this.animals.push(dirtik);
+            console.log(`[EntityManager] Zespawnowano ukrytego Dirtika na (${(bx + 0.5).toFixed(1)}, gy=${gy}, ${(bz + 0.5).toFixed(1)})`);
+            return dirtik;
+        }
+        return null;
     }
 
     removeAnimal(animal) {
@@ -299,6 +340,26 @@ export class EntityManager {
             }
         } else {
             this.creeperSpawnTimer = 0;
+        }
+
+        // Zarządzanie populacją Dirtików (za dnia i w nocy - jako ukryte klocki na powierzchni)
+        if (playerPosition) {
+            const dirtiks = this.animals.filter(a => a.type === 'dirtik' && !a.isDead);
+            // Usuń Dirtiki, które są za daleko od gracza (> 48m), żeby nie blokowały limitu
+            for (const d of dirtiks) {
+                if (d.position.distanceTo(playerPosition) > 48) {
+                    d.die();
+                }
+            }
+
+            const activeDirtiks = this.animals.filter(a => a.type === 'dirtik' && !a.isDead);
+            this.dirtikSpawnTimer = (this.dirtikSpawnTimer || 0) + dt;
+
+            // Utrzymuj od 2 do 3 ukrytych Dirtików w pobliżu gracza
+            if (activeDirtiks.length < 3 && this.dirtikSpawnTimer >= 10.0) {
+                this.dirtikSpawnTimer = 0;
+                this.spawnDirtikNear(playerPosition.x, playerPosition.z, 10, 22);
+            }
         }
 
         // Update all entities

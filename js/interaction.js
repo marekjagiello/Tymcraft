@@ -391,6 +391,12 @@ export class Interaction {
     breakBlock() {
         if (!this.currentTarget || !this.currentTarget.hit) return;
 
+        // If target is a disguised Dirtik
+        if (this.currentTarget.isDisguisedDirtik && this.currentTarget.dirtik) {
+            this.currentTarget.dirtik.awaken();
+            return;
+        }
+
         const { x, y, z, blockId } = this.currentTarget;
         if (blockId === 14) return; // Cannot break bedrock
 
@@ -398,8 +404,10 @@ export class Interaction {
         if (this.animals && this.animals.animals) {
             for (const a of this.animals.animals) {
                 if (a.type === 'dirtik' && !a.isAwakened) {
-                    const dist = a.position.distanceTo(new THREE.Vector3(x + 0.5, y, z + 0.5));
-                    if (dist < 1.15) {
+                    const blockCenter = new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5);
+                    const dirtikCenter = a.position.clone().add(new THREE.Vector3(0, 0.5, 0));
+                    const dist = dirtikCenter.distanceTo(blockCenter);
+                    if (dist < 1.6) {
                         a.awaken();
                         return;
                     }
@@ -487,9 +495,10 @@ export class Interaction {
         if (this.animals && this.animals.animals) {
             for (const a of this.animals.animals) {
                 if (a.type === 'dirtik' && !a.isAwakened) {
-                    const distPlaced = a.position.distanceTo(new THREE.Vector3(placeX + 0.5, placeY, placeZ + 0.5));
-                    const distClicked = a.position.distanceTo(new THREE.Vector3(x + 0.5, y, z + 0.5));
-                    if (distPlaced < 1.15 || distClicked < 1.15) {
+                    const dirtikCenter = a.position.clone().add(new THREE.Vector3(0, 0.5, 0));
+                    const distPlaced = dirtikCenter.distanceTo(new THREE.Vector3(placeX + 0.5, placeY + 0.5, placeZ + 0.5));
+                    const distClicked = dirtikCenter.distanceTo(new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5));
+                    if (distPlaced < 1.6 || distClicked < 1.6) {
                         a.awaken();
                         return;
                     }
@@ -779,6 +788,30 @@ export class Interaction {
 
     update(dt) {
         this.currentTarget = this.raycastVoxels();
+
+        // Check if looking directly at a disguised Dirtik within reach distance
+        const aimedAnimal = this.raycastAnimal(this.reachDistance);
+        if (aimedAnimal && aimedAnimal.type === 'dirtik' && !aimedAnimal.isAwakened) {
+            const bx = Math.floor(aimedAnimal.position.x);
+            const by = Math.floor(aimedAnimal.position.y);
+            const bz = Math.floor(aimedAnimal.position.z);
+            const distToDirtik = this.camera.position.distanceTo(aimedAnimal.position.clone().add(new THREE.Vector3(0, 0.5, 0)));
+            const voxelHitDist = (this.currentTarget && this.currentTarget.hit)
+                ? this.camera.position.distanceTo(new THREE.Vector3(this.currentTarget.x + 0.5, this.currentTarget.y + 0.5, this.currentTarget.z + 0.5))
+                : 999;
+            if (distToDirtik <= voxelHitDist) {
+                this.currentTarget = {
+                    hit: true,
+                    x: bx,
+                    y: by,
+                    z: bz,
+                    blockId: 2,
+                    isDisguisedDirtik: true,
+                    dirtik: aimedAnimal
+                };
+            }
+        }
+
         this.updateHighlight();
         this.updateHand(dt);
 

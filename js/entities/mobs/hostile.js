@@ -811,7 +811,10 @@ export class Creeper extends Mob {
 
 export class Dirtik extends Mob {
     constructor(scene, world, x = 32, z = 32, manager = null) {
-        super(scene, world, 'dirtik', x, z, manager);
+        // Grid alignment: center on voxel block (Math.floor + 0.5)
+        const blockX = Math.floor(x) + 0.5;
+        const blockZ = Math.floor(z) + 0.5;
+        super(scene, world, 'dirtik', blockX, blockZ, manager);
         this.maxHealth = 8;
         this.health = 8;
         this.walkSpeed = 1.45;
@@ -832,7 +835,7 @@ export class Dirtik extends Mob {
         // --- 1. Disguised Mode: standard dirt cube (1x1x1) sitting on the ground ---
         this.disguisedGroup = new THREE.Group();
 
-        const dirtGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
+        const dirtGeo = new THREE.BoxGeometry(0.99, 0.99, 0.99);
         const def = BLOCK_DEF[2]; // Dirt block definition
         const faceTileIndices = [
             def.tiles[5], def.tiles[4], def.tiles[0], def.tiles[1], def.tiles[2], def.tiles[3]
@@ -844,7 +847,7 @@ export class Dirtik extends Mob {
         }
         dirtGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
         const dirtMesh = new THREE.Mesh(dirtGeo, AtlasMaterial);
-        dirtMesh.position.set(0, 0.49, 0);
+        dirtMesh.position.set(0, 0.5, 0);
         dirtMesh.castShadow = true;
         dirtMesh.receiveShadow = true;
         this.disguisedGroup.add(dirtMesh);
@@ -975,6 +978,13 @@ export class Dirtik extends Mob {
         console.log('[Dirtik] Obudził się z okrzykiem: Ja to Dirtik, a tyś chciał mnie zabić!');
     }
 
+    onAttacked(damage = 2, attackerPos = null) {
+        if (!this.isAwakened) {
+            this.awaken();
+        }
+        super.onAttacked(damage, attackerPos);
+    }
+
     die() {
         if (this.isDead) return;
 
@@ -1002,9 +1012,15 @@ export class Dirtik extends Mob {
     update(dt, playerPosition = null, isDay = true) {
         if (this.isDead) return;
 
-        // If still disguised, stay still and keep disguised
+        // If still disguised, stay still and keep disguised; surprise ambush if player gets close!
         if (!this.isAwakened) {
             this.updateFooting(dt);
+            if (playerPosition) {
+                const distToPlayer = this.position.distanceTo(playerPosition);
+                if (distToPlayer <= 2.3) {
+                    this.awaken();
+                }
+            }
             return;
         }
 
