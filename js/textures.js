@@ -8,7 +8,7 @@ function hash(x, y) {
 
 // 4x4 Atlas of 16x16 textures = 64x64 px canvas
 export const ATLAS_COLS = 4;
-export const ATLAS_ROWS = 4;
+export const ATLAS_ROWS = 5;
 export const TILE_SIZE = 16;
 
 export const TILES = {
@@ -27,7 +27,8 @@ export const TILES = {
     CACTUS_SIDE: 12,
     CACTUS_TOP: 13,
     BEDROCK: 14,
-    COBBLE: 15
+    COBBLE: 15,
+    DIAMOND_ORE: 16
 };
 
 // Map block types to tile faces: [Top, Bottom, Front, Back, Left, Right]
@@ -45,7 +46,8 @@ export const BLOCK_DEF = {
     10: { name: 'Woda (Water)', tiles: [TILES.WATER, TILES.WATER, TILES.WATER, TILES.WATER, TILES.WATER, TILES.WATER], solid: false, transparent: true },
     11: { name: 'Kaktus (Cactus)', tiles: [TILES.CACTUS_TOP, TILES.CACTUS_TOP, TILES.CACTUS_SIDE, TILES.CACTUS_SIDE, TILES.CACTUS_SIDE, TILES.CACTUS_SIDE], solid: true },
     12: { name: 'Bruk (Cobblestone)', tiles: [TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE], solid: true },
-    14: { name: 'Skała Macierzysta (Bedrock)', tiles: [TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK], solid: true }
+    14: { name: 'Skała Macierzysta (Bedrock)', tiles: [TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK], solid: true },
+    15: { name: 'Ruda Diamentu (Diamond Ore)', tiles: [TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE], solid: true }
 };
 
 // Build the canvas atlas
@@ -296,6 +298,36 @@ function createAtlas() {
                 c.fillStyle = `rgb(${base + n}, ${base + n}, ${base + n})`;
                 c.fillRect(x, y, 1, 1);
             }
+        }
+    });
+
+    // 16: DIAMOND ORE (Stone with glowing cyan diamond gems)
+    drawTile(TILES.DIAMOND_ORE, (c) => {
+        // Realistic stone base
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                const n = (hash(x, y) - 0.5) * 28;
+                c.fillStyle = `rgb(${126 + n}, ${126 + n}, ${126 + n})`;
+                c.fillRect(x, y, 1, 1);
+            }
+        }
+        // Minecraft-style diamond crystal pixel clusters
+        const gemPixels = [
+            [3, 3], [4, 3], [3, 4], [4, 4], [5, 4],
+            [10, 5], [11, 5], [11, 6], [12, 6],
+            [6, 9], [7, 9], [7, 10], [8, 10], [6, 10],
+            [11, 11], [12, 11], [12, 12],
+            [3, 12], [4, 12], [4, 13]
+        ];
+        for (const [gx, gy] of gemPixels) {
+            c.fillStyle = (hash(gx, gy) > 0.45) ? '#38bdf8' : '#0284c7';
+            c.fillRect(gx, gy, 1, 1);
+        }
+        // Bright shining specular diamond highlights
+        const highlights = [[4, 3], [11, 5], [7, 9], [12, 11], [4, 12]];
+        for (const [hx, hy] of highlights) {
+            c.fillStyle = '#e0f2fe';
+            c.fillRect(hx, hy, 1, 1);
         }
     });
 

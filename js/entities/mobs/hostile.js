@@ -104,6 +104,21 @@ export class Zombie extends Mob {
                 );
                 this.manager.drops.items.push(drop);
             }
+
+            // Rzadki łup (5% szansy): Diament (ID 30)
+            if (Math.random() < 0.05) {
+                const diamondDrop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    30,
+                    'Diament',
+                    this.position.x,
+                    this.position.y + 0.4,
+                    this.position.z
+                );
+                this.manager.drops.items.push(diamondDrop);
+                console.log("[Drops] Rzadki Diament wypadł z pokonanego Zombie!");
+            }
         }
 
         super.die();
@@ -354,6 +369,21 @@ export class Skeleton extends Mob {
                     this.position.z + (Math.random() - 0.5) * 0.4
                 );
                 this.manager.drops.items.push(drop);
+            }
+
+            // Rzadki łup (5% szansy): Diament (ID 30)
+            if (Math.random() < 0.05) {
+                const diamondDrop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    30,
+                    'Diament',
+                    this.position.x,
+                    this.position.y + 0.4,
+                    this.position.z
+                );
+                this.manager.drops.items.push(diamondDrop);
+                console.log("[Drops] Rzadki Diament wypadł z pokonanego Szkieleta!");
             }
         }
 

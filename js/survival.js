@@ -13,6 +13,8 @@ export class SurvivalManager {
         this.hunger = 20;
 
         this.isDead = false;
+        this.hasArmor = false;
+        this.checkHasArmor = null;
 
         // Timers for hunger and regeneration
         this.hungerTickTimer = 0;
@@ -58,11 +60,16 @@ export class SurvivalManager {
     takeDamage(amount, reason = 'damage') {
         if (this.isDead || amount <= 0) return;
 
-        this.health = Math.max(0, this.health - amount);
-        this.flashRedVignette();
-        this.onStatsChange(this.health, this.hunger);
+        let finalAmount = amount;
+        if (this.hasArmor) {
+            finalAmount = Math.max(1, Math.round(amount * 0.6)); // 40% damage reduction from Diamond Armor
+        }
 
-        console.log(`[Survival] Took ${amount} damage from ${reason}. Health: ${this.health}/${this.maxHealth}`);
+        this.health = Math.max(0, this.health - finalAmount);
+        this.flashRedVignette();
+        this.onStatsChange(this.health, this.hunger, this.maxHealth);
+
+        console.log(`[Survival] Took ${finalAmount} damage (raw: ${amount}) from ${reason}. Health: ${this.health}/${this.maxHealth} (Armor: ${this.hasArmor})`);
 
         if (this.health <= 0) {
             this.die();
@@ -72,14 +79,14 @@ export class SurvivalManager {
     heal(amount) {
         if (this.isDead) return;
         this.health = Math.min(this.maxHealth, this.health + amount);
-        this.onStatsChange(this.health, this.hunger);
+        this.onStatsChange(this.health, this.hunger, this.maxHealth);
     }
 
     feed(amount) {
         if (this.isDead) return;
         this.hunger = Math.min(this.maxHunger, this.hunger + amount);
         this.heal(1);
-        this.onStatsChange(this.health, this.hunger);
+        this.onStatsChange(this.health, this.hunger, this.maxHealth);
     }
 
     eat(amount) {
@@ -131,6 +138,21 @@ export class SurvivalManager {
     update(dt) {
         if (this.isDead) return;
 
+        // Check if player has Diamond Armor (ID 32)
+        if (this.checkHasArmor) {
+            const hasArmorNow = Boolean(this.checkHasArmor());
+            if (hasArmorNow !== this.hasArmor) {
+                this.hasArmor = hasArmorNow;
+                this.maxHealth = this.hasArmor ? 30 : 20; // 30 HP = 15 hearts
+                if (this.hasArmor && this.health <= 20) {
+                    this.health = Math.min(this.maxHealth, this.health + 10);
+                } else if (!this.hasArmor && this.health > 20) {
+                    this.health = 20;
+                }
+                this.onStatsChange(this.health, this.hunger, this.maxHealth);
+            }
+        }
+
         // Hunger depletion: faster if sprinting
         const sprintFactor = this.player.keys.sprint ? 2.5 : 1.0;
         this.hungerTickTimer += dt * sprintFactor;
@@ -138,7 +160,7 @@ export class SurvivalManager {
         if (this.hungerTickTimer >= 35) { // 1 hunger point every ~35s
             this.hunger = Math.max(0, this.hunger - 1);
             this.hungerTickTimer = 0;
-            this.onStatsChange(this.health, this.hunger);
+            this.onStatsChange(this.health, this.hunger, this.maxHealth);
         }
 
         // Natural regeneration if well-fed (hunger >= 18)

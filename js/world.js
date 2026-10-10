@@ -9,7 +9,7 @@ export const WORLD_SIZE_X = CHUNKS_X * CHUNK_SIZE; // 64 (spawn reference)
 export const WORLD_SIZE_Z = CHUNKS_Z * CHUNK_SIZE; // 64 (spawn reference)
 export const WORLD_HEIGHT = 32;
 export const SEA_LEVEL = 6;
-export const RENDER_RADIUS = 3; // 7x7 chunks around player
+export const RENDER_RADIUS = 4; // 9x9 chunks around player
 
 export class World {
     constructor(scene, seed = 4242, storageManager = null) {
@@ -91,6 +91,7 @@ export class World {
                 const lx = x - startX;
                 const lz = z - startZ;
                 chunk.voxels[this.localIndex(lx, y, lz)] = blockId;
+                chunk.hasPlayerBlocks = true;
             }
         }
     }
@@ -126,6 +127,7 @@ export class World {
         const lz = ((z % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
 
         chunk.voxels[this.localIndex(lx, y, lz)] = id;
+        chunk.hasPlayerBlocks = true;
         if (this.storage) {
             this.storage.saveBlock(x, y, z, id);
         }
@@ -270,7 +272,7 @@ export class World {
 
                 // Underground Caves & Surface Entrances ("i pod ziemia czl jaskińe")
                 // 3D procedural noise carves natural winding tunnels, chambers and ravines
-                const isNearSpawn = (Math.abs(x - 32) <= 3 && Math.abs(z - 32) <= 3);
+                const isNearSpawn = (Math.abs(x - 32) <= 8 && Math.abs(z - 32) <= 8);
                 for (let y = 2; y <= Math.min(h, WORLD_HEIGHT - 3); y++) {
                     const c1 = this.caveNoise.noise3D(x * 0.045, y * 0.07, z * 0.045);
                     const c2 = this.caveNoise.noise3D((x + 100) * 0.045, (y + 50) * 0.07, (z + 100) * 0.045);
@@ -282,8 +284,8 @@ export class World {
                     // Large cavern rooms
                     const isCavern = c1 > 0.38 && y >= 3 && y <= 16;
 
-                    // Natural cave mouths and ravines breaching surface
-                    const isSurfaceOpening = !isNearSpawn && (tubeDist < 0.02) && (y >= h - 3) && (h > SEA_LEVEL);
+                    // Natural cave mouths and ravines breaching surface (large visible tunnels on grass)
+                    const isSurfaceOpening = !isNearSpawn && (tubeDist < 0.035) && (y >= h - 4) && (h > SEA_LEVEL + 1);
 
                     if (isTunnel || isCavern) {
                         if (y <= h - 2 || isSurfaceOpening) {
@@ -300,6 +302,17 @@ export class World {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                // Diamond Ore generation (rare underground veins in deep stone, y <= 12)
+                for (let y = 2; y <= 12; y++) {
+                    const lIdx = this.localIndex(lx, y, lz);
+                    if (chunk.voxels[lIdx] === 3) { // Stone
+                        const dNoise = this.caveNoise.noise3D((x + 777) * 0.16, y * 0.22, (z + 777) * 0.16);
+                        if (dNoise > 0.54) {
+                            chunk.voxels[lIdx] = 15; // Diamond Ore!
                         }
                     }
                 }
@@ -473,6 +486,9 @@ export class World {
             geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
             geometry.setIndex(indices);
 
+            geometry.computeBoundingBox();
+            geometry.computeBoundingSphere();
+
             const mesh = new THREE.Mesh(geometry, AtlasMaterial);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
@@ -528,16 +544,18 @@ export class World {
                 neededChunks.sort((a, b) => a.distSq - b.distSq);
                 this.chunkBuildQueue = neededChunks;
 
-                // Synchronously mesh immediately adjacent chunks (distSq <= 1: 3x3 chunks)
-                while (this.chunkBuildQueue.length > 0 && this.chunkBuildQueue[0].distSq <= 1) {
+                // Synchronously mesh immediately adjacent chunks (distSq <= 2: 5x5 chunks)
+                while (this.chunkBuildQueue.length > 0 && this.chunkBuildQueue[0].distSq <= 2) {
                     const item = this.chunkBuildQueue.shift();
                     this.buildChunk(item.cx, item.cz);
                 }
 
                 // Unload meshes of very distant chunks to keep memory and draw calls optimized
-                const unloadDist = RENDER_RADIUS + 2;
+                // But NEVER unload chunks that have player modifications (player house/structures)!
+                const unloadDist = RENDER_RADIUS + 3;
                 for (const chunk of this.chunks.values()) {
                     if (chunk.mesh) {
+                        if (chunk.hasPlayerBlocks) continue;
                         const dx = Math.abs(chunk.cx - pcx);
                         const dz = Math.abs(chunk.cz - pcz);
                         if (dx > unloadDist || dz > unloadDist) {
@@ -549,12 +567,29 @@ export class World {
                 }
             }
 
-            // Build up to 3 remaining queued chunks per frame
+            // Build up to 4 remaining queued chunks per frame
             let builtCount = 0;
-            while (this.chunkBuildQueue.length > 0 && builtCount < 3) {
+            while (this.chunkBuildQueue.length > 0 && builtCount < 4) {
                 const item = this.chunkBuildQueue.shift();
                 this.buildChunk(item.cx, item.cz);
                 builtCount++;
+            }
+
+            // Continuous catch-up: ensure any missing chunk in render radius is queued
+            if (this.chunkBuildQueue.length === 0) {
+                for (let cx = pcx - RENDER_RADIUS; cx <= pcx + RENDER_RADIUS; cx++) {
+                    for (let cz = pcz - RENDER_RADIUS; cz <= pcz + RENDER_RADIUS; cz++) {
+                        const key = this.getChunkKey(cx, cz);
+                        const chunk = this.chunks.get(key);
+                        if (!chunk || !chunk.mesh) {
+                            const distSq = (cx - pcx) * (cx - pcx) + (cz - pcz) * (cz - pcz);
+                            this.chunkBuildQueue.push({ cx, cz, distSq });
+                        }
+                    }
+                }
+                if (this.chunkBuildQueue.length > 0) {
+                    this.chunkBuildQueue.sort((a, b) => a.distSq - b.distSq);
+                }
             }
         }
     }

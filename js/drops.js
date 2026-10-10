@@ -129,6 +129,21 @@ function createArrowDropMesh() {
     return group;
 }
 
+// Helper to create a glowing 3D Diamond drop mesh
+function createDiamondMesh() {
+    const group = new THREE.Group();
+    const geo = new THREE.OctahedronGeometry(0.14, 0);
+    const mat = new THREE.MeshLambertMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.35
+    });
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true;
+    group.add(m);
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -169,6 +184,8 @@ export class DroppedItem {
             this.mesh = createBoneMesh();
         } else if (this.id === 28) {
             this.mesh = createArrowDropMesh();
+        } else if (this.id === 30) {
+            this.mesh = createDiamondMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
@@ -302,6 +319,11 @@ export class DropsManager {
         else if (blockId === 3) {
             dropId = 3;
             dropName = 'Kamień';
+        }
+        // Diamond Ore (15) drops glowing Diamond (30)!
+        else if (blockId === 15) {
+            dropId = 30;
+            dropName = 'Diament';
         }
 
         const drop = new DroppedItem(this.scene, this.world, dropId, dropName, x + 0.5, y + 0.5, z + 0.5);

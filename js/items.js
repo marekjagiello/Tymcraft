@@ -24,6 +24,7 @@ export const ITEMS = {
     GRAVEL: { id: 12, name: 'Żwir', type: ITEM_TYPES.BLOCK, placeable: true },
     COAL_ORE: { id: 13, name: 'Ruda Węgla', type: ITEM_TYPES.BLOCK, placeable: true },
     BEDROCK: { id: 14, name: 'Skała Macierzysta', type: ITEM_TYPES.BLOCK, placeable: false },
+    DIAMOND_ORE: { id: 15, name: 'Ruda Diamentu', type: ITEM_TYPES.BLOCK, placeable: true },
 
     // Craftable materials & drops (IDs 20+)
     STICK: { id: 20, name: 'Patyk', type: ITEM_TYPES.MATERIAL, icon: 'stick' },
@@ -35,7 +36,11 @@ export const ITEMS = {
     ROTTEN_FLESH: { id: 26, name: 'Zgniłe Mięso', type: ITEM_TYPES.FOOD, nutrition: 2, heals: 0, icon: 'flesh' },
     BONE: { id: 27, name: 'Kość', type: ITEM_TYPES.MATERIAL, icon: 'bone' },
     ARROW: { id: 28, name: 'Strzała', type: ITEM_TYPES.MATERIAL, icon: 'arrow' },
-    BOW: { id: 29, name: 'Łuk', type: ITEM_TYPES.WEAPON, damage: 7.0, efficiency: 1.0, icon: 'bow' }
+    BOW: { id: 29, name: 'Łuk', type: ITEM_TYPES.WEAPON, damage: 7.0, efficiency: 1.0, icon: 'bow' },
+    DIAMOND: { id: 30, name: 'Diament', type: ITEM_TYPES.MATERIAL, icon: 'diamond' },
+    DIAMOND_SWORD: { id: 31, name: 'Diamentowy Miecz', type: ITEM_TYPES.WEAPON, damage: 14.0, efficiency: 1.0, icon: 'diamond_sword' },
+    DIAMOND_ARMOR: { id: 32, name: 'Diamentowa Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'diamond_armor' },
+    DIAMOND_PICKAXE: { id: 33, name: 'Diamentowy Kilof', type: ITEM_TYPES.TOOL, efficiency: 10.0, damage: 6.0, icon: 'diamond_pick' }
 };
 
 // Fast lookup map by ID
@@ -74,9 +79,13 @@ export function isTool(id) {
 }
 
 export function isPlaceableBlock(id) {
-    if (id < 1 || id > 14) return false;
+    if (id < 1 || id > 15) return false;
     const item = getItem(id);
     return item ? Boolean(item.placeable) : false;
+}
+
+export function isArmor(id) {
+    return id === 32;
 }
 
 export function isBow(id) {

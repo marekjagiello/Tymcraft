@@ -74,6 +74,24 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 9. Diamond Sword (Diamentowy Miecz): Top 1 Diamond, Bottom 1 Stick (vertical)
+        if ((s0 === 30 && s2 === 20 && !s1 && !s3) || (s1 === 30 && s3 === 20 && !s0 && !s2)) {
+            this.output = { item: ITEMS.DIAMOND_SWORD, count: 1 };
+            return this.output;
+        }
+
+        // 10. Diamond Pickaxe (Diamentowy Kilof): Top 2 Diamonds, Bottom 1 Stick
+        if (s0 === 30 && s1 === 30 && (s2 === 20 || s3 === 20)) {
+            this.output = { item: ITEMS.DIAMOND_PICKAXE, count: 1 };
+            return this.output;
+        }
+
+        // 11. Diamond Armor (Diamentowa Zbroja): 3 lub 4 Diamenty w siatce 2x2
+        if (nonNulls.length >= 3 && nonNulls.every(id => id === 30)) {
+            this.output = { item: ITEMS.DIAMOND_ARMOR, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

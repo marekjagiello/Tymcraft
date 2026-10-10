@@ -73,9 +73,22 @@ export function createSlotItemIcon(itemId) {
         else if (itemId === 27) itemSpan.innerText = '🦴';
         else if (itemId === 28) itemSpan.innerText = '🎯';
         else if (itemId === 29) itemSpan.innerText = '🏹';
+        else if (itemId === 30) itemSpan.innerText = '💎';
+        else if (itemId === 31) {
+            itemSpan.innerText = '🗡️';
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #38bdf8)';
+        }
+        else if (itemId === 32) {
+            itemSpan.innerText = '🛡️';
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #38bdf8)';
+        }
+        else if (itemId === 33) {
+            itemSpan.innerText = '⛏️';
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #38bdf8)';
+        }
         return itemSpan;
     }
-    if (itemId >= 1 && itemId <= 14) {
+    if (itemId >= 1 && itemId <= 15) {
         const iconCanvas = document.createElement('canvas');
         iconCanvas.width = 16;
         iconCanvas.height = 16;
@@ -156,17 +169,19 @@ export class UI {
         return HOTBAR_BLOCKS[this.selectedSlotIndex].id;
     }
 
-    renderSurvivalBars(health = 20, hunger = 20) {
+    renderSurvivalBars(health = 20, hunger = 20, maxHealth = 20) {
         if (!this.heartsBarEl || !this.hungerBarEl) return;
 
-        // 10 Hearts (20 HP)
+        // Render hearts up to maxHealth (10 hearts for 20 HP, 15 hearts for 30 HP with armor)
+        const totalHearts = Math.max(10, Math.ceil(maxHealth / 2));
         let heartsHtml = '';
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < totalHearts; i++) {
             const heartVal = (i + 1) * 2;
+            const isArmorHeart = i >= 10;
             if (health >= heartVal) {
-                heartsHtml += '<span class="heart-icon">❤️</span>';
+                heartsHtml += `<span class="heart-icon">${isArmorHeart ? '💎' : '❤️'}</span>`;
             } else if (health === heartVal - 1) {
-                heartsHtml += '<span class="heart-icon">💔</span>';
+                heartsHtml += `<span class="heart-icon">${isArmorHeart ? '🔷' : '💔'}</span>`;
             } else {
                 heartsHtml += '<span class="heart-icon" style="opacity:0.3">🖤</span>';
             }

@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=world_gen4';
-import { Player } from './player.js?v=world_gen4';
-import { Interaction } from './interaction.js?v=world_gen4';
-import { AnimalManager } from './animals.js?v=world_gen4';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=world_gen4';
-import { StorageManager } from './storage.js?v=world_gen4';
-import { SurvivalManager } from './survival.js?v=world_gen4';
-import { CraftingManager } from './crafting.js?v=world_gen4';
-import { DropsManager } from './drops.js?v=world_gen4';
-import { eventBus } from './events.js?v=world_gen4';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=caves_diamonds_2';
+import { Player } from './player.js?v=caves_diamonds_2';
+import { Interaction } from './interaction.js?v=caves_diamonds_2';
+import { AnimalManager } from './animals.js?v=caves_diamonds_2';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=caves_diamonds_2';
+import { StorageManager } from './storage.js?v=caves_diamonds_2';
+import { SurvivalManager } from './survival.js?v=caves_diamonds_2';
+import { CraftingManager } from './crafting.js?v=caves_diamonds_2';
+import { DropsManager } from './drops.js?v=caves_diamonds_2';
+import { eventBus } from './events.js?v=caves_diamonds_2';
 
 class Game {
     constructor() {
@@ -109,8 +109,8 @@ class Game {
         this.player = new Player(this.camera, this.renderer.domElement, this.world, savedState?.position);
 
         // 4. Survival System (Health, Hunger, Fall Damage)
-        this.survival = new SurvivalManager(this.player, (hp, hunger) => {
-            if (this.ui) this.ui.renderSurvivalBars(hp, hunger);
+        this.survival = new SurvivalManager(this.player, (hp, hunger, maxHp) => {
+            if (this.ui) this.ui.renderSurvivalBars(hp, hunger, maxHp);
         });
         if (savedState) {
             if (typeof savedState.health === 'number') this.survival.health = savedState.health > 0 ? savedState.health : 20;
@@ -123,6 +123,7 @@ class Game {
 
         // 6. UI & HUD (Hearts, Hunger, Backpack modal, Reset button)
         this.ui = new UI(this.player, this.world, this.survival, this.crafting, this.storage);
+        this.survival.checkHasArmor = () => (this.ui && this.ui.hasItem(32));
         if (savedState && typeof savedState.selectedSlot === 'number') {
             this.ui.selectSlot(savedState.selectedSlot);
         }

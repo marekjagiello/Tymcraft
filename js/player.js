@@ -579,13 +579,13 @@ export class Player {
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
             let dist = 3.2;
             for (let d = 0.5; d <= 3.2; d += 0.3) {
-                const checkPos = eyePos.clone().subScaledVector(forward, d);
+                const checkPos = eyePos.clone().addScaledVector(forward, -d);
                 if (this.world && this.world.isSolid(Math.floor(checkPos.x), Math.floor(checkPos.y), Math.floor(checkPos.z))) {
                     dist = Math.max(0.5, d - 0.3);
                     break;
                 }
             }
-            const camPos = eyePos.clone().subScaledVector(forward, dist).add(new THREE.Vector3(0, 0.2, 0));
+            const camPos = eyePos.clone().addScaledVector(forward, -dist).add(new THREE.Vector3(0, 0.2, 0));
             this.camera.position.copy(camPos);
         }
     }
