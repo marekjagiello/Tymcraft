@@ -377,6 +377,8 @@ export const AtlasMaterial = new THREE.MeshLambertMaterial({
     transparent: true,
     alphaTest: 0.1
 });
+AtlasMaterial.name = 'AtlasMaterial';
+AtlasMaterial.color.setHex(0xffffff);
 
 // Helper to get UV bounds for a given tile index
 export function getTileUV(tileIndex) {

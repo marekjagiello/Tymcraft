@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake } from './mobs/passive.js?v=dirtik_voice_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=dirtik_voice_1';
-import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=dirtik_voice_1';
+import { Pig, Sheep, Snake } from './mobs/passive.js?v=dirtik_thin_voice_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=dirtik_thin_voice_1';
+import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=dirtik_thin_voice_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -364,7 +364,9 @@ export class EntityManager {
 
         // Update all entities
         for (let i = this.animals.length - 1; i >= 0; i--) {
-            this.animals[i].update(dt, playerPosition, isDay);
+            if (this.animals[i]) {
+                this.animals[i].update(dt, playerPosition, isDay);
+            }
         }
 
         // Update flying arrows

@@ -185,19 +185,40 @@ export function playExplosionSound() {
     } catch (_) {}
 }
 
+let dirtikAudioEl = null;
+
+export function playDirtikVoiceSound() {
+    try {
+        if (!dirtikAudioEl && typeof Audio !== 'undefined') {
+            dirtikAudioEl = new Audio('./audio/dirtik_cry.wav?v=thin_1');
+            dirtikAudioEl.volume = 1.0;
+        }
+        if (dirtikAudioEl) {
+            dirtikAudioEl.currentTime = 0;
+            const p = dirtikAudioEl.play();
+            if (p && p.catch) {
+                p.catch(() => speakDirtikCry());
+            }
+            return;
+        }
+    } catch (_) {}
+    speakDirtikCry();
+}
+
 export function speakDirtikCry() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
             window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance('Ja to Dircik, a ty chciałeś mnie zabić!');
+            const utter = new SpeechSynthesisUtterance('Wiem, że to ty chcesz mnie zabić!');
             utter.lang = 'pl-PL';
-            utter.pitch = 1.35;
-            utter.rate = 1.15;
+            utter.pitch = 1.8; // Thin, high-pitched squeaky voice
+            utter.rate = 1.25;
             window.speechSynthesis.speak(utter);
         } catch (e) {
             console.warn('[Speech] Could not speak Dirtik cry:', e);
         }
     }
 }
+
 
 

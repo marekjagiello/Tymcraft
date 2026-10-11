@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=dirtik_voice_1';
-import { Player } from './player.js?v=dirtik_voice_1';
-import { Interaction } from './interaction.js?v=dirtik_voice_1';
-import { AnimalManager } from './animals.js?v=dirtik_voice_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=dirtik_voice_1';
-import { StorageManager } from './storage.js?v=dirtik_voice_1';
-import { SurvivalManager } from './survival.js?v=dirtik_voice_1';
-import { CraftingManager } from './crafting.js?v=dirtik_voice_1';
-import { DropsManager } from './drops.js?v=dirtik_voice_1';
-import { eventBus } from './events.js?v=dirtik_voice_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=dirtik_thin_voice_1';
+import { Player } from './player.js?v=dirtik_thin_voice_1';
+import { Interaction } from './interaction.js?v=dirtik_thin_voice_1';
+import { AnimalManager } from './animals.js?v=dirtik_thin_voice_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=dirtik_thin_voice_1';
+import { StorageManager } from './storage.js?v=dirtik_thin_voice_1';
+import { SurvivalManager } from './survival.js?v=dirtik_thin_voice_1';
+import { CraftingManager } from './crafting.js?v=dirtik_thin_voice_1';
+import { DropsManager } from './drops.js?v=dirtik_thin_voice_1';
+import { eventBus } from './events.js?v=dirtik_thin_voice_1';
 
 class Game {
     constructor() {

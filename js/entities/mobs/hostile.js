@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, speakDirtikCry } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js';
 
 export class Zombie extends Mob {
@@ -828,6 +828,10 @@ export class Dirtik extends Mob {
             this.healthBarGroup.visible = false; // Hidden while disguised
         }
         this.snapToGround();
+        // Strict 0 rotation while disguised so it is 1:1 aligned with voxel grid
+        this.rotationY = 0;
+        this.targetRotationY = 0;
+        this.group.rotation.set(0, 0, 0);
         this.scene.add(this.group);
     }
 
@@ -835,7 +839,7 @@ export class Dirtik extends Mob {
         // --- 1. Disguised Mode: standard dirt cube (1x1x1) sitting on the ground ---
         this.disguisedGroup = new THREE.Group();
 
-        const dirtGeo = new THREE.BoxGeometry(0.99, 0.99, 0.99);
+        const dirtGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
         const def = BLOCK_DEF[2]; // Dirt block definition
         const faceTileIndices = [
             def.tiles[5], def.tiles[4], def.tiles[0], def.tiles[1], def.tiles[2], def.tiles[3]
@@ -846,7 +850,9 @@ export class Dirtik extends Mob {
             uvs.push(u0, v1, u1, v1, u0, v0, u1, v0);
         }
         dirtGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-        const dirtMesh = new THREE.Mesh(dirtGeo, AtlasMaterial);
+        const disguiseMat = AtlasMaterial.clone();
+        disguiseMat.name = 'DirtikDisguiseMaterial';
+        const dirtMesh = new THREE.Mesh(dirtGeo, disguiseMat);
         dirtMesh.position.set(0, 0.5, 0);
         dirtMesh.castShadow = true;
         dirtMesh.receiveShadow = true;
@@ -965,18 +971,18 @@ export class Dirtik extends Mob {
         }
 
         playHitSound();
-        speakDirtikCry();
+        playDirtikVoiceSound();
 
         // Little hop
         this.position.y += 0.3;
 
         // Battle cry on screen!
-        const msg = '🗣️ „Ja to Dircik, a ty chciałeś mnie zabić!” 🗡️🟫';
+        const msg = '🗣️ „Wiem, że to ty chcesz mnie zabić!” 🗡️🟫';
         eventBus.emit('ui:popup', msg);
         if (this.manager?.ui) {
             this.manager.ui.showPopup(msg);
         }
-        console.log('[Dirtik] Obudził się z okrzykiem: Ja to Dircik, a ty chciałeś mnie zabić!');
+        console.log('[Dirtik] Obudził się z okrzykiem: Wiem, że to ty chcesz mnie zabić!');
     }
 
     onAttacked(damage = 2, attackerPos = null) {
@@ -1016,9 +1022,13 @@ export class Dirtik extends Mob {
         // If still disguised, stay still and keep disguised; surprise ambush if player gets close!
         if (!this.isAwakened) {
             this.updateFooting(dt);
+            // Strict 0 rotation while disguised so it stays 1:1 aligned with the voxel world
+            this.rotationY = 0;
+            this.targetRotationY = 0;
+            this.group.rotation.set(0, 0, 0);
             if (playerPosition) {
                 const distToPlayer = this.position.distanceTo(playerPosition);
-                if (distToPlayer <= 2.3) {
+                if (distToPlayer <= 2.5) {
                     this.awaken();
                 }
             }

@@ -34,6 +34,8 @@ export class Mob extends Entity {
         const mats = new Set();
         this.group.traverse((child) => {
             if (child.isMesh && child.material && child.material.color) {
+                // NEVER modify shared AtlasMaterial used by the world chunks and drops!
+                if (child.material.name === 'AtlasMaterial' || child.material._isSharedAtlas) return;
                 mats.add(child.material);
             }
         });
@@ -44,7 +46,7 @@ export class Mob extends Entity {
             mat.color.setHex(0xef4444);
         }
         setTimeout(() => {
-            if (this.isDead) return;
+            // ALWAYS restore colors even if mob is dead so materials never stay red
             for (const mat of mats) {
                 if (mat._origColor) {
                     mat.color.copy(mat._origColor);
