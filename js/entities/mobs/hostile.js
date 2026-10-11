@@ -818,6 +818,7 @@ export class Dirtik extends Mob {
         this.maxHealth = 8;
         this.health = 8;
         this.walkSpeed = 1.45;
+        this.attackDamage = 5; // 5 HP (2.5 serduszka)
         this.isAwakened = false;
         this.attackCooldown = 0;
         this.swingTime = 0;
@@ -1057,9 +1058,9 @@ export class Dirtik extends Mob {
 
                     playHitSound();
 
-                    // Deal 1 heart (2 HP)
+                    // Deal 5 HP (2.5 serduszka)
                     if (this.manager?.survival) {
-                        this.manager.survival.takeDamage(2, 'Cios Dirtika diamentowym mieczem! 🗡️');
+                        this.manager.survival.takeDamage(this.attackDamage, 'Cios Dirtika diamentowym mieczem! 🗡️');
                     }
                 }
             } else {
