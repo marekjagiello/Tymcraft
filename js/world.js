@@ -308,7 +308,6 @@ export class World {
 
                 // Underground Caves & Surface Entrances ("i pod ziemia czl jaskińe")
                 // 3D procedural noise carves natural winding tunnels, chambers and ravines
-                const isNearSpawn = (Math.abs(x - 32) <= 8 && Math.abs(z - 32) <= 8);
                 for (let y = 2; y <= Math.min(h, WORLD_HEIGHT - 3); y++) {
                     const c1 = this.caveNoise.noise3D(x * 0.045, y * 0.07, z * 0.045);
                     const c2 = this.caveNoise.noise3D((x + 100) * 0.045, (y + 50) * 0.07, (z + 100) * 0.045);

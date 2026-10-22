@@ -153,12 +153,16 @@ export class UI {
         this.infoEl = document.getElementById('debug-info');
         this.hotbarEl = document.getElementById('hotbar');
         this.overlayEl = document.getElementById('start-overlay');
+        this.loadingOverlayEl = document.getElementById('loading-overlay');
         this.blockNameEl = document.getElementById('block-name-popup');
         this.heartsBarEl = document.getElementById('hearts-bar');
         this.hungerBarEl = document.getElementById('hunger-bar');
         this.craftingModalEl = document.getElementById('crafting-modal');
 
         this.isCraftingOpen = false;
+        this.isGameActive = false;
+        this.isLoading = false;
+        this.lastUnlockAllowedTime = 0;
 
         this.hotbarBlocks = HOTBAR_BLOCKS;
         this.backpackSlots = BACKPACK_SLOTS;
@@ -197,6 +201,87 @@ export class UI {
                 this.addItem(data.id, data.name || 'Przedmiot', data.count || 1);
             }
         });
+    }
+
+    startLoadingSequence(onComplete = null) {
+        if (this.isLoading) return;
+        this.isLoading = true;
+
+        const loadingOverlay = document.getElementById('loading-overlay') || this.loadingOverlayEl;
+        const statusText = document.getElementById('loading-status-text');
+        const barFill = document.getElementById('loading-bar-fill');
+        const percentText = document.getElementById('loading-percent-text');
+        const tipText = document.getElementById('loading-tip-text');
+
+        if (this.overlayEl) {
+            this.overlayEl.style.display = 'none';
+        }
+        this.hideResetConfirmation();
+
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+            loadingOverlay.style.opacity = '1';
+        }
+
+        const tips = [
+            "💡 Wskazówka: Naciśnij PPM na misia lub wciśnij P, aby na niego wsiąść i ujeżdżać! 🐻",
+            "💡 Wskazówka: Wciśnij dowolną strzałkę na klawiaturze, aby do gry dołączył Gracz 2! 🎮",
+            "💡 Wskazówka: Spadając do wody z dowolnej wysokości nie odniesiesz żadnych obrażeń! 🌊",
+            "💡 Wskazówka: Zrywaj czerwone róże 🌹 i żółte mlecze 🌼, aby karmić owieczki oraz świnki!"
+        ];
+        if (tipText) {
+            tipText.innerText = tips[Math.floor(Math.random() * tips.length)];
+        }
+
+        const stages = [
+            { progress: 20, text: "🌍 Generowanie klockowego terenu, wzgórz i jaskiń..." },
+            { progress: 45, text: "🌊 Wypełnianie błękitnych jezior, fal i lilii wodnych..." },
+            { progress: 70, text: "🌹 Sadzenie pachnących róż, mleczy oraz drzew..." },
+            { progress: 90, text: "🐻 Budzenie przyjaznych niedźwiedzi i owieczek..." },
+            { progress: 100, text: "🎮 Świat wygenerowany pomyślnie! Wkraczanie do gry..." }
+        ];
+
+        let currentStageIdx = 0;
+        const targetDuration = 1400; // 1.4s smooth world generation
+        const startTime = performance.now();
+
+        const updateProgress = () => {
+            const elapsed = performance.now() - startTime;
+            const progressRatio = Math.min(1, elapsed / targetDuration);
+            const currentPercent = Math.min(100, Math.floor(progressRatio * 100));
+
+            if (barFill) barFill.style.width = `${currentPercent}%`;
+            if (percentText) percentText.innerText = `${currentPercent}%`;
+
+            while (currentStageIdx < stages.length && currentPercent >= stages[currentStageIdx].progress) {
+                if (statusText) statusText.innerText = stages[currentStageIdx].text;
+                currentStageIdx++;
+            }
+
+            if (progressRatio < 1) {
+                requestAnimationFrame(updateProgress);
+            } else {
+                setTimeout(() => {
+                    if (loadingOverlay) {
+                        loadingOverlay.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingOverlay.style.display = 'none';
+                        }, 250);
+                    }
+                    this.isLoading = false;
+                    this.isGameActive = true;
+                    this.lastUnlockAllowedTime = Date.now() + 1000;
+                    try {
+                        this.player.controls.lock();
+                    } catch (e) {
+                        console.warn("[UI] Lock error:", e);
+                    }
+                    if (onComplete) onComplete();
+                }, 100);
+            }
+        };
+
+        requestAnimationFrame(updateProgress);
     }
 
     getActiveBlockId() {
@@ -577,6 +662,7 @@ export class UI {
                 this.updateCursorItemDisplay();
             }
             this.craftingModalEl.style.display = 'none';
+            this.lastUnlockAllowedTime = Date.now() + 500;
             if (!this.survival?.isDead) {
                 this.player.controls.lock();
             }
@@ -748,15 +834,24 @@ export class UI {
 
         // Menu Buttons & Start Game handling
         const startGame = () => {
+            if (this.isLoading) return;
             if (this.isCraftingOpen) {
                 this.toggleCraftingModal();
             }
-            this.overlayEl.style.display = 'none';
             this.hideResetConfirmation();
-            try {
-                this.player.controls.lock();
-            } catch (err) {
-                console.warn("[UI] Pointer lock error:", err);
+
+            if (!this.isGameActive) {
+                // First start: run authentic world loading screen!
+                this.startLoadingSequence();
+            } else {
+                // Resuming from pause menu
+                this.overlayEl.style.display = 'none';
+                this.lastUnlockAllowedTime = Date.now() + 800;
+                try {
+                    this.player.controls.lock();
+                } catch (err) {
+                    console.warn("[UI] Pointer lock error:", err);
+                }
             }
         };
 
@@ -804,11 +899,14 @@ export class UI {
             }
         });
 
-        // Clicking on game canvas also locks controls if menu is closed
+        // Clicking on game canvas also locks controls if menu is closed and not loading
         if (this.player && this.player.domElement) {
             this.player.domElement.addEventListener('click', () => {
-                if (this.overlayEl.style.display === 'none' && !this.isCraftingOpen && !this.survival?.isDead) {
-                    this.player.controls.lock();
+                if (this.isGameActive && !this.isLoading && this.overlayEl.style.display === 'none' && !this.isCraftingOpen && !this.survival?.isDead) {
+                    this.lastUnlockAllowedTime = Date.now() + 500;
+                    try {
+                        this.player.controls.lock();
+                    } catch (e) {}
                 }
             });
         }
@@ -819,7 +917,12 @@ export class UI {
         });
 
         this.player.controls.addEventListener('unlock', () => {
-            if (!this.isCraftingOpen && !this.survival?.isDead) {
+            // Guard: Only show pause menu if the game is active, not currently loading,
+            // not in crafting modal, player is alive, and grace period has elapsed!
+            if (this.isGameActive && !this.isLoading && !this.isCraftingOpen && !this.survival?.isDead) {
+                if (Date.now() < this.lastUnlockAllowedTime) {
+                    return;
+                }
                 const titleEl = document.getElementById('menu-title');
                 const subtitleEl = document.getElementById('menu-subtitle');
                 if (titleEl) titleEl.innerText = 'MENU GRY (PAUZA)';
