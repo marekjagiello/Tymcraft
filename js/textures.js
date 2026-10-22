@@ -68,42 +68,105 @@ function createAtlas() {
         ctx.restore();
     };
 
-    // 0: GRASS TOP
+    // 0: GRASS TOP (Vibrant natural lawn with lush grass blades)
     drawTile(TILES.GRASS_TOP, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const n = (hash(x, y) - 0.5) * 26;
-                c.fillStyle = `rgb(${88 + n}, ${140 + n}, ${52 + n})`;
+                const cluster = (hash(Math.floor(x / 2) * 11, Math.floor(y / 2) * 13) - 0.5) * 16;
+                const blade = (hash(x * 43 + 7, y * 47 + 13) - 0.5) * 32;
+                const r = Math.max(60, Math.min(130, Math.round(92 + cluster * 0.6 + blade * 0.6)));
+                const g = Math.max(125, Math.min(210, Math.round(168 + cluster + blade)));
+                const b = Math.max(35, Math.min(95, Math.round(52 + cluster * 0.4 + blade * 0.4)));
+                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 c.fillRect(x, y, 1, 1);
             }
         }
     });
 
-    // 1: GRASS SIDE
+    // 1: GRASS SIDE (Natural overhang with grass blades dripping onto rich soil)
     drawTile(TILES.GRASS_SIDE, (c) => {
+        // First draw the rich dirt base
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const n = (hash(x, y) - 0.5) * 22;
-                c.fillStyle = `rgb(${120 + n}, ${85 + n}, ${58 + n})`;
+                const cx = Math.floor(x / 2);
+                const cy = Math.floor(y / 2);
+                const clusterNoise = (hash(cx * 13 + 3, cy * 17 + 7) - 0.5) * 18;
+                const grain = (hash(x * 29 + 11, y * 31 + 19) - 0.5) * 20;
+                const fleckHash = hash(x * 47 + 5, y * 53 + 23);
+                const fleck = fleckHash < 0.12 ? -22 : (fleckHash > 0.88 ? 14 : 0);
+
+                const r = Math.max(75, Math.min(185, Math.round(126 + clusterNoise * 0.9 + grain + fleck)));
+                const g = Math.max(50, Math.min(145, Math.round(90 + clusterNoise * 0.8 + grain * 0.8 + fleck * 0.8)));
+                const b = Math.max(30, Math.min(105, Math.round(60 + clusterNoise * 0.6 + grain * 0.6 + fleck * 0.6)));
+                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 c.fillRect(x, y, 1, 1);
             }
         }
+
+        // Hanging grass blades with shadow under-rim
         for (let x = 0; x < 16; x++) {
-            const h = 3 + Math.floor(hash(x, 1) * 3);
+            const h = 3 + Math.floor(hash(x * 7 + 1, 5) * 4); // 3 to 6 pixels down
             for (let y = 0; y < h; y++) {
-                const n = (hash(x, y) - 0.5) * 18;
-                c.fillStyle = `rgb(${88 + n}, ${140 + n}, ${52 + n})`;
+                const blade = (hash(x * 17 + y, y * 19 + x) - 0.5) * 24;
+                const isTip = (y === h - 1);
+                const isTop = (y === 0);
+
+                // Top has highlight, tip has shadow
+                const light = isTop ? 16 : (isTip ? -18 : 0);
+                const r = Math.max(50, Math.min(125, Math.round(92 + blade * 0.6 + light * 0.5)));
+                const g = Math.max(105, Math.min(195, Math.round(160 + blade + light)));
+                const b = Math.max(30, Math.min(85, Math.round(50 + blade * 0.4 + light * 0.4)));
+
+                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 c.fillRect(x, y, 1, 1);
+            }
+
+            // Dark shadow directly under grass blade tips
+            if (h < 15) {
+                c.fillStyle = 'rgba(40, 24, 12, 0.45)';
+                c.fillRect(x, h, 1, 1);
             }
         }
     });
 
-    // 2: DIRT
+    // 2: DIRT (Rich earthy soil with organic loam clumps, mineral pebbles, and humus)
     drawTile(TILES.DIRT, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const n = (hash(x, y) - 0.5) * 28;
-                c.fillStyle = `rgb(${120 + n}, ${85 + n}, ${58 + n})`;
+                // Soil clumping variation (smooth 2x2 cluster)
+                const cx = Math.floor(x / 2);
+                const cy = Math.floor(y / 2);
+                const clusterNoise = (hash(cx * 13 + 3, cy * 17 + 7) - 0.5) * 20;
+
+                // Fine earth grain
+                const grain = (hash(x * 29 + 11, y * 31 + 19) - 0.5) * 22;
+
+                // Organic flecks / pebbles / humus crevices
+                const fleckHash = hash(x * 47 + 5, y * 53 + 23);
+                let fleck = 0;
+                let isPebble = false;
+
+                if (fleckHash > 0.92) {
+                    isPebble = true; // Small mineral pebble
+                } else if (fleckHash < 0.10) {
+                    fleck = -24; // Humus / deep soil crevice
+                } else if (fleckHash > 0.82) {
+                    fleck = 16; // Dry warm clay crumb
+                }
+
+                if (isPebble) {
+                    // Grayish-beige limestone/quartz pebble
+                    const pTone = Math.round(135 + grain * 0.5);
+                    c.fillStyle = `rgb(${pTone + 5}, ${pTone}, ${pTone - 5})`;
+                } else {
+                    const baseR = 128 + clusterNoise * 0.9 + grain + fleck;
+                    const baseG = 92 + clusterNoise * 0.8 + grain * 0.8 + fleck * 0.8;
+                    const baseB = 62 + clusterNoise * 0.6 + grain * 0.6 + fleck * 0.6;
+                    const r = Math.max(75, Math.min(185, Math.round(baseR)));
+                    const g = Math.max(50, Math.min(145, Math.round(baseG)));
+                    const b = Math.max(30, Math.min(105, Math.round(baseB)));
+                    c.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                }
                 c.fillRect(x, y, 1, 1);
             }
         }
@@ -154,37 +217,74 @@ function createAtlas() {
         }
     });
 
-    // 4: WOOD SIDE
+    // 4: WOOD SIDE (Natural oak bark with vertical fibrous bark grooves)
     drawTile(TILES.WOOD_SIDE, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const ridge = Math.sin(x * 1.5) * 15;
-                const n = (hash(x, y) - 0.5) * 16;
-                c.fillStyle = `rgb(${105 + ridge + n}, ${80 + ridge * 0.8 + n}, ${50 + ridge * 0.5 + n})`;
+                const ridge1 = Math.sin(x * 1.6 + hash(0, Math.floor(y / 4)) * 0.8) * 18;
+                const ridge2 = Math.cos(x * 3.2 + y * 0.4) * 8;
+                const grain = (hash(x * 23 + 3, y * 31 + 7) - 0.5) * 14;
+
+                const base = 108 + ridge1 + ridge2 + grain;
+                const r = Math.max(65, Math.min(160, Math.round(base)));
+                const g = Math.max(45, Math.min(125, Math.round(base * 0.78)));
+                const b = Math.max(25, Math.min(85, Math.round(base * 0.50)));
+
+                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 c.fillRect(x, y, 1, 1);
             }
         }
     });
 
-    // 5: WOOD TOP
+    // 5: WOOD TOP (Tree trunk rings with dark bark outer rim and heartwood center)
     drawTile(TILES.WOOD_TOP, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
                 const dist = Math.sqrt((x - 7.5)**2 + (y - 7.5)**2);
-                const ring = Math.sin(dist * 1.8) * 18;
-                const n = (hash(x, y) - 0.5) * 12;
-                c.fillStyle = `rgb(${160 + ring + n}, ${125 + ring * 0.8 + n}, ${80 + ring * 0.5 + n})`;
+
+                if (dist >= 6.8) {
+                    // Outer bark ring
+                    const n = (hash(x, y) - 0.5) * 16;
+                    c.fillStyle = `rgb(${95 + n}, ${72 + n * 0.8}, ${44 + n * 0.5})`;
+                } else {
+                    // Growth rings
+                    const ring = Math.sin(dist * 2.2) * 20;
+                    const grain = (hash(x * 17 + 5, y * 19 + 7) - 0.5) * 12;
+                    const r = Math.max(120, Math.min(210, Math.round(172 + ring + grain)));
+                    const g = Math.max(90, Math.min(170, Math.round(136 + ring * 0.8 + grain * 0.8)));
+                    const b = Math.max(55, Math.min(125, Math.round(88 + ring * 0.5 + grain * 0.5)));
+                    c.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                }
                 c.fillRect(x, y, 1, 1);
             }
         }
     });
 
-    // 6: LEAVES
+    // 6: LEAVES (Minecraft Fancy Cutout Leaves with translucent leaf apertures)
     drawTile(TILES.LEAVES, (c) => {
+        c.clearRect(0, 0, 16, 16);
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const n = (hash(x, y) - 0.5) * 40;
-                c.fillStyle = `rgb(${45 + n * 0.6}, ${115 + n}, ${35 + n * 0.4})`;
+                // Organic cutout holes (seeing through the leaves)
+                const hVal = hash(x * 19 + 7, y * 23 + 13);
+                const cluster = Math.sin(x * 0.8) * Math.cos(y * 0.8);
+                const isHole = (hVal < 0.22 && (x % 3 !== 0 || y % 3 !== 0)) ||
+                               (hVal < 0.35 && cluster < -0.3);
+
+                if (isHole) {
+                    continue; // Leave transparent!
+                }
+
+                // Rich multi-tone leaf shading
+                const n = (hash(x * 37 + 5, y * 41 + 17) - 0.5) * 36;
+                const edgeDarken = (x === 0 || x === 15 || y === 0 || y === 15) ? -12 : 0;
+                const sunLight = (y < 6 ? 14 : (y > 10 ? -12 : 0));
+
+                const r = Math.max(20, Math.min(80, Math.round(44 + n * 0.5 + sunLight * 0.4 + edgeDarken)));
+                const g = Math.max(70, Math.min(185, Math.round(135 + n + sunLight + edgeDarken)));
+                const b = Math.max(18, Math.min(75, Math.round(38 + n * 0.4 + sunLight * 0.3 + edgeDarken)));
+
+                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 c.fillRect(x, y, 1, 1);
             }
         }

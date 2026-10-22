@@ -15,6 +15,8 @@ export class SurvivalManager {
         this.isDead = false;
         this.hasArmor = false;
         this.hasRubyArmor = false;
+        this.rubyArmorDurability = 50;
+        this.maxRubyArmorDurability = 50;
         this.armorType = 0;
         this.checkHasArmor = null;
         this.getArmorType = null;
@@ -64,8 +66,33 @@ export class SurvivalManager {
         if (this.isDead || amount <= 0) return;
 
         if (this.hasRubyArmor) {
-            console.log(`[Survival] Cios (${amount} dmg z ${reason}) odbity przez Rubinową Zbroję!`);
-            eventBus.emit('ui:popup', '🛡️ Cios odbił się od Rubinowej Zbroi! Nic jej nie przebije! 🔴');
+            this.rubyArmorDurability = (typeof this.rubyArmorDurability === 'number' && this.rubyArmorDurability > 0)
+                ? this.rubyArmorDurability - 1
+                : 49;
+
+            this.flashRedVignette();
+
+            if (this.rubyArmorDurability > 0) {
+                console.log(`[Survival] Cios (${amount} dmg z ${reason}) pochłonięty przez Rubinową Zbroję! Trwałość: ${this.rubyArmorDurability}/${this.maxRubyArmorDurability}`);
+                eventBus.emit('ui:popup', `🛡️ Rubinowa Zbroja przyjęła cios! (Wytrzymałość: ${this.rubyArmorDurability}/${this.maxRubyArmorDurability} ciosów) 🔴`);
+            } else {
+                console.log('[Survival] Rubinowa Zbroja zużyła się i pękła!');
+                eventBus.emit('ui:popup', '💥 Twoja Rubinowa Zbroja pękła i rozpadła się na kawałki!');
+                this.hasRubyArmor = false;
+                this.hasArmor = false;
+                this.armorType = 0;
+                this.rubyArmorDurability = 50;
+
+                // Remove ruby armor item (ID 37) from inventory
+                eventBus.emit('item:consume_specific', { id: 37, amount: 1 });
+
+                this.maxHealth = 20;
+                if (this.health > 20) this.health = 20;
+                this.onStatsChange(this.health, this.hunger, this.maxHealth);
+                if (this.player && this.player.setArmorVisual) {
+                    this.player.setArmorVisual(0);
+                }
+            }
             return;
         }
 
@@ -158,6 +185,7 @@ export class SurvivalManager {
                 if (this.hasRubyArmor) {
                     this.maxHealth = 40; // 20 hearts
                     this.health = 40;
+                    this.rubyArmorDurability = 50;
                 } else if (this.armorType === 32) {
                     this.maxHealth = 30; // 15 hearts
                     if (this.health <= 20) this.health = 30;

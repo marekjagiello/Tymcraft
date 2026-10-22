@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=bear_ride_2';
-import { Player } from './player.js?v=bear_ride_2';
-import { Interaction } from './interaction.js?v=bear_ride_2';
-import { AnimalManager } from './animals.js?v=bear_ride_2';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=bear_ride_2';
-import { StorageManager } from './storage.js?v=bear_ride_2';
-import { SurvivalManager } from './survival.js?v=bear_ride_2';
-import { CraftingManager } from './crafting.js?v=bear_ride_2';
-import { DropsManager } from './drops.js?v=bear_ride_2';
-import { eventBus } from './events.js?v=bear_ride_2';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=bear_feed_textures_1';
+import { Player } from './player.js?v=bear_feed_textures_1';
+import { Interaction } from './interaction.js?v=bear_feed_textures_1';
+import { AnimalManager } from './animals.js?v=bear_feed_textures_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=bear_feed_textures_1';
+import { StorageManager } from './storage.js?v=bear_feed_textures_1';
+import { SurvivalManager } from './survival.js?v=bear_feed_textures_1';
+import { CraftingManager } from './crafting.js?v=bear_feed_textures_1';
+import { DropsManager } from './drops.js?v=bear_feed_textures_1';
+import { eventBus } from './events.js?v=bear_feed_textures_1';
 
 class Game {
     constructor() {

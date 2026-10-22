@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../../world.js';
-import { playHitSound } from '../../audio.js';
+import { playHitSound, playEatSound } from '../../audio.js';
 import { eventBus } from '../../events.js';
 
 // Helper to create a 3D pixel heart mesh (Minecraft-style voxel heart)
@@ -502,6 +502,7 @@ export class Bear extends Mob {
         this.state = 'idle';
         this.stateTimer = 2.0;
         this.walkCycle = 0;
+        this.activeHearts = [];
 
         // Stat configurations based on breed / race:
         // White Polar Bear is the STRONGEST ("biała jest silniejsza")!
@@ -731,7 +732,82 @@ export class Bear extends Mob {
         }
     }
 
+    feedWithRottenFlesh() {
+        if (this.isDead) return false;
+        const healAmount = 8;
+        const oldHealth = this.health;
+        this.health = Math.min(this.maxHealth, this.health + healAmount);
+        this.spawnHeartParticles();
+        playEatSound();
+        const healedDiff = this.health - oldHealth;
+        const msg = healedDiff > 0
+            ? `🐻❤️ Nakarmiono ${this.variantName}! (+${healedDiff} HP, teraz: ${this.health}/${this.maxHealth})`
+            : `🐻❤️ Nakarmiono ${this.variantName}! Pełnia zdrowia (${this.health}/${this.maxHealth} HP)!`;
+        eventBus.emit('ui:popup', msg);
+        console.log(`[Animal] Bear fed with rotten flesh! Health: ${this.health}/${this.maxHealth}`);
+        return true;
+    }
+
+    interactWithApple() {
+        return this.feedWithRottenFlesh();
+    }
+
+    spawnHeartParticles() {
+        const heartCount = 7;
+        for (let i = 0; i < heartCount; i++) {
+            const heart = createPixelHeartMesh();
+            heart.position.set(
+                this.position.x + (Math.random() - 0.5) * 0.9,
+                this.position.y + 1.1 + Math.random() * 0.5,
+                this.position.z + (Math.random() - 0.5) * 0.9
+            );
+            this.scene.add(heart);
+            this.activeHearts.push({
+                mesh: heart,
+                vy: 1.2 + Math.random() * 0.6,
+                vx: (Math.random() - 0.5) * 0.4,
+                vz: (Math.random() - 0.5) * 0.4,
+                life: 1.8,
+                maxLife: 1.8
+            });
+        }
+    }
+
+    updateHearts(dt) {
+        if (!this.activeHearts) return;
+        for (let i = this.activeHearts.length - 1; i >= 0; i--) {
+            const h = this.activeHearts[i];
+            h.life -= dt;
+            if (h.life <= 0) {
+                if (h.mesh && h.mesh.parent) {
+                    this.scene.remove(h.mesh);
+                }
+                this.activeHearts.splice(i, 1);
+            } else {
+                h.mesh.position.y += h.vy * dt;
+                h.mesh.position.x += h.vx * dt;
+                h.mesh.position.z += h.vz * dt;
+                h.mesh.rotation.y += 2.5 * dt;
+                const scale = Math.max(0.1, h.life / h.maxLife);
+                h.mesh.scale.set(scale, scale, scale);
+            }
+        }
+    }
+
+    die() {
+        if (this.activeHearts) {
+            for (const h of this.activeHearts) {
+                if (h.mesh && h.mesh.parent) {
+                    this.scene.remove(h.mesh);
+                }
+            }
+            this.activeHearts = [];
+        }
+        super.die();
+    }
+
     update(dt, playerPosition = null, isDay = true) {
+        this.updateHearts(dt);
         if (this.isDead) return;
 
         this.updateHealthBar(playerPosition);

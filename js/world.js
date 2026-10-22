@@ -374,23 +374,31 @@ export class World {
     }
 
     plantTree(x, startY, z) {
-        const height = 4 + Math.floor(Math.abs(this.treeNoise.noise2D(x * 0.5, z * 0.5)) * 2);
-        if (startY + height + 2 >= WORLD_HEIGHT) return;
+        // Natural trunk height between 4 and 6 blocks
+        const noiseVal = Math.abs(this.treeNoise.noise2D(x * 0.45, z * 0.45));
+        const height = 4 + Math.floor(noiseVal * 3);
+        if (startY + height + 3 >= WORLD_HEIGHT) return;
 
         // Wood trunk
         for (let y = 0; y < height; y++) {
             this.setBlockRaw(x, startY + y, z, 4); // Wood
         }
 
-        // Leaf canopy
+        // Beautiful layered canopy (4 vertical layers with rounded crown)
         const leafBottom = startY + height - 2;
         const leafTop = startY + height + 1;
 
         for (let ly = leafBottom; ly <= leafTop; ly++) {
-            const radius = (ly >= leafTop) ? 1 : 2;
+            const isTopLayer = (ly === leafTop);
+            const radius = isTopLayer ? 1 : 2;
+
             for (let lx = -radius; lx <= radius; lx++) {
                 for (let lz = -radius; lz <= radius; lz++) {
-                    if (Math.abs(lx) === radius && Math.abs(lz) === radius && (lx !== 0 || lz !== 0)) continue;
+                    const distSq = lx * lx + lz * lz;
+                    // Cut out outer sharp corners for natural rounded canopy
+                    if (radius === 2 && distSq > 5) continue;
+                    if (isTopLayer && distSq > 1) continue; // cross shape on very top
+
                     const curX = x + lx;
                     const curZ = z + lz;
                     if (this.getBlockFast(curX, ly, curZ) === 0) {
@@ -398,6 +406,11 @@ export class World {
                     }
                 }
             }
+        }
+
+        // Extra crown cap block at the very peak
+        if (this.getBlockFast(x, leafTop + 1, z) === 0) {
+            this.setBlockRaw(x, leafTop + 1, z, 5);
         }
     }
 

@@ -63,8 +63,8 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)));
-            const hitRadius = (animal.type === 'snake') ? 0.80 : 0.95;
+            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85))));
+            const hitRadius = (animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95);
 
             // Center of animal vertical capsule
             const center = animal.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
@@ -180,14 +180,28 @@ export class Interaction {
                     return;
                 }
 
-                // Check if feeding animal with apple
+                // Check if feeding bear with rotten flesh (ID 26) or apple (ID 23)
+                if (targetAnimal && targetAnimal.type === 'bear' && (activeItemId === 26 || activeItemId === 23)) {
+                    if (targetAnimal.feedWithRottenFlesh) {
+                        targetAnimal.feedWithRottenFlesh();
+                    } else if (targetAnimal.interactWithApple) {
+                        targetAnimal.interactWithApple();
+                    }
+                    eventBus.emit('item:consume');
+                    if (this.onItemConsumed) this.onItemConsumed(activeItemId);
+                    return;
+                }
+
+                // Check if feeding other animals with apple (ID 23)
                 const animal = targetAnimal;
                 if (animal && activeItemId === 23) {
                     animal.interactWithApple();
                     eventBus.emit('item:consume');
-                    eventBus.emit('ui:popup', '❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
+                    const mobName = animal.type === 'snake' ? 'węża 🐍' : (animal.type === 'sheep' ? 'owcę 🐑' : (animal.type === 'pig' ? 'świnkę 🐷' : 'zwierzę 🐾'));
+                    const feedMsg = `❤️ Nakarmiono ${mobName}! Pojawiły się serca!`;
+                    eventBus.emit('ui:popup', feedMsg);
                     if (this.onItemConsumed) this.onItemConsumed(23);
-                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup('❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
+                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(feedMsg);
                     return;
                 }
 
