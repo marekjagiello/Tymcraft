@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { BLOCK_DEF } from './textures.js';
+import { BLOCK_DEF } from './textures.js?v=flowers_1';
 import { playSwingSound, playHitSound, playEatSound, playBowShootSound, playBowDrawSound } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js?v=flowers_1';
 import { eventBus } from './events.js';
 
 // Re-export audio helpers for backward compatibility
@@ -189,6 +189,23 @@ export class Interaction {
                     }
                     eventBus.emit('item:consume');
                     if (this.onItemConsumed) this.onItemConsumed(activeItemId);
+                    return;
+                }
+
+                // Check if feeding sheep or pig with flowers (ID 17: Rose, ID 18: Dandelion)
+                if (targetAnimal && (targetAnimal.type === 'sheep' || targetAnimal.type === 'pig') && (activeItemId === 17 || activeItemId === 18)) {
+                    if (targetAnimal.feedWithFlower) {
+                        targetAnimal.feedWithFlower(activeItemId);
+                    } else if (targetAnimal.interactWithApple) {
+                        targetAnimal.interactWithApple();
+                    }
+                    eventBus.emit('item:consume');
+                    const flowerName = (activeItemId === 17) ? 'Czerwoną Różą 🌹' : 'Żółtym Mleczem 🌼';
+                    const animalName = (targetAnimal.type === 'sheep') ? 'owcę 🐑' : 'świnkę 🐷';
+                    const feedMsg = `❤️ Nakarmiono ${animalName} ${flowerName}! Pojawiły się serca!`;
+                    eventBus.emit('ui:popup', feedMsg);
+                    if (this.onItemConsumed) this.onItemConsumed(activeItemId);
+                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(feedMsg);
                     return;
                 }
 
@@ -474,6 +491,16 @@ export class Interaction {
             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
         }
 
+        if (blockId === 17) {
+            const msg = '🌹 Zerwano Czerwoną Różę!';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+        } else if (blockId === 18) {
+            const msg = '🌼 Zerwano Żółtego Mlecza!';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+        }
+
         this.currentTarget = this.raycastVoxels();
         this.updateHighlight();
     }
@@ -493,6 +520,18 @@ export class Interaction {
         const placeY = y + normalY;
         const placeZ = z + normalZ;
 
+        // Flower planting check: only on grass (1) or dirt (2)
+        const isFlower = (activeItemId === 17 || activeItemId === 18);
+        if (isFlower) {
+            const blockBelow = this.world.getBlock(placeX, placeY - 1, placeZ);
+            if (blockBelow !== 1 && blockBelow !== 2) {
+                const msg = '🌸 Kwiaty można sadzić tylko na trawie lub ziemi!';
+                eventBus.emit('ui:popup', msg);
+                if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+                return;
+            }
+        }
+
         // Player AABB collision check
         const playerAABB = this.player.getAABB();
         const blockAABB = {
@@ -507,8 +546,8 @@ export class Interaction {
             playerAABB.minZ < blockAABB.maxZ && playerAABB.maxZ > blockAABB.minZ
         );
 
-        if (intersectsPlayer) {
-            return; // Don't place inside player
+        if (intersectsPlayer && !isFlower) {
+            return; // Don't place solid blocks inside player
         }
 
         // Check if placing a block on a disguised Dirtik

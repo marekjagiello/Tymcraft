@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=flowers_1';
 
 // Helper to create a textured mini-cube (0.28 x 0.28 x 0.28)
 function createMiniBlockMesh(blockId) {
@@ -186,6 +186,32 @@ function createGunpowderMesh() {
     return group;
 }
 
+// Helper to create a 3D Flower drop mesh (miniature flower with stem and petals)
+function createFlowerDropMesh(colorHex) {
+    const group = new THREE.Group();
+    // Green stem
+    const stemGeo = new THREE.BoxGeometry(0.04, 0.22, 0.04);
+    const stemMat = new THREE.MeshLambertMaterial({ color: 0x38a169 });
+    const stem = new THREE.Mesh(stemGeo, stemMat);
+    stem.position.set(0, 0, 0);
+    group.add(stem);
+
+    // Leaves on stem
+    const leafGeo = new THREE.BoxGeometry(0.12, 0.03, 0.04);
+    const leaf = new THREE.Mesh(leafGeo, stemMat);
+    leaf.position.set(0, -0.03, 0);
+    group.add(leaf);
+
+    // Blossom petals
+    const blossomGeo = new THREE.BoxGeometry(0.16, 0.12, 0.16);
+    const blossomMat = new THREE.MeshLambertMaterial({ color: colorHex });
+    const blossom = new THREE.Mesh(blossomGeo, blossomMat);
+    blossom.position.set(0, 0.12, 0);
+    group.add(blossom);
+
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -216,7 +242,11 @@ export class DroppedItem {
         this.bobOffset = Math.random() * Math.PI * 2;
         this.baseGroundY = y;
 
-        if (this.id === 23) {
+        if (this.id === 17) {
+            this.mesh = createFlowerDropMesh(0xef4444); // Red Rose
+        } else if (this.id === 18) {
+            this.mesh = createFlowerDropMesh(0xfbbf24); // Yellow Dandelion
+        } else if (this.id === 23) {
             this.mesh = createAppleMesh();
         } else if (this.id === 20) {
             this.mesh = createStickMesh();
@@ -384,6 +414,16 @@ export class DropsManager {
         else if (blockId === 36) {
             dropId = 36;
             dropName = 'Proch Strzelniczy';
+        }
+        // Red Rose (17) drops Red Rose
+        else if (blockId === 17) {
+            dropId = 17;
+            dropName = 'Czerwona Róża';
+        }
+        // Yellow Dandelion (18) drops Yellow Dandelion
+        else if (blockId === 18) {
+            dropId = 18;
+            dropName = 'Żółty Mlecz';
         }
 
         const drop = new DroppedItem(this.scene, this.world, dropId, dropName, x + 0.5, y + 0.5, z + 0.5);

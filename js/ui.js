@@ -1,6 +1,6 @@
-import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js';
+import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=flowers_1';
 import { ITEMS } from './crafting.js';
-import { getItem } from './items.js';
+import { getItem } from './items.js?v=flowers_1';
 import { eventBus } from './events.js';
 
 export const HOTBAR_BLOCKS = [
@@ -104,7 +104,19 @@ export function createSlotItemIcon(itemId) {
         }
         return itemSpan;
     }
-    if (itemId >= 1 && itemId <= 16) {
+    if (itemId === 17) {
+        const itemSpan = document.createElement('span');
+        itemSpan.style.fontSize = '20px';
+        itemSpan.innerText = '🌹';
+        return itemSpan;
+    }
+    if (itemId === 18) {
+        const itemSpan = document.createElement('span');
+        itemSpan.style.fontSize = '20px';
+        itemSpan.innerText = '🌼';
+        return itemSpan;
+    }
+    if (itemId >= 1 && itemId <= 18) {
         const iconCanvas = document.createElement('canvas');
         iconCanvas.width = 16;
         iconCanvas.height = 16;

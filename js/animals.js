@@ -1,8 +1,8 @@
 // Backward compatibility adapter and unified export facade for entities
-import { Pig, Sheep, Snake, Bear, createPixelHeartMesh } from './entities/mobs/passive.js?v=bear_feed_textures_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './entities/mobs/hostile.js?v=bear_feed_textures_1';
-import { FlyingArrow, ThrownGunpowder } from './entities/projectile.js?v=bear_feed_textures_1';
-import { EntityManager } from './entities/entity-manager.js?v=bear_feed_textures_1';
+import { Pig, Sheep, Snake, Bear, createPixelHeartMesh } from './entities/mobs/passive.js?v=flowers_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './entities/mobs/hostile.js?v=flowers_1';
+import { FlyingArrow, ThrownGunpowder } from './entities/projectile.js?v=flowers_1';
+import { EntityManager } from './entities/entity-manager.js?v=flowers_1';
 
 export {
     createPixelHeartMesh,

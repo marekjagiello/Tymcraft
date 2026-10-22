@@ -26,6 +26,8 @@ export const ITEMS = {
     BEDROCK: { id: 14, name: 'Skała Macierzysta', type: ITEM_TYPES.BLOCK, placeable: false },
     DIAMOND_ORE: { id: 15, name: 'Ruda Diamentu', type: ITEM_TYPES.BLOCK, placeable: true },
     RUBY_ORE: { id: 16, name: 'Ruda Rubinu', type: ITEM_TYPES.BLOCK, placeable: true },
+    ROSE: { id: 17, name: 'Czerwona Róża', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'rose' },
+    DANDELION: { id: 18, name: 'Żółty Mlecz', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'dandelion' },
 
     // Craftable materials & drops (IDs 20+)
     STICK: { id: 20, name: 'Patyk', type: ITEM_TYPES.MATERIAL, icon: 'stick' },
@@ -84,7 +86,7 @@ export function isTool(id) {
 }
 
 export function isPlaceableBlock(id) {
-    if (id < 1 || id > 16) return false;
+    if (id < 1 || id > 18) return false;
     const item = getItem(id);
     return item ? Boolean(item.placeable) : false;
 }

@@ -8,7 +8,7 @@ function hash(x, y) {
 
 // 4x4 Atlas of 16x16 textures = 64x64 px canvas
 export const ATLAS_COLS = 4;
-export const ATLAS_ROWS = 5;
+export const ATLAS_ROWS = 6;
 export const TILE_SIZE = 16;
 
 export const TILES = {
@@ -29,7 +29,9 @@ export const TILES = {
     BEDROCK: 14,
     COBBLE: 15,
     DIAMOND_ORE: 16,
-    RUBY_ORE: 17
+    RUBY_ORE: 17,
+    ROSE: 18,
+    DANDELION: 19
 };
 
 // Map block types to tile faces: [Top, Bottom, Front, Back, Left, Right]
@@ -49,7 +51,9 @@ export const BLOCK_DEF = {
     12: { name: 'Bruk (Cobblestone)', tiles: [TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE, TILES.COBBLE], solid: true },
     14: { name: 'Skała Macierzysta (Bedrock)', tiles: [TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK, TILES.BEDROCK], solid: true },
     15: { name: 'Ruda Diamentu (Diamond Ore)', tiles: [TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE], solid: true },
-    16: { name: 'Ruda Rubinu (Ruby Ore)', tiles: [TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE], solid: true }
+    16: { name: 'Ruda Rubinu (Ruby Ore)', tiles: [TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE], solid: true },
+    17: { name: 'Czerwona Róża (Rose)', tiles: [TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE], solid: false, transparent: true, isPlant: true },
+    18: { name: 'Żółty Mlecz (Dandelion)', tiles: [TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION], solid: false, transparent: true, isPlant: true }
 };
 
 // Build the canvas atlas
@@ -461,6 +465,92 @@ function createAtlas() {
             c.fillStyle = '#fecdd3';
             c.fillRect(hx, hy, 1, 1);
         }
+    });
+
+    // 18: ROSE / POPPY (Classic Minecraft red poppy flower with green stem and leafy base)
+    drawTile(TILES.ROSE, (c) => {
+        c.clearRect(0, 0, 16, 16);
+
+        // Green Stem (y=7 to 15, x=7 to 8)
+        for (let y = 7; y <= 15; y++) {
+            c.fillStyle = (y % 2 === 0) ? '#38a169' : '#276749';
+            c.fillRect(7, y, 1, 1);
+            if (y >= 10 && y <= 14) {
+                c.fillStyle = '#2f855a';
+                c.fillRect(8, y, 1, 1);
+            }
+        }
+
+        // Green Leaves branching off stem
+        const leaves = [
+            [5, 12, '#2f855a'], [6, 12, '#48bb78'], [6, 13, '#276749'],
+            [9, 10, '#48bb78'], [10, 10, '#38a169'], [9, 11, '#276749']
+        ];
+        for (const [lx, ly, col] of leaves) {
+            c.fillStyle = col;
+            c.fillRect(lx, ly, 1, 1);
+        }
+
+        // Flower Petals (Red Rose Head: y=2 to 8, x=4 to 11)
+        const rosePixels = [
+            [6, 7, '#991b1b'], [7, 7, '#991b1b'], [8, 7, '#991b1b'], [9, 7, '#991b1b'],
+            [5, 6, '#b91c1c'], [6, 6, '#dc2626'], [7, 6, '#ef4444'], [8, 6, '#ef4444'], [9, 6, '#dc2626'], [10, 6, '#b91c1c'],
+            [4, 5, '#991b1b'], [5, 5, '#dc2626'], [6, 5, '#ef4444'], [7, 5, '#f87171'], [8, 5, '#ef4444'], [9, 5, '#dc2626'], [10, 5, '#b91c1c'],
+            [4, 4, '#b91c1c'], [5, 4, '#ef4444'], [6, 4, '#f87171'], [7, 4, '#fca5a5'], [8, 4, '#f87171'], [9, 4, '#ef4444'], [10, 4, '#dc2626'],
+            [5, 3, '#991b1b'], [6, 3, '#dc2626'], [7, 3, '#ef4444'], [8, 3, '#dc2626'], [9, 3, '#b91c1c'],
+            [6, 2, '#991b1b'], [7, 2, '#b91c1c'], [8, 2, '#991b1b']
+        ];
+        for (const [px, py, col] of rosePixels) {
+            c.fillStyle = col;
+            c.fillRect(px, py, 1, 1);
+        }
+
+        // Flower core center highlight
+        c.fillStyle = '#fee2e2';
+        c.fillRect(7, 4, 1, 1);
+    });
+
+    // 19: DANDELION (Classic Minecraft yellow dandelion flower blossom)
+    drawTile(TILES.DANDELION, (c) => {
+        c.clearRect(0, 0, 16, 16);
+
+        // Green Stem (y=7 to 15, x=7 to 8)
+        for (let y = 7; y <= 15; y++) {
+            c.fillStyle = (y % 2 === 0) ? '#38a169' : '#276749';
+            c.fillRect(7, y, 1, 1);
+            if (y >= 9 && y <= 13) {
+                c.fillStyle = '#2f855a';
+                c.fillRect(8, y, 1, 1);
+            }
+        }
+
+        // Serrated green dandelion basal leaves
+        const leaves = [
+            [4, 14, '#2f855a'], [5, 14, '#38a169'], [6, 13, '#276749'],
+            [9, 13, '#276749'], [10, 14, '#38a169'], [11, 14, '#2f855a']
+        ];
+        for (const [lx, ly, col] of leaves) {
+            c.fillStyle = col;
+            c.fillRect(lx, ly, 1, 1);
+        }
+
+        // Golden-yellow blossom head (y=3 to 8, x=5 to 10)
+        const dandelionPixels = [
+            [6, 8, '#b45309'], [7, 8, '#b45309'], [8, 8, '#b45309'], [9, 8, '#b45309'],
+            [5, 7, '#d97706'], [6, 7, '#f59e0b'], [7, 7, '#fbbf24'], [8, 7, '#fbbf24'], [9, 7, '#f59e0b'], [10, 7, '#d97706'],
+            [4, 6, '#d97706'], [5, 6, '#f59e0b'], [6, 6, '#fbbf24'], [7, 6, '#fde047'], [8, 6, '#fde047'], [9, 6, '#fbbf24'], [10, 6, '#f59e0b'], [11, 6, '#d97706'],
+            [4, 5, '#d97706'], [5, 5, '#fbbf24'], [6, 5, '#fde047'], [7, 5, '#fef08a'], [8, 5, '#fde047'], [9, 5, '#fbbf24'], [10, 5, '#f59e0b'],
+            [5, 4, '#b45309'], [6, 4, '#f59e0b'], [7, 4, '#fbbf24'], [8, 4, '#fbbf24'], [9, 4, '#f59e0b'], [10, 4, '#b45309'],
+            [6, 3, '#d97706'], [7, 3, '#f59e0b'], [8, 3, '#f59e0b'], [9, 3, '#d97706']
+        ];
+        for (const [px, py, col] of dandelionPixels) {
+            c.fillStyle = col;
+            c.fillRect(px, py, 1, 1);
+        }
+
+        // Sunny core center highlight
+        c.fillStyle = '#ffffff';
+        c.fillRect(7, 5, 1, 1);
     });
 
     const texture = new THREE.CanvasTexture(canvas);

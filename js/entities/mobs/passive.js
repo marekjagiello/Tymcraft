@@ -88,6 +88,7 @@ export class Pig extends Mob {
     }
 
     update(dt) {
+        this.updateHearts(dt);
         this.stateTimer -= dt;
         if (this.stateTimer <= 0) {
             if (this.state === 'idle') {
@@ -194,6 +195,7 @@ export class Sheep extends Mob {
     }
 
     update(dt) {
+        this.updateHearts(dt);
         this.stateTimer -= dt;
         if (this.stateTimer <= 0) {
             if (this.state === 'idle') {

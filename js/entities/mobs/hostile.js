@@ -4,7 +4,7 @@ import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
 import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound } from '../../audio.js';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=flowers_1';
 
 export class Zombie extends Mob {
     constructor(scene, world, x = 32, z = 32, manager = null, hasHelmet = false) {

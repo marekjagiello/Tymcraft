@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake, Bear } from './mobs/passive.js?v=bear_feed_textures_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=bear_feed_textures_1';
-import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=bear_feed_textures_1';
+import { Pig, Sheep, Snake, Bear } from './mobs/passive.js?v=flowers_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=flowers_1';
+import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=flowers_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 

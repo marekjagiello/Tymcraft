@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SimplexNoise } from './simplex-noise.js?v=world_gen4';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=world_gen4';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=flowers_1';
 
 export const CHUNK_SIZE = 16;
 export const CHUNKS_X = 4;
@@ -204,6 +204,7 @@ export class World {
         const startZ = chunk.cz * CHUNK_SIZE;
         const treesToPlant = [];
         const cactiToPlant = [];
+        const flowersToPlant = [];
 
         for (let lx = 0; lx < CHUNK_SIZE; lx++) {
             for (let lz = 0; lz < CHUNK_SIZE; lz++) {
@@ -351,6 +352,14 @@ export class World {
                             treesToPlant.push({ x, y: h + 1, z });
                         } else if (biome === 'Plains' && mod9X === 4 && mod9Z === 5) {
                             treesToPlant.push({ x, y: h + 1, z });
+                        } else {
+                            // Naturally spawn flowers on grass meadows
+                            const fHash = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
+                            const fVal = fHash - Math.floor(fHash);
+                            if (fVal < 0.045) { // ~4.5% chance
+                                const flowerBlock = (fVal < 0.022) ? 17 : 18; // 17: Red Rose, 18: Yellow Dandelion
+                                flowersToPlant.push({ x, y: h + 1, z, blockId: flowerBlock });
+                            }
                         }
                     } else if (surfBlock === 6 && biome === 'Desert' && mod8X === 3 && mod8Z === 4) {
                         cactiToPlant.push({ x, y: h + 1, z });
@@ -367,6 +376,13 @@ export class World {
         // Plant Cacti
         for (const c of cactiToPlant) {
             this.plantCactus(c.x, c.y, c.z);
+        }
+
+        // Plant Flowers on grass
+        for (const f of flowersToPlant) {
+            if (this.getBlockFast(f.x, f.y, f.z) === 0 && this.getBlockFast(f.x, f.y - 1, f.z) === 1) {
+                this.setBlockRaw(f.x, f.y, f.z, f.blockId);
+            }
         }
 
         // Apply any saved localStorage modifications for this chunk
@@ -466,6 +482,44 @@ export class World {
 
                     const def = BLOCK_DEF[blockId];
                     if (!def || !def.tiles) continue;
+
+                    // 3D Cross-quad plant meshing (Flowers, saplings, tall grass)
+                    if (def.isPlant) {
+                        const tileIndex = def.tiles[0];
+                        const { u0, v0, u1, v1 } = getTileUV(tileIndex);
+
+                        // 2 crossing diagonals, double-sided (4 quads)
+                        const plantQuads = [
+                            // Diagonal A: front
+                            [[0, 0, 0], [1, 0, 1], [1, 1, 1], [0, 1, 0]],
+                            // Diagonal A: back
+                            [[1, 0, 1], [0, 0, 0], [0, 1, 0], [1, 1, 1]],
+                            // Diagonal B: front
+                            [[1, 0, 0], [0, 0, 1], [0, 1, 1], [1, 1, 0]],
+                            // Diagonal B: back
+                            [[0, 0, 1], [1, 0, 0], [1, 1, 0], [0, 1, 1]]
+                        ];
+
+                        for (const quad of plantQuads) {
+                            for (let c = 0; c < 4; c++) {
+                                const corner = quad[c];
+                                positions.push(x + corner[0], y + corner[1], z + corner[2]);
+                                normals.push(0, 1, 0);
+                            }
+                            uvs.push(
+                                u0, v0,
+                                u1, v0,
+                                u1, v1,
+                                u0, v1
+                            );
+                            indices.push(
+                                vertexCount, vertexCount + 1, vertexCount + 2,
+                                vertexCount, vertexCount + 2, vertexCount + 3
+                            );
+                            vertexCount += 4;
+                        }
+                        continue;
+                    }
 
                     for (const face of FACE_DIRS) {
                         const nx = x + face.dir[0];

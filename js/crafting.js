@@ -1,5 +1,5 @@
 // 2x2 Crafting system using centralized Item Registry
-import { ITEMS } from './items.js';
+import { ITEMS } from './items.js?v=flowers_1';
 
 export { ITEMS };
 

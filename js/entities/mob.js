@@ -2,6 +2,31 @@ import * as THREE from 'three';
 import { Entity } from './entity.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../world.js';
 import { eventBus } from '../events.js';
+import { playEatSound } from '../audio.js';
+
+// Helper to create a 3D pixel heart mesh
+export function createPixelHeartMesh() {
+    const group = new THREE.Group();
+    const mat = new THREE.MeshLambertMaterial({ color: 0xef4444 });
+    const s = 0.055;
+
+    // 5x5 heart pixel pattern
+    const pixels = [
+        [0, 1], [0, 3],
+        [1, 0], [1, 1], [1, 2], [1, 3], [1, 4],
+        [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
+        [3, 1], [3, 2], [3, 3],
+        [4, 2]
+    ];
+
+    const geo = new THREE.BoxGeometry(s, s, s * 0.8);
+    for (const [r, c] of pixels) {
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set((c - 2) * s, (2 - r) * s, 0);
+        group.add(m);
+    }
+    return group;
+}
 
 export class Mob extends Entity {
     constructor(scene, world, type = 'mob', x = 32, z = 32, manager = null) {
@@ -24,10 +49,61 @@ export class Mob extends Entity {
         this.stateTimer = 1 + Math.random() * 3;
         this.walkSpeed = 1.6;
         this.animTime = Math.random() * 10;
+        this.activeHearts = [];
 
         this.healthBarGroup = null;
         this.healthBarFill = null;
         this.barFillMat = null;
+    }
+
+    spawnHeartParticles(offsetY = 0.8) {
+        const heartCount = 6;
+        for (let i = 0; i < heartCount; i++) {
+            const heart = createPixelHeartMesh();
+            heart.position.set(
+                this.position.x + (Math.random() - 0.5) * 0.7,
+                this.position.y + offsetY + Math.random() * 0.4,
+                this.position.z + (Math.random() - 0.5) * 0.7
+            );
+            this.scene.add(heart);
+            this.activeHearts.push({
+                mesh: heart,
+                vy: 1.2 + Math.random() * 0.5,
+                vx: (Math.random() - 0.5) * 0.35,
+                vz: (Math.random() - 0.5) * 0.35,
+                life: 1.8,
+                maxLife: 1.8
+            });
+        }
+    }
+
+    updateHearts(dt) {
+        if (!this.activeHearts) return;
+        for (let i = this.activeHearts.length - 1; i >= 0; i--) {
+            const h = this.activeHearts[i];
+            h.life -= dt;
+            if (h.life <= 0) {
+                if (h.mesh && h.mesh.parent) {
+                    this.scene.remove(h.mesh);
+                }
+                this.activeHearts.splice(i, 1);
+            } else {
+                h.mesh.position.y += h.vy * dt;
+                h.mesh.position.x += h.vx * dt;
+                h.mesh.position.z += h.vz * dt;
+                h.mesh.rotation.y += 2.5 * dt;
+                const scale = Math.max(0.1, h.life / h.maxLife);
+                h.mesh.scale.set(scale, scale, scale);
+            }
+        }
+    }
+
+    feedWithFlower(flowerItemId) {
+        if (this.isDead) return false;
+        this.health = Math.min(this.maxHealth, this.health + 4);
+        this.spawnHeartParticles(0.85);
+        playEatSound();
+        return true;
     }
 
     flashRed() {
@@ -133,6 +209,15 @@ export class Mob extends Entity {
 
         if (this.manager && this.manager.spawnDeathPoof) {
             this.manager.spawnDeathPoof(this.position.clone().add(new THREE.Vector3(0, 0.2, 0)));
+        }
+
+        if (this.activeHearts) {
+            for (const h of this.activeHearts) {
+                if (h.mesh && h.mesh.parent) {
+                    this.scene.remove(h.mesh);
+                }
+            }
+            this.activeHearts = [];
         }
 
         if (this.group && this.group.parent) {
