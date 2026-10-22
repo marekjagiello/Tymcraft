@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake, Bear } from './mobs/passive.js?v=flowers_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=flowers_1';
-import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=flowers_1';
+import { Pig, Sheep, Snake, Bear } from './mobs/passive.js?v=bear_ride_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=bear_ride_1';
+import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=bear_ride_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -60,21 +60,26 @@ export class EntityManager {
         // Gwarancja: jeśli z jakiegokolwiek powodu jest więcej niż 1 wąż, zabij wszystkie oprócz 1
         this.killSnakesExceptOne();
 
-        // 3. Początkowy Creeper wędrujący po świecie
-        const creeper = new Creeper(this.scene, this.world, 40, 25, this);
+        // 3. Początkowy Creeper wędrujący daleko po świecie
+        const creeper = new Creeper(this.scene, this.world, 48, 48, this);
         this.animals.push(creeper);
 
-        // 4. Początkowe Dirtiki ukryte jako klocki ziemi w pobliżu gracza (duża grupa dla zabawy!)
+        // 4. Początkowy ukryty Dirtik daleko od gracza (spokojny, uporządkowany start!)
         const startX = (this.player && this.player.position) ? this.player.position.x : 32;
         const startZ = (this.player && this.player.position) ? this.player.position.z : 32;
-        for (let i = 0; i < 6; i++) {
-            this.spawnDirtikNear(startX, startZ, 5 + i * 3, 14 + i * 3);
+        this.spawnDirtikNear(startX, startZ, 22, 38);
+
+        // 5. Dokładnie 1 oswojony, przyjazny Niedźwiedź Brunatny tuż obok gracza (3-4 bloki) do natychmiastowej jazdy!
+        const starterBear = this.spawnBearNear(startX, startZ, 'brown', 3.0, 4.5);
+        if (starterBear) {
+            starterBear.isTamed = true;
+            console.log(`[EntityManager] Zespawnowano startowego oswojonego Niedźwiedzia Brunatnego tuż obok gracza!`);
         }
 
-        // 5. Początkowe Niedźwiedzie (Biały miś polarny najsilniejszy, brunatny, czarny, panda, grizzly)
-        const initialBearVariants = ['polar', 'brown', 'black', 'panda', 'grizzly'];
-        for (let i = 0; i < initialBearVariants.length; i++) {
-            this.spawnBearNear(startX, startZ, initialBearVariants[i], 3 + i * 2.5, 12 + i * 2.5);
+        // Pozostałe niedźwiedzie rozproszone daleko w świecie (25-50 bloków od gracza)
+        const otherBearVariants = ['polar', 'black', 'panda', 'grizzly'];
+        for (let i = 0; i < otherBearVariants.length; i++) {
+            this.spawnBearNear(startX, startZ, otherBearVariants[i], 26 + i * 5, 42 + i * 5);
         }
     }
 
@@ -397,20 +402,20 @@ export class EntityManager {
             const activeDirtiks = this.animals.filter(a => a.type === 'dirtik' && !a.isDead);
             this.dirtikSpawnTimer = (this.dirtikSpawnTimer || 0) + dt;
 
-            // Utrzymuj od 5 do 6 ukrytych Dirtików w pobliżu gracza, szybki spawn co 4 sekundy!
-            if (activeDirtiks.length < 6 && this.dirtikSpawnTimer >= 4.0) {
+            // Utrzymuj maksymalnie 2 ukryte Dirtiki w świecie, w bezpiecznej odległości (25-45m)
+            if (activeDirtiks.length < 2 && this.dirtikSpawnTimer >= 25.0) {
                 this.dirtikSpawnTimer = 0;
-                this.spawnDirtikNear(playerPosition.x, playerPosition.z, 8, 22);
+                this.spawnDirtikNear(playerPosition.x, playerPosition.z, 25, 45);
             }
 
-            // Utrzymuj od 4 do 6 niedźwiedzi różnych ras w pobliżu gracza
+            // Utrzymuj do 3-4 niedźwiedzi w całym świecie, pojawiających się w oddali (25-50m)
             const activeBears = this.animals.filter(a => a.type === 'bear' && !a.isDead);
             this.bearSpawnTimer = (this.bearSpawnTimer || 0) + dt;
-            if (activeBears.length < 5 && this.bearSpawnTimer >= 10.0) {
+            if (activeBears.length < 3 && this.bearSpawnTimer >= 30.0) {
                 this.bearSpawnTimer = 0;
                 const pool = ['polar', 'brown', 'black', 'panda', 'grizzly', 'kermode'];
                 const chosen = pool[Math.floor(Math.random() * pool.length)];
-                this.spawnBearNear(playerPosition.x, playerPosition.z, chosen, 10, 30);
+                this.spawnBearNear(playerPosition.x, playerPosition.z, chosen, 25, 50);
             }
         }
 

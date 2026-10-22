@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=flowers_1';
-import { Player } from './player.js?v=flowers_1';
-import { Interaction } from './interaction.js?v=flowers_1';
-import { AnimalManager } from './animals.js?v=flowers_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=flowers_1';
-import { StorageManager } from './storage.js?v=flowers_1';
-import { SurvivalManager } from './survival.js?v=flowers_1';
-import { CraftingManager } from './crafting.js?v=flowers_1';
-import { DropsManager } from './drops.js?v=flowers_1';
-import { eventBus } from './events.js?v=flowers_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=bear_ride_1';
+import { Player } from './player.js?v=bear_ride_1';
+import { Interaction } from './interaction.js?v=bear_ride_1';
+import { AnimalManager } from './animals.js?v=bear_ride_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=bear_ride_1';
+import { StorageManager } from './storage.js?v=bear_ride_1';
+import { SurvivalManager } from './survival.js?v=bear_ride_1';
+import { CraftingManager } from './crafting.js?v=bear_ride_1';
+import { DropsManager } from './drops.js?v=bear_ride_1';
+import { eventBus } from './events.js?v=bear_ride_1';
 
 class Game {
     constructor() {
@@ -171,9 +171,19 @@ class Game {
             } else {
                 const bear = this.animals.findClosestBear(this.player.position, 4.0);
                 if (bear) {
-                    this.player.mountBear(bear);
+                    if (bear.variant === 'polar') {
+                        eventBus.emit('ui:popup', '🐻‍❄️ Biały Niedźwiedź Polarny jest zbyt dziki i groźny, by na niego wsiąść!');
+                    } else {
+                        const success = Math.random() < 0.99;
+                        if (success) {
+                            bear.spawnHeartParticles?.(0.9);
+                            this.player.mountBear(bear);
+                        } else {
+                            eventBus.emit('ui:popup', '🐾 Miś się lekko poruszył! Wciśnij P lub kliknij PPM jeszcze raz');
+                        }
+                    }
                 } else {
-                    eventBus.emit('ui:popup', '⚠️ Brak niedźwiedzia w pobliżu! Podejdź bliżej misia i wciśnij P, by na niego wsiąść 🐻');
+                    eventBus.emit('ui:popup', '⚠️ Brak oswojonego misia w pobliżu! Podejdź do niedźwiedzia i kliknij PPM 🐻');
                 }
             }
         });

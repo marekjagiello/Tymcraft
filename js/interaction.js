@@ -180,16 +180,55 @@ export class Interaction {
                     return;
                 }
 
-                // Check if feeding bear with rotten flesh (ID 26) or apple (ID 23)
-                if (targetAnimal && targetAnimal.type === 'bear' && (activeItemId === 26 || activeItemId === 23)) {
-                    if (targetAnimal.feedWithRottenFlesh) {
-                        targetAnimal.feedWithRottenFlesh();
-                    } else if (targetAnimal.interactWithApple) {
-                        targetAnimal.interactWithApple();
+                // Check if interacting with a Bear (feeding or mounting with PPM!)
+                if (targetAnimal && targetAnimal.type === 'bear') {
+                    // Jeśli gracz trzyma jedzenie (zgniłe mięso lub jabłko) i miś jest ranny -> nakarm misia!
+                    if ((activeItemId === 26 || activeItemId === 23) && targetAnimal.health < targetAnimal.maxHealth) {
+                        if (targetAnimal.feedWithRottenFlesh) {
+                            targetAnimal.feedWithRottenFlesh();
+                        } else if (targetAnimal.interactWithApple) {
+                            targetAnimal.interactWithApple();
+                        }
+                        eventBus.emit('item:consume');
+                        if (this.onItemConsumed) this.onItemConsumed(activeItemId);
+                        return;
                     }
-                    eventBus.emit('item:consume');
-                    if (this.onItemConsumed) this.onItemConsumed(activeItemId);
-                    return;
+
+                    // Wsiadanie na niedźwiedzia Prawym Przyciskiem Myszy (PPM)!
+                    if (this.player) {
+                        if (this.player.mountedBear) {
+                            this.player.dismountBear();
+                            return;
+                        }
+
+                        // Groźny Biały Niedźwiedź Polarny (polar) — zbyt dziki, zrzuca gracza!
+                        if (targetAnimal.variant === 'polar') {
+                            playHitSound();
+                            targetAnimal.flashRed();
+                            const polarMsg = '🐻‍❄️ Biały Niedźwiedź Polarny jest zbyt dziki i groźny, by na niego wsiąść!';
+                            eventBus.emit('ui:popup', polarMsg);
+                            if (this.ui) this.ui.showPopup(polarMsg);
+
+                            // Odepchnięcie gracza
+                            const kb = this.player.position.clone().sub(targetAnimal.position).setY(0);
+                            if (kb.lengthSq() > 0.001) {
+                                kb.normalize();
+                                this.player.velocity.x += kb.x * 5.5;
+                                this.player.velocity.z += kb.z * 5.5;
+                            }
+                            return;
+                        }
+
+                        // Wszystkie pozostałe niedźwiedzie (brunatny, grizzly, czarny, panda itp.): 99% szans na ujeżdżenie!
+                        const success = Math.random() < 0.99;
+                        if (success) {
+                            targetAnimal.spawnHeartParticles?.(0.9);
+                            this.player.mountBear(targetAnimal);
+                        } else {
+                            eventBus.emit('ui:popup', '🐾 Miś się lekko poruszył! Spróbuj wsiąść jeszcze raz (PPM)');
+                        }
+                        return;
+                    }
                 }
 
                 // Check if feeding sheep or pig with flowers (ID 17: Rose, ID 18: Dandelion)
