@@ -161,6 +161,9 @@ export class SurvivalManager {
     }
 
     handleFallLanding(downwardVelocity) {
+        // Woda w pełni amortyzuje upadek jak w Minecrafcie!
+        if (this.player && this.player.isInWater) return;
+
         // Fall damage threshold: velocity < -15
         if (downwardVelocity < -15) {
             const rawDmg = Math.abs(downwardVelocity) - 15;

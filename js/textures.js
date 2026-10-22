@@ -31,7 +31,8 @@ export const TILES = {
     DIAMOND_ORE: 16,
     RUBY_ORE: 17,
     ROSE: 18,
-    DANDELION: 19
+    DANDELION: 19,
+    LILY_PAD: 20
 };
 
 // Map block types to tile faces: [Top, Bottom, Front, Back, Left, Right]
@@ -53,7 +54,8 @@ export const BLOCK_DEF = {
     15: { name: 'Ruda Diamentu (Diamond Ore)', tiles: [TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE, TILES.DIAMOND_ORE], solid: true },
     16: { name: 'Ruda Rubinu (Ruby Ore)', tiles: [TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE], solid: true },
     17: { name: 'Czerwona Róża (Rose)', tiles: [TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE], solid: false, transparent: true, isPlant: true },
-    18: { name: 'Żółty Mlecz (Dandelion)', tiles: [TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION], solid: false, transparent: true, isPlant: true }
+    18: { name: 'Żółty Mlecz (Dandelion)', tiles: [TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION], solid: false, transparent: true, isPlant: true },
+    19: { name: 'Lilia Wodna (Lily Pad)', tiles: [TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD], solid: false, transparent: true, isLilyPad: true }
 };
 
 // Build the canvas atlas
@@ -343,15 +345,36 @@ function createAtlas() {
         c.fillRect(11, 10, 3, 1);
     });
 
+export function renderWaterTile(c, time, offsetX = 0, offsetY = 0) {
+    for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 16; x++) {
+            const w1 = Math.sin((x + time * 3.2) * 0.45) * 0.5;
+            const w2 = Math.cos((y + time * 2.6) * 0.55) * 0.5;
+            const wave = (w1 + w2) * 0.5;
+
+            let r, g, b;
+            if (wave > 0.32) {
+                // Shimmering ripple highlight
+                r = 175; g = 235; b = 255;
+            } else if (wave > 0.06) {
+                // Azure crest
+                r = 50; g = 165; b = 245;
+            } else if (wave > -0.22) {
+                // Deep clear water body
+                r = 28; g = 120; b = 220;
+            } else {
+                // Shadowed trough
+                r = 18; g = 85; b = 190;
+            }
+            c.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            c.fillRect(offsetX + x, offsetY + y, 1, 1);
+        }
+    }
+}
+
     // 11: WATER
     drawTile(TILES.WATER, (c) => {
-        for (let y = 0; y < 16; y++) {
-            for (let x = 0; x < 16; x++) {
-                const n = (hash(x, y) - 0.5) * 20;
-                c.fillStyle = `rgb(${40 + n * 0.3}, ${115 + n * 0.5}, ${215 + n})`;
-                c.fillRect(x, y, 1, 1);
-            }
-        }
+        renderWaterTile(c, 0);
     });
 
     // 12: CACTUS SIDE
@@ -553,6 +576,53 @@ function createAtlas() {
         c.fillRect(7, 5, 1, 1);
     });
 
+    // 20: LILY PAD (floating water lily with circular green pad and pink lotus blossom)
+    drawTile(TILES.LILY_PAD, (c) => {
+        const cx = 7.5;
+        const cy = 7.5;
+        const r = 6.2;
+
+        for (let y = 1; y < 15; y++) {
+            for (let x = 1; x < 15; x++) {
+                const dx = x - cx;
+                const dy = y - cy;
+                const distSq = dx * dx + dy * dy;
+                if (distSq <= r * r) {
+                    // Minecraft V-notch cutout in the bottom-right corner
+                    if (dx > 0.5 && dy > 0.5 && Math.abs(dx - dy) <= 1.4) {
+                        continue;
+                    }
+
+                    // Green pad shading
+                    const edge = distSq > (r - 1.2) * (r - 1.2);
+                    const vein = (Math.abs(dx) < 0.6 || Math.abs(dy) < 0.6);
+                    let color = '#2d6a4f';
+                    if (edge) color = '#1b4332';
+                    else if (vein) color = '#52b788';
+                    else if ((x + y) % 2 === 0) color = '#40916c';
+
+                    c.fillStyle = color;
+                    c.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+
+        // Beautiful lotus blossom in the center
+        const blossomPixels = [
+            [7, 7, '#f472b6'], [8, 7, '#f472b6'],
+            [7, 8, '#f472b6'], [8, 8, '#f472b6'],
+            [6, 7, '#fbcfe8'], [9, 7, '#fbcfe8'],
+            [7, 6, '#fbcfe8'], [8, 6, '#fbcfe8'],
+            [7, 9, '#fbcfe8'], [8, 9, '#fbcfe8'],
+            // Center gold
+            [7, 7, '#fbbf24']
+        ];
+        for (const [px, py, col] of blossomPixels) {
+            c.fillStyle = col;
+            c.fillRect(px, py, 1, 1);
+        }
+    });
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
@@ -581,4 +651,17 @@ export function getTileUV(tileIndex) {
     const v1 = 1.0 - row / ATLAS_ROWS;
 
     return { u0, v0, u1, v1 };
+}
+
+// Dynamically animate water ripples across all water surfaces in world
+export function updateWaterAnimation(time) {
+    if (!AtlasCanvas || !AtlasTexture) return;
+    const col = TILES.WATER % ATLAS_COLS;
+    const row = Math.floor(TILES.WATER / ATLAS_COLS);
+    const startX = col * TILE_SIZE;
+    const startY = row * TILE_SIZE;
+
+    const ctx = AtlasCanvas.getContext('2d');
+    renderWaterTile(ctx, time, startX, startY);
+    AtlasTexture.needsUpdate = true;
 }

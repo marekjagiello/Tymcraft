@@ -1,4 +1,4 @@
-import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=flowers_1';
+import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
 import { ITEMS } from './crafting.js';
 import { getItem } from './items.js?v=flowers_1';
 import { eventBus } from './events.js';
@@ -116,7 +116,13 @@ export function createSlotItemIcon(itemId) {
         itemSpan.innerText = '🌼';
         return itemSpan;
     }
-    if (itemId >= 1 && itemId <= 18) {
+    if (itemId === 19) {
+        const itemSpan = document.createElement('span');
+        itemSpan.style.fontSize = '20px';
+        itemSpan.innerText = '🪷';
+        return itemSpan;
+    }
+    if (itemId >= 1 && itemId <= 19) {
         const iconCanvas = document.createElement('canvas');
         iconCanvas.width = 16;
         iconCanvas.height = 16;

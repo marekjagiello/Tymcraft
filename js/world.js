@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SimplexNoise } from './simplex-noise.js?v=world_gen4';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=flowers_1';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=water_2';
 
 export const CHUNK_SIZE = 16;
 export const CHUNKS_X = 4;
@@ -8,7 +8,7 @@ export const CHUNKS_Z = 4;
 export const WORLD_SIZE_X = CHUNKS_X * CHUNK_SIZE; // 64 (spawn reference)
 export const WORLD_SIZE_Z = CHUNKS_Z * CHUNK_SIZE; // 64 (spawn reference)
 export const WORLD_HEIGHT = 32;
-export const SEA_LEVEL = 6;
+export const SEA_LEVEL = 7;
 export const RENDER_RADIUS = 4; // 9x9 chunks around player
 
 export class World {
@@ -225,6 +225,20 @@ export class World {
                     h = 8 + Math.floor(this.noise.fbm2D(x * 0.035, z * 0.035, 3) * 3);
                 }
 
+                // Malownicze stawy i jeziora na powierzchni (Scenic Surface Lakes & Ponds)
+                // Naturalne zagłębienia terenu w dolinach nizin i lasów, poza bezpieczną strefą spawnu
+                const isNearSpawn = (Math.abs(x - 32) <= 8 && Math.abs(z - 32) <= 8);
+                const lakeNoiseVal = this.noise.noise2D(x * 0.032 + 35, z * 0.032 + 75);
+                let isLake = false;
+                const waterLevel = (biome === 'Forest') ? 9 : 8;
+
+                if (!isNearSpawn && (biome === 'Plains' || biome === 'Forest') && lakeNoiseVal < -0.22) {
+                    isLake = true;
+                    const depth = Math.min(3.5, (-0.22 - lakeNoiseVal) * 6.5);
+                    h = Math.floor(h - depth);
+                    h = Math.max(3, h);
+                }
+
                 h = Math.max(2, Math.min(WORLD_HEIGHT - 6, h));
 
                 // Bedrock at absolute bottom y = 0, mix at y = 1
@@ -241,16 +255,24 @@ export class World {
 
                     if (y === h) {
                         // Surface
-                        if (biome === 'Desert') {
+                        if (isLake && h < waterLevel) {
+                            // Dno jeziora: Żwir (13) i Piasek (6)
+                            chunk.voxels[lIdx] = ((x + z) % 3 === 0) ? 13 : 6;
+                        } else if (biome === 'Desert') {
                             chunk.voxels[lIdx] = 6; // Sand
                         } else if (biome === 'Mountains') {
                             chunk.voxels[lIdx] = (y >= 16) ? 7 : (y >= 13 ? 3 : 1); // Snow, Stone, or Grass
                         } else {
-                            chunk.voxels[lIdx] = 1; // Grass
+                            // Piaszczysty brzeg jeziora / plaża
+                            if (isLake && (h === waterLevel || h === waterLevel + 1)) {
+                                chunk.voxels[lIdx] = 6; // Sand beach
+                            } else {
+                                chunk.voxels[lIdx] = 1; // Grass
+                            }
                         }
                     } else if (y >= h - 3) {
                         // Subsurface
-                        if (biome === 'Desert') {
+                        if (biome === 'Desert' || (isLake && h < waterLevel)) {
                             chunk.voxels[lIdx] = 6; // Sand
                         } else if (biome === 'Mountains' && y >= 13) {
                             chunk.voxels[lIdx] = 3; // Stone
@@ -263,11 +285,24 @@ export class World {
                     }
                 }
 
-                // Water fill up to SEA_LEVEL
-                for (let y = h + 1; y <= SEA_LEVEL; y++) {
+                // Napełnianie wodą: jeziora do poziomu waterLevel oraz tereny poniżej SEA_LEVEL
+                const fillToWaterY = isLake ? Math.max(SEA_LEVEL, waterLevel) : SEA_LEVEL;
+                for (let y = h + 1; y <= fillToWaterY; y++) {
                     const lIdx = this.localIndex(lx, y, lz);
                     if (chunk.voxels[lIdx] === 0) {
                         chunk.voxels[lIdx] = 10; // Water
+                    }
+                }
+
+                // Lilie Wodne pływające po tafli stawu (waterLevel + 1)
+                if (isLake && h < waterLevel && (waterLevel + 1 < WORLD_HEIGHT)) {
+                    const lilyHash = Math.sin(x * 14.123 + z * 37.456) * 43758.5453;
+                    const lilyVal = lilyHash - Math.floor(lilyHash);
+                    if (lilyVal < 0.12) {
+                        const surfIdx = this.localIndex(lx, waterLevel + 1, lz);
+                        if (chunk.voxels[surfIdx] === 0) {
+                            chunk.voxels[surfIdx] = 19; // Lilia Wodna (Lily Pad)
+                        }
                     }
                 }
 
@@ -337,8 +372,8 @@ export class World {
                     }
                 }
 
-                // Trees / Cacti planning on solid surface
-                if (h > SEA_LEVEL) {
+                // Trees / Cacti planning on solid surface (excluding lakes)
+                if (h > SEA_LEVEL && (!isLake || h >= waterLevel)) {
                     const surfBlock = chunk.voxels[this.localIndex(lx, h, lz)];
                     const mod5X = ((x % 5) + 5) % 5;
                     const mod5Z = ((z % 5) + 5) % 5;
@@ -518,6 +553,29 @@ export class World {
                             );
                             vertexCount += 4;
                         }
+                        continue;
+                    }
+
+                    // Water Lily Pad meshing (horizontal quad floating just above water surface)
+                    if (def.isLilyPad) {
+                        const tileIndex = def.tiles[0];
+                        const { u0, v0, u1, v1 } = getTileUV(tileIndex);
+                        const ly = y + 0.04;
+
+                        // Quad: top face (and bottom face so it's double-sided)
+                        positions.push(
+                            x, ly, z + 1,
+                            x + 1, ly, z + 1,
+                            x + 1, ly, z,
+                            x, ly, z
+                        );
+                        normals.push(0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+                        uvs.push(u0, v0, u1, v0, u1, v1, u0, v1);
+                        indices.push(
+                            vertexCount, vertexCount + 1, vertexCount + 2,
+                            vertexCount, vertexCount + 2, vertexCount + 3
+                        );
+                        vertexCount += 4;
                         continue;
                     }
 

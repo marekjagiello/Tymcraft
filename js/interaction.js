@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCK_DEF } from './textures.js?v=flowers_1';
+import { BLOCK_DEF } from './textures.js?v=water_2';
 import { playSwingSound, playHitSound, playEatSound, playBowShootSound, playBowDrawSound } from './audio.js';
 import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js?v=flowers_1';
 import { eventBus } from './events.js';

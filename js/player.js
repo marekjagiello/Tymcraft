@@ -521,23 +521,42 @@ export class Player {
         const forward = new THREE.Vector3(0, 0, -1).applyEuler(cameraEuler);
         const right = new THREE.Vector3(1, 0, 0).applyEuler(cameraEuler);
 
-        const speed = this.keys.sprint ? this.sprintSpeed : this.walkSpeed;
+        // Check if player is submerged or wading in water (ID 10)
+        const feetY = Math.floor(this.position.y + 0.1);
+        const waistY = Math.floor(this.position.y + 0.8);
+        const px = Math.floor(this.position.x);
+        const pz = Math.floor(this.position.z);
+        const inWater = (this.world.getBlock(px, feetY, pz) === 10 || this.world.getBlock(px, waistY, pz) === 10);
+        this.isInWater = inWater;
+
+        const baseSpeed = this.keys.sprint ? this.sprintSpeed : this.walkSpeed;
+        const speed = inWater ? baseSpeed * 0.65 : baseSpeed;
         const targetVelX = (forward.x * -moveVector.z + right.x * moveVector.x) * speed;
         const targetVelZ = (forward.z * -moveVector.z + right.z * moveVector.x) * speed;
 
         // Inertia damping & responsive air control
-        const accelRate = this.onGround ? 16 : 10;
+        const accelRate = inWater ? 12 : (this.onGround ? 16 : 10);
         this.velocity.x += (targetVelX - this.velocity.x) * accelRate * dt;
         this.velocity.z += (targetVelZ - this.velocity.z) * accelRate * dt;
 
-        // Gravity & Jump
-        if (this.keys.jump && this.onGround) {
-            this.velocity.y = this.jumpForce;
+        // Gravity & Jump / Swimming
+        if (inWater) {
             this.onGround = false;
+            if (this.keys.jump) {
+                // Pływanie w górę ku powierzchni (Swim upwards!)
+                this.velocity.y = 3.6;
+            } else {
+                // Łagodne opadanie i unoszenie się w wodzie
+                this.velocity.y = Math.max(-2.5, this.velocity.y - 8.0 * dt);
+            }
+        } else {
+            if (this.keys.jump && this.onGround) {
+                this.velocity.y = this.jumpForce;
+                this.onGround = false;
+            }
+            this.velocity.y -= this.gravity * dt;
+            this.velocity.y = Math.max(this.velocity.y, -40); // terminal velocity
         }
-
-        this.velocity.y -= this.gravity * dt;
-        this.velocity.y = Math.max(this.velocity.y, -40); // terminal velocity
 
         const halfW = this.width / 2;
 

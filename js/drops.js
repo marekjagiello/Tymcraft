@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=flowers_1';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=water_2';
 
 // Helper to create a textured mini-cube (0.28 x 0.28 x 0.28)
 function createMiniBlockMesh(blockId) {
@@ -212,6 +212,23 @@ function createFlowerDropMesh(colorHex) {
     return group;
 }
 
+// Helper to create a 3D Lily Pad drop mesh (green disk with small lotus blossom)
+function createLilyPadDropMesh() {
+    const group = new THREE.Group();
+    const padGeo = new THREE.BoxGeometry(0.24, 0.03, 0.24);
+    const padMat = new THREE.MeshLambertMaterial({ color: 0x2d6a4f });
+    const pad = new THREE.Mesh(padGeo, padMat);
+    group.add(pad);
+
+    const flowerGeo = new THREE.BoxGeometry(0.08, 0.05, 0.08);
+    const flowerMat = new THREE.MeshLambertMaterial({ color: 0xf472b6 });
+    const flower = new THREE.Mesh(flowerGeo, flowerMat);
+    flower.position.y = 0.035;
+    group.add(flower);
+
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -246,6 +263,8 @@ export class DroppedItem {
             this.mesh = createFlowerDropMesh(0xef4444); // Red Rose
         } else if (this.id === 18) {
             this.mesh = createFlowerDropMesh(0xfbbf24); // Yellow Dandelion
+        } else if (this.id === 19) {
+            this.mesh = createLilyPadDropMesh(); // Lily Pad
         } else if (this.id === 23) {
             this.mesh = createAppleMesh();
         } else if (this.id === 20) {
@@ -424,6 +443,11 @@ export class DropsManager {
         else if (blockId === 18) {
             dropId = 18;
             dropName = 'Żółty Mlecz';
+        }
+        // Lily Pad (19) drops Lily Pad
+        else if (blockId === 19) {
+            dropId = 19;
+            dropName = 'Lilia Wodna';
         }
 
         const drop = new DroppedItem(this.scene, this.world, dropId, dropName, x + 0.5, y + 0.5, z + 0.5);
