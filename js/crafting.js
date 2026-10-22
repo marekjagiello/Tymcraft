@@ -98,6 +98,12 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 13. Ruby Armor (Rubinowa Zbroja - Najlepsza, niezniszczalna): 3 lub 4 Rubiny w siatce 2x2
+        if (nonNulls.length >= 3 && nonNulls.every(id => id === 34)) {
+            this.output = { item: ITEMS.RUBY_ARMOR, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

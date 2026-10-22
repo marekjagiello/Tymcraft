@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../../world.js';
+import { playHitSound } from '../../audio.js';
+import { eventBus } from '../../events.js';
 
 // Helper to create a 3D pixel heart mesh (Minecraft-style voxel heart)
 export function createPixelHeartMesh() {
@@ -488,3 +490,302 @@ export class Snake extends Mob {
         this.updateFooting(dt);
     }
 }
+
+export class Bear extends Mob {
+    constructor(scene, world, x = 32, z = 32, manager = null, variant = 'polar') {
+        super(scene, world, 'bear', x, z, manager);
+        this.variant = variant; // 'polar', 'brown', 'black', 'panda', 'grizzly', 'kermode'
+        this.isMounted = false;
+        this.rider = null;
+        this.attackCooldown = 0;
+        this.swipeTime = 0;
+        this.state = 'idle';
+        this.stateTimer = 2.0;
+        this.walkCycle = 0;
+
+        // Stat configurations based on breed / race:
+        // White Polar Bear is the STRONGEST ("biała jest silniejsza")!
+        switch (this.variant) {
+            case 'polar':
+                this.variantName = 'Biały Niedźwiedź Polarny';
+                this.maxHealth = 32;
+                this.health = 32;
+                this.walkSpeed = 3.6; // Fastest!
+                this.pawDamage = 12; // Massive swipe damage!
+                break;
+            case 'brown':
+                this.variantName = 'Niedźwiedź Brunatny';
+                this.maxHealth = 20;
+                this.health = 20;
+                this.walkSpeed = 2.5;
+                this.pawDamage = 8;
+                break;
+            case 'black':
+                this.variantName = 'Niedźwiedź Czarny (Baribal)';
+                this.maxHealth = 18;
+                this.health = 18;
+                this.walkSpeed = 2.7;
+                this.pawDamage = 7;
+                break;
+            case 'panda':
+                this.variantName = 'Wielka Panda';
+                this.maxHealth = 18;
+                this.health = 18;
+                this.walkSpeed = 2.2;
+                this.pawDamage = 6;
+                break;
+            case 'grizzly':
+                this.variantName = 'Wielki Grizzly';
+                this.maxHealth = 24;
+                this.health = 24;
+                this.walkSpeed = 2.6;
+                this.pawDamage = 9;
+                break;
+            case 'kermode':
+            default:
+                this.variantName = 'Złoty Niedźwiedź';
+                this.maxHealth = 22;
+                this.health = 22;
+                this.walkSpeed = 2.6;
+                this.pawDamage = 8;
+                break;
+        }
+
+        this.buildModel();
+        this.buildHealthBar(1.6);
+        this.snapToGround();
+        this.scene.add(this.group);
+    }
+
+    buildModel() {
+        let furColor = 0x78350f;
+        let snoutColor = 0x92400e;
+        let legColor = 0x78350f;
+        let earColor = 0x78350f;
+
+        if (this.variant === 'polar') {
+            furColor = 0xf8fafc;
+            snoutColor = 0xe2e8f0;
+            legColor = 0xf8fafc;
+            earColor = 0xf8fafc;
+        } else if (this.variant === 'brown') {
+            furColor = 0x6b4226;
+            snoutColor = 0x854d0e;
+            legColor = 0x6b4226;
+            earColor = 0x6b4226;
+        } else if (this.variant === 'black') {
+            furColor = 0x1e293b;
+            snoutColor = 0x78350f;
+            legColor = 0x1e293b;
+            earColor = 0x1e293b;
+        } else if (this.variant === 'panda') {
+            furColor = 0xf8fafc;
+            snoutColor = 0xf8fafc;
+            legColor = 0x0f172a; // Black legs
+            earColor = 0x0f172a; // Black ears
+        } else if (this.variant === 'grizzly') {
+            furColor = 0x451a03;
+            snoutColor = 0x78350f;
+            legColor = 0x451a03;
+            earColor = 0x451a03;
+        } else if (this.variant === 'kermode') {
+            furColor = 0xfef08a;
+            snoutColor = 0xfde047;
+            legColor = 0xfef08a;
+            earColor = 0xfef08a;
+        }
+
+        const furMat = new THREE.MeshLambertMaterial({ color: furColor });
+        const snoutMat = new THREE.MeshLambertMaterial({ color: snoutColor });
+        const legMat = new THREE.MeshLambertMaterial({ color: legColor });
+        const earMat = new THREE.MeshLambertMaterial({ color: earColor });
+        const darkMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+        const saddleMat = new THREE.MeshLambertMaterial({ color: 0x9a3412 }); // Leather saddle
+
+        // Main body torso
+        const bodyGeo = new THREE.BoxGeometry(1.05, 0.90, 1.55);
+        const body = new THREE.Mesh(bodyGeo, furMat);
+        body.position.set(0, 0.85, 0);
+        this.group.add(body);
+
+        // Saddle / blanket for riding on back
+        const saddleGeo = new THREE.BoxGeometry(0.85, 0.08, 0.85);
+        const saddle = new THREE.Mesh(saddleGeo, saddleMat);
+        saddle.position.set(0, 0.46, -0.05);
+        body.add(saddle);
+
+        // Head
+        this.head = new THREE.Group();
+        this.head.position.set(0, 1.05, 0.90);
+
+        const headGeo = new THREE.BoxGeometry(0.65, 0.60, 0.65);
+        const headMesh = new THREE.Mesh(headGeo, furMat);
+        this.head.add(headMesh);
+
+        // Snout
+        const snoutGeo = new THREE.BoxGeometry(0.40, 0.30, 0.38);
+        const snoutMesh = new THREE.Mesh(snoutGeo, snoutMat);
+        snoutMesh.position.set(0, -0.08, 0.40);
+        this.head.add(snoutMesh);
+
+        // Nose tip
+        const noseGeo = new THREE.BoxGeometry(0.14, 0.10, 0.06);
+        const noseMesh = new THREE.Mesh(noseGeo, darkMat);
+        noseMesh.position.set(0, 0.06, 0.20);
+        snoutMesh.add(noseMesh);
+
+        // Eyes
+        const eyeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.04);
+        const leftEye = new THREE.Mesh(eyeGeo, darkMat);
+        leftEye.position.set(-0.22, 0.10, 0.33);
+        const rightEye = new THREE.Mesh(eyeGeo, darkMat);
+        rightEye.position.set(0.22, 0.10, 0.33);
+        this.head.add(leftEye, rightEye);
+
+        // Ears
+        const earGeo = new THREE.BoxGeometry(0.16, 0.16, 0.08);
+        const leftEar = new THREE.Mesh(earGeo, earMat);
+        leftEar.position.set(-0.28, 0.34, -0.05);
+        const rightEar = new THREE.Mesh(earGeo, earMat);
+        rightEar.position.set(0.28, 0.34, -0.05);
+        this.head.add(leftEar, rightEar);
+
+        this.group.add(this.head);
+
+        // Tail
+        const tailGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+        const tailMesh = new THREE.Mesh(tailGeo, furMat);
+        tailMesh.position.set(0, 0.95, -0.85);
+        this.group.add(tailMesh);
+
+        // 4 Sturdy Legs
+        const legGeo = new THREE.BoxGeometry(0.32, 0.65, 0.32);
+        const legOffsets = [
+            [-0.36, 0.65, 0.45],  // front left
+            [0.36, 0.65, 0.45],   // front right
+            [-0.36, 0.65, -0.45], // back left
+            [0.36, 0.65, -0.45]   // back right
+        ];
+
+        this.legs = [];
+        for (let i = 0; i < 4; i++) {
+            const pivot = new THREE.Group();
+            pivot.position.set(legOffsets[i][0], legOffsets[i][1], legOffsets[i][2]);
+            const legMesh = new THREE.Mesh(legGeo, legMat);
+            legMesh.position.set(0, -0.325, 0);
+            pivot.add(legMesh);
+            this.group.add(pivot);
+            this.legs.push(pivot);
+        }
+    }
+
+    performPawAttack() {
+        if (this.attackCooldown > 0) return;
+        this.attackCooldown = 0.45;
+        this.swipeTime = 0.35;
+        playHitSound();
+
+        let hitCount = 0;
+        if (this.manager && this.manager.animals) {
+            for (const mob of this.manager.animals) {
+                if (!mob || mob.isDead || mob === this) continue;
+                if (mob.type === 'zombie' || mob.type === 'skeleton' || mob.type === 'creeper' || mob.type === 'dirtik') {
+                    const dist = this.position.distanceTo(mob.position);
+                    if (dist <= 3.2) {
+                        mob.onAttacked(this.pawDamage, this.position);
+                        hitCount++;
+                    }
+                }
+            }
+        }
+        const attackMsg = this.variant === 'polar'
+            ? `🐾💥 Potężny cios łapą Białego Niedźwiedzia Polarnego (${this.pawDamage} DMG)!`
+            : `🐾 Cios łapą Niedźwiedzia (${this.pawDamage} DMG)!`;
+        eventBus.emit('ui:popup', attackMsg);
+    }
+
+    updateRidingAnimation(dt, isMoving) {
+        if (this.attackCooldown > 0) this.attackCooldown -= dt;
+
+        if (isMoving) {
+            this.walkCycle += dt * 8.0;
+            const swing = Math.sin(this.walkCycle) * 0.45;
+            if (this.legs && this.legs.length === 4) {
+                this.legs[0].rotation.x = swing;
+                this.legs[1].rotation.x = -swing;
+                this.legs[2].rotation.x = -swing;
+                this.legs[3].rotation.x = swing;
+            }
+        } else {
+            if (this.legs && this.legs.length === 4) {
+                for (let i = 0; i < 4; i++) this.legs[i].rotation.x = 0;
+            }
+        }
+
+        // Paw swipe attack animation
+        if (this.swipeTime > 0) {
+            this.swipeTime -= dt;
+            if (this.legs && this.legs[1]) {
+                this.legs[1].rotation.x = -1.2 + Math.sin(this.swipeTime * 15) * 0.8;
+            }
+        }
+    }
+
+    update(dt, playerPosition = null, isDay = true) {
+        if (this.isDead) return;
+
+        this.updateHealthBar(playerPosition);
+
+        // When mounted, movement is driven by Player
+        if (this.isMounted) {
+            return;
+        }
+
+        if (this.attackCooldown > 0) this.attackCooldown -= dt;
+
+        this.stateTimer -= dt;
+        if (this.stateTimer <= 0) {
+            if (this.state === 'idle') {
+                this.state = 'walk';
+                this.stateTimer = 2.0 + Math.random() * 4.0;
+                this.targetRotationY = Math.random() * Math.PI * 2;
+            } else {
+                this.state = 'idle';
+                this.stateTimer = 2.5 + Math.random() * 5.0;
+            }
+        }
+
+        if (this.state === 'walk') {
+            this.walkCycle += dt * 6.0;
+            const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotationY);
+            const nextX = this.position.x + fwd.x * (this.walkSpeed * 0.5) * dt;
+            const nextZ = this.position.z + fwd.z * (this.walkSpeed * 0.5) * dt;
+
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y > 1.15) {
+                this.targetRotationY += (Math.random() < 0.5 ? 1.0 : -1.0);
+            } else {
+                this.position.x = nextX;
+                this.position.z = nextZ;
+            }
+
+            const swing = Math.sin(this.walkCycle) * 0.35;
+            if (this.legs && this.legs.length === 4) {
+                this.legs[0].rotation.x = swing;
+                this.legs[1].rotation.x = -swing;
+                this.legs[2].rotation.x = -swing;
+                this.legs[3].rotation.x = swing;
+            }
+        } else {
+            if (this.legs && this.legs.length === 4) {
+                for (let i = 0; i < 4; i++) this.legs[i].rotation.x = 0;
+            }
+        }
+
+        this.rotationY += (this.targetRotationY - this.rotationY) * Math.min(1, dt * 4);
+        this.group.rotation.y = this.rotationY;
+
+        this.updateFooting(dt);
+    }
+}
+

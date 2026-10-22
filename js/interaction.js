@@ -94,6 +94,12 @@ export class Interaction {
             const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
 
             if (e.button === 0) {
+                // If riding a bear, left click triggers bear paw attack!
+                if (this.player && this.player.mountedBear) {
+                    this.player.mountedBear.performPawAttack();
+                    return;
+                }
+
                 this.triggerSwing();
 
                 // Left Click: Check if aimed at an animal (snake, sheep, pig, zombie, skeleton, creeper, dirtik)

@@ -98,6 +98,10 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🧨';
             itemSpan.style.filter = 'drop-shadow(0 0 5px #e11d48)';
         }
+        else if (itemId === 37) {
+            itemSpan.innerText = '🛡️';
+            itemSpan.style.filter = 'drop-shadow(0 0 8px #ef4444)';
+        }
         return itemSpan;
     }
     if (itemId >= 1 && itemId <= 16) {
@@ -184,16 +188,19 @@ export class UI {
     renderSurvivalBars(health = 20, hunger = 20, maxHealth = 20) {
         if (!this.heartsBarEl || !this.hungerBarEl) return;
 
-        // Render hearts up to maxHealth (10 hearts for 20 HP, 15 hearts for 30 HP with armor)
+        // Render hearts up to maxHealth (10 hearts for 20 HP, 15 hearts for Diamond, 20 hearts for Ruby)
+        const isRuby = (this.survival && this.survival.hasRubyArmor) || maxHealth >= 40;
         const totalHearts = Math.max(10, Math.ceil(maxHealth / 2));
         let heartsHtml = '';
         for (let i = 0; i < totalHearts; i++) {
             const heartVal = (i + 1) * 2;
             const isArmorHeart = i >= 10;
+            const fullIcon = isArmorHeart ? (isRuby ? '🔴' : '💎') : '❤️';
+            const halfIcon = isArmorHeart ? (isRuby ? '🛡️' : '🔷') : '💔';
             if (health >= heartVal) {
-                heartsHtml += `<span class="heart-icon">${isArmorHeart ? '💎' : '❤️'}</span>`;
+                heartsHtml += `<span class="heart-icon">${fullIcon}</span>`;
             } else if (health === heartVal - 1) {
-                heartsHtml += `<span class="heart-icon">${isArmorHeart ? '🔷' : '💔'}</span>`;
+                heartsHtml += `<span class="heart-icon">${halfIcon}</span>`;
             } else {
                 heartsHtml += '<span class="heart-icon" style="opacity:0.3">🖤</span>';
             }

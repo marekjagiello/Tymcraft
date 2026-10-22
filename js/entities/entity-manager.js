@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake } from './mobs/passive.js?v=dirtik_5hp_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=dirtik_5hp_1';
-import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=dirtik_5hp_1';
+import { Pig, Sheep, Snake, Bear } from './mobs/passive.js?v=bear_ride_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=bear_ride_1';
+import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=bear_ride_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -70,6 +70,12 @@ export class EntityManager {
         for (let i = 0; i < 6; i++) {
             this.spawnDirtikNear(startX, startZ, 5 + i * 3, 14 + i * 3);
         }
+
+        // 5. Początkowe Niedźwiedzie (Biały miś polarny najsilniejszy, brunatny, czarny, panda, grizzly)
+        const initialBearVariants = ['polar', 'brown', 'black', 'panda', 'grizzly'];
+        for (let i = 0; i < initialBearVariants.length; i++) {
+            this.spawnBearNear(startX, startZ, initialBearVariants[i], 3 + i * 2.5, 12 + i * 2.5);
+        }
     }
 
     getGroundHeight(x, z) {
@@ -108,6 +114,42 @@ export class EntityManager {
             this.animals.push(dirtik);
             console.log(`[EntityManager] Zespawnowano ukrytego Dirtika na (${(bx + 0.5).toFixed(1)}, gy=${gy}, ${(bz + 0.5).toFixed(1)})`);
             return dirtik;
+        }
+        return null;
+    }
+
+    findClosestBear(pos, maxDist = 4.0) {
+        if (!pos) return null;
+        let closest = null;
+        let minDist = maxDist;
+        for (const animal of this.animals) {
+            if (!animal || animal.isDead || animal.type !== 'bear') continue;
+            const dist = animal.position.distanceTo(pos);
+            if (dist < minDist) {
+                minDist = dist;
+                closest = animal;
+            }
+        }
+        return closest;
+    }
+
+    spawnBearNear(centerX, centerZ, variant = 'polar', minDist = 6, maxDist = 20) {
+        for (let attempt = 0; attempt < 25; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = minDist + Math.random() * (maxDist - minDist);
+            const bx = Math.floor(centerX + Math.cos(angle) * dist);
+            const bz = Math.floor(centerZ + Math.sin(angle) * dist);
+
+            const gy = this.getGroundHeight(bx, bz);
+            const groundBlockId = this.world.getBlock(bx, gy - 1, bz);
+
+            if (!groundBlockId || groundBlockId === 10 || groundBlockId === 5) continue;
+            if (this.world.getBlock(bx, gy, bz) !== 0 || this.world.getBlock(bx, gy + 1, bz) !== 0) continue;
+
+            const bear = new Bear(this.scene, this.world, bx + 0.5, bz + 0.5, this, variant);
+            this.animals.push(bear);
+            console.log(`[EntityManager] Zespawnowano niedźwiedzia (${variant}) na (${(bx + 0.5).toFixed(1)}, gy=${gy}, ${(bz + 0.5).toFixed(1)})`);
+            return bear;
         }
         return null;
     }
@@ -359,6 +401,16 @@ export class EntityManager {
             if (activeDirtiks.length < 6 && this.dirtikSpawnTimer >= 4.0) {
                 this.dirtikSpawnTimer = 0;
                 this.spawnDirtikNear(playerPosition.x, playerPosition.z, 8, 22);
+            }
+
+            // Utrzymuj od 4 do 6 niedźwiedzi różnych ras w pobliżu gracza
+            const activeBears = this.animals.filter(a => a.type === 'bear' && !a.isDead);
+            this.bearSpawnTimer = (this.bearSpawnTimer || 0) + dt;
+            if (activeBears.length < 5 && this.bearSpawnTimer >= 10.0) {
+                this.bearSpawnTimer = 0;
+                const pool = ['polar', 'brown', 'black', 'panda', 'grizzly', 'kermode'];
+                const chosen = pool[Math.floor(Math.random() * pool.length)];
+                this.spawnBearNear(playerPosition.x, playerPosition.z, chosen, 10, 30);
             }
         }
 

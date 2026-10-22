@@ -39,6 +39,8 @@ export class Player {
 
         this.cameraMode = 0; // 0 = first person, 1 = third person back
         this.walkCycle = 0;
+        this.mountedBear = null;
+        this.currentArmorType = 0;
         this.buildPlayerMesh();
 
         this.initControls();
@@ -93,6 +95,9 @@ export class Player {
                     break;
                 case 'KeyV':
                     this.toggleCameraMode();
+                    break;
+                case 'KeyP':
+                    eventBus.emit('player:toggle_mount');
                     break;
                 case 'F5':
                     if (this.controls.isLocked) {
@@ -168,8 +173,20 @@ export class Player {
         hairMesh.position.set(0, 0.14, 0);
         headGroup.add(hairMesh);
 
+        // Armor Helmet overlay (Ruby or Diamond)
+        this.armorHelmetMat = new THREE.MeshLambertMaterial({ color: 0xef4444, emissive: 0x330000 });
+        this.armorHelmetMesh = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.40, 0.40), this.armorHelmetMat);
+        this.armorHelmetMesh.visible = false;
+        headGroup.add(this.armorHelmetMesh);
+
         this.torsoMesh.add(headGroup);
         this.headGroup = headGroup;
+
+        // Armor Chestplate overlay (Ruby or Diamond)
+        this.armorChestMat = new THREE.MeshLambertMaterial({ color: 0xef4444, emissive: 0x330000 });
+        this.armorChestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.68, 0.26), this.armorChestMat);
+        this.armorChestMesh.visible = false;
+        this.torsoMesh.add(this.armorChestMesh);
 
         // 3. Arms
         const armGeo = new THREE.BoxGeometry(0.14, 0.62, 0.14);
@@ -290,6 +307,60 @@ export class Player {
         }
     }
 
+    setArmorVisual(type) {
+        this.currentArmorType = type;
+        if (!this.armorChestMesh || !this.armorHelmetMesh) return;
+        if (type === 37) {
+            // Ruby Armor: Glowing Ruby Red
+            this.armorChestMat.color.setHex(0xef4444);
+            this.armorChestMat.emissive.setHex(0x550011);
+            this.armorHelmetMat.color.setHex(0xef4444);
+            this.armorHelmetMat.emissive.setHex(0x550011);
+            this.armorChestMesh.visible = true;
+            this.armorHelmetMesh.visible = true;
+        } else if (type === 32) {
+            // Diamond Armor: Bright Diamond Cyan
+            this.armorChestMat.color.setHex(0x38bdf8);
+            this.armorChestMat.emissive.setHex(0x002244);
+            this.armorHelmetMat.color.setHex(0x38bdf8);
+            this.armorHelmetMat.emissive.setHex(0x002244);
+            this.armorChestMesh.visible = true;
+            this.armorHelmetMesh.visible = true;
+        } else {
+            this.armorChestMesh.visible = false;
+            this.armorHelmetMesh.visible = false;
+        }
+    }
+
+    mountBear(bear) {
+        if (!bear) return;
+        this.mountedBear = bear;
+        bear.isMounted = true;
+        bear.rider = this;
+        this.position.x = bear.position.x;
+        this.position.z = bear.position.z;
+        this.position.y = bear.position.y + 1.25;
+        this.velocity.set(0, 0, 0);
+
+        if (this.cameraMode === 0) {
+            this.toggleCameraMode();
+        }
+        eventBus.emit('ui:popup', `🐻 Wsiadłeś na: ${bear.variantName}! [P: zejdź, LPM: atak łapą]`);
+    }
+
+    dismountBear() {
+        if (!this.mountedBear) return;
+        const bear = this.mountedBear;
+        bear.isMounted = false;
+        bear.rider = null;
+        this.mountedBear = null;
+        this.position.x = bear.position.x + 1.2;
+        this.position.z = bear.position.z;
+        this.position.y = bear.position.y;
+        this.velocity.set(0, 0, 0);
+        eventBus.emit('ui:popup', '🐾 Zszedłeś z Niedźwiedzia!');
+    }
+
     getAABB(pos = this.position) {
         const halfW = this.width / 2;
         return {
@@ -328,6 +399,107 @@ export class Player {
 
         // Cap dt to prevent tunneling on lag spikes
         dt = Math.min(dt, 0.05);
+
+        // If riding a Bear, movement is driven through the Bear!
+        if (this.mountedBear) {
+            const bear = this.mountedBear;
+            if (bear.isDead) {
+                this.dismountBear();
+                return;
+            }
+
+            const cameraEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+            cameraEuler.setFromQuaternion(this.camera.quaternion);
+            cameraEuler.x = 0;
+            cameraEuler.z = 0;
+
+            const forward = new THREE.Vector3(0, 0, -1).applyEuler(cameraEuler);
+            const right = new THREE.Vector3(1, 0, 0).applyEuler(cameraEuler);
+
+            const moveVector = new THREE.Vector3();
+            if (this.keys.forward) moveVector.z -= 1;
+            if (this.keys.backward) moveVector.z += 1;
+            if (this.keys.left) moveVector.x -= 1;
+            if (this.keys.right) moveVector.x += 1;
+
+            const isMoving = moveVector.lengthSq() > 0;
+            if (isMoving) moveVector.normalize();
+
+            const speed = bear.walkSpeed * (this.keys.sprint ? 1.45 : 1.0);
+            const targetVelX = (forward.x * -moveVector.z + right.x * moveVector.x) * speed;
+            const targetVelZ = (forward.z * -moveVector.z + right.z * moveVector.x) * speed;
+
+            if (isMoving) {
+                bear.targetRotationY = Math.atan2(targetVelX, targetVelZ);
+                const nextX = bear.position.x + targetVelX * dt;
+                const nextZ = bear.position.z + targetVelZ * dt;
+
+                const groundAtTarget = bear.getGroundHeight(nextX, nextZ);
+                const stepDiff = groundAtTarget - bear.position.y;
+                if (stepDiff <= 1.25 && stepDiff >= -3.0) {
+                    bear.position.x = nextX;
+                    bear.position.z = nextZ;
+                    bear.position.y = groundAtTarget;
+                } else if (stepDiff <= 1.25) {
+                    bear.position.x = nextX;
+                    bear.position.z = nextZ;
+                }
+                bear.state = 'walk';
+            } else {
+                bear.state = 'idle';
+            }
+
+            if (this.keys.jump && bear.onGround !== false) {
+                bear.position.y += 0.8;
+            }
+
+            bear.updateFooting(dt);
+            bear.rotationY += (bear.targetRotationY - bear.rotationY) * Math.min(1, dt * 8);
+            bear.group.rotation.y = bear.rotationY;
+
+            // Player position locked on bear's back
+            this.position.x = bear.position.x;
+            this.position.z = bear.position.z;
+            this.position.y = bear.position.y + 1.25;
+            this.velocity.set(0, 0, 0);
+
+            // Seated riding leg pose
+            if (this.leftLeg && this.rightLeg) {
+                this.leftLeg.rotation.x = -Math.PI / 3;
+                this.leftLeg.rotation.z = -0.35;
+                this.rightLeg.rotation.x = -Math.PI / 3;
+                this.rightLeg.rotation.z = 0.35;
+            }
+
+            bear.updateRidingAnimation(dt, isMoving);
+
+            // Sync player 3D mesh position and rotation
+            if (this.playerGroup) {
+                this.playerGroup.position.set(this.position.x, this.position.y, this.position.z);
+                this.playerGroup.rotation.y = bear.rotationY;
+            }
+
+            // Sync 3rd person camera behind the bear
+            if (this.cameraMode === 0) {
+                this.camera.position.set(this.position.x, this.position.y + this.eyeHeight, this.position.z);
+                if (this.playerGroup) this.playerGroup.visible = false;
+            } else {
+                if (this.playerGroup) this.playerGroup.visible = true;
+                const eyePos = new THREE.Vector3(this.position.x, this.position.y + this.eyeHeight + 0.3, this.position.z);
+                const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+                let dist = 4.2;
+                for (let d = 0.5; d <= 4.2; d += 0.3) {
+                    const checkPos = eyePos.clone().addScaledVector(camForward, -d);
+                    if (this.world && this.world.isSolid(Math.floor(checkPos.x), Math.floor(checkPos.y), Math.floor(checkPos.z))) {
+                        dist = Math.max(0.5, d - 0.3);
+                        break;
+                    }
+                }
+                const camPos = eyePos.clone().addScaledVector(camForward, -dist).add(new THREE.Vector3(0, 0.3, 0));
+                this.camera.position.copy(camPos);
+            }
+            return;
+        }
 
         // Movement directions relative to camera yaw
         const moveVector = new THREE.Vector3();

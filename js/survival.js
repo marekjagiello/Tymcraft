@@ -14,7 +14,10 @@ export class SurvivalManager {
 
         this.isDead = false;
         this.hasArmor = false;
+        this.hasRubyArmor = false;
+        this.armorType = 0;
         this.checkHasArmor = null;
+        this.getArmorType = null;
 
         // Timers for hunger and regeneration
         this.hungerTickTimer = 0;
@@ -59,6 +62,12 @@ export class SurvivalManager {
 
     takeDamage(amount, reason = 'damage') {
         if (this.isDead || amount <= 0) return;
+
+        if (this.hasRubyArmor) {
+            console.log(`[Survival] Cios (${amount} dmg z ${reason}) odbity przez Rubinową Zbroję!`);
+            eventBus.emit('ui:popup', '🛡️ Cios odbił się od Rubinowej Zbroi! Nic jej nie przebije! 🔴');
+            return;
+        }
 
         let finalAmount = amount;
         if (this.hasArmor) {
@@ -138,8 +147,30 @@ export class SurvivalManager {
     update(dt) {
         if (this.isDead) return;
 
-        // Check if player has Diamond Armor (ID 32)
-        if (this.checkHasArmor) {
+        // Check armor type (0 = none, 32 = Diamond, 37 = Ruby)
+        if (this.getArmorType) {
+            const currentArmor = this.getArmorType();
+            if (currentArmor !== this.armorType) {
+                this.armorType = currentArmor;
+                this.hasArmor = currentArmor === 32 || currentArmor === 37;
+                this.hasRubyArmor = currentArmor === 37;
+
+                if (this.hasRubyArmor) {
+                    this.maxHealth = 40; // 20 hearts
+                    this.health = 40;
+                } else if (this.armorType === 32) {
+                    this.maxHealth = 30; // 15 hearts
+                    if (this.health <= 20) this.health = 30;
+                } else {
+                    this.maxHealth = 20;
+                    if (this.health > 20) this.health = 20;
+                }
+                this.onStatsChange(this.health, this.hunger, this.maxHealth);
+                if (this.player && this.player.setArmorVisual) {
+                    this.player.setArmorVisual(this.armorType);
+                }
+            }
+        } else if (this.checkHasArmor) {
             const hasArmorNow = Boolean(this.checkHasArmor());
             if (hasArmorNow !== this.hasArmor) {
                 this.hasArmor = hasArmorNow;

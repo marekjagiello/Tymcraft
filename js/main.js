@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=dirtik_5hp_1';
-import { Player } from './player.js?v=dirtik_5hp_1';
-import { Interaction } from './interaction.js?v=dirtik_5hp_1';
-import { AnimalManager } from './animals.js?v=dirtik_5hp_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=dirtik_5hp_1';
-import { StorageManager } from './storage.js?v=dirtik_5hp_1';
-import { SurvivalManager } from './survival.js?v=dirtik_5hp_1';
-import { CraftingManager } from './crafting.js?v=dirtik_5hp_1';
-import { DropsManager } from './drops.js?v=dirtik_5hp_1';
-import { eventBus } from './events.js?v=dirtik_5hp_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=bear_ride_2';
+import { Player } from './player.js?v=bear_ride_2';
+import { Interaction } from './interaction.js?v=bear_ride_2';
+import { AnimalManager } from './animals.js?v=bear_ride_2';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=bear_ride_2';
+import { StorageManager } from './storage.js?v=bear_ride_2';
+import { SurvivalManager } from './survival.js?v=bear_ride_2';
+import { CraftingManager } from './crafting.js?v=bear_ride_2';
+import { DropsManager } from './drops.js?v=bear_ride_2';
+import { eventBus } from './events.js?v=bear_ride_2';
 
 class Game {
     constructor() {
@@ -123,7 +123,13 @@ class Game {
 
         // 6. UI & HUD (Hearts, Hunger, Backpack modal, Reset button)
         this.ui = new UI(this.player, this.world, this.survival, this.crafting, this.storage);
-        this.survival.checkHasArmor = () => (this.ui && this.ui.hasItem(32));
+        this.survival.getArmorType = () => {
+            if (!this.ui) return 0;
+            if (this.ui.hasItem(37)) return 37; // Ruby Armor (Najlepsza!)
+            if (this.ui.hasItem(32)) return 32; // Diamond Armor
+            return 0;
+        };
+        this.survival.checkHasArmor = () => (this.survival.getArmorType() > 0);
         if (savedState && typeof savedState.selectedSlot === 'number') {
             this.ui.selectSlot(savedState.selectedSlot);
         }
@@ -155,7 +161,22 @@ class Game {
             window.game = this;
             window.spawnCreeper = () => this.animals.spawnCreeperInFrontOfPlayer(this.player, 5.0);
             window.spawnDirtik = () => this.animals.spawnDirtikInFrontOfPlayer(this.player, 4.0);
+            window.spawnBear = (variant = 'polar') => this.animals.spawnBearNear(this.player.position.x, this.player.position.z, variant, 2, 4);
         }
+
+        // Klawisz P: Wsiadanie / zsiadanie z niedźwiedzia
+        eventBus.on('player:toggle_mount', () => {
+            if (this.player.mountedBear) {
+                this.player.dismountBear();
+            } else {
+                const bear = this.animals.findClosestBear(this.player.position, 4.0);
+                if (bear) {
+                    this.player.mountBear(bear);
+                } else {
+                    eventBus.emit('ui:popup', '⚠️ Brak niedźwiedzia w pobliżu! Podejdź bliżej misia i wciśnij P, by na niego wsiąść 🐻');
+                }
+            }
+        });
 
         this.clock = new THREE.Clock();
         this.dayTime = 0.2; // 0 to 1 cycle

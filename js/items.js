@@ -44,7 +44,8 @@ export const ITEMS = {
     DIAMOND_PICKAXE: { id: 33, name: 'Diamentowy Kilof', type: ITEM_TYPES.TOOL, efficiency: 10.0, damage: 6.0, icon: 'diamond_pick' },
     RUBY: { id: 34, name: 'Rubin', type: ITEM_TYPES.MATERIAL, icon: 'ruby' },
     RUBY_SWORD: { id: 35, name: 'Rubinowy Miecz', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'ruby_sword' },
-    GUNPOWDER: { id: 36, name: 'Proch Strzelniczy', type: ITEM_TYPES.MATERIAL, icon: 'gunpowder' }
+    GUNPOWDER: { id: 36, name: 'Proch Strzelniczy', type: ITEM_TYPES.MATERIAL, icon: 'gunpowder' },
+    RUBY_ARMOR: { id: 37, name: 'Rubinowa Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'ruby_armor' }
 };
 
 // Fast lookup map by ID
@@ -89,7 +90,7 @@ export function isPlaceableBlock(id) {
 }
 
 export function isArmor(id) {
-    return id === 32;
+    return id === 32 || id === 37;
 }
 
 export function isBow(id) {
