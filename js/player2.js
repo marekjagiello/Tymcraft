@@ -138,7 +138,22 @@ export class SecondPlayer {
     }
 
     initControls() {
+        let lastToggleTime = 0;
+
         const onKeyDown = (e) => {
+            const isQKey = e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q';
+
+            // Key Q ('to O tylko z kreseczką na samym rogu') toggles/enters Player 2!
+            if (isQKey) {
+                const now = performance.now();
+                if (now - lastToggleTime > 300) {
+                    lastToggleTime = now;
+                    this.toggle();
+                }
+                e.preventDefault();
+                return;
+            }
+
             // Check if any Player 2 keys are pressed to awaken Player 2!
             const isP2Key = [
                 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
@@ -222,9 +237,28 @@ export class SecondPlayer {
         this.snapToGround();
         this.group.position.copy(this.position);
 
-        const msg = '🎮 Gracz 2 dołączył do gry! (Strzałki: Ruch, Prawy Shift/0: Skok, Enter: Atak ⚔️, L: Interakcja)';
+        const msg = '🎮 Gracz 2 dołączył do gry! (Klawisz Q: Włącz/Wyłącz • Strzałki: Ruch, Prawy Shift: Skok, Enter: Atak ⚔️)';
         eventBus.emit('ui:popup', msg);
         console.log('[SecondPlayer] Gracz 2 pomyślnie aktywowany!');
+    }
+
+    deactivate() {
+        this.isActive = false;
+        this.group.visible = false;
+        if (this.player1 && this.player1.cameraMode === 0 && this.player1.playerGroup) {
+            this.player1.playerGroup.visible = false;
+        }
+        const msg = '👋 Gracz 2 opuścił grę. Wciśnij Q („O z kreseczką”), aby dołączyć ponownie!';
+        eventBus.emit('ui:popup', msg);
+        console.log('[SecondPlayer] Gracz 2 wyłączony');
+    }
+
+    toggle() {
+        if (this.isActive) {
+            this.deactivate();
+        } else {
+            this.activate();
+        }
     }
 
     getGroundHeight(x, z) {

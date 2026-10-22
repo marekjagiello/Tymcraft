@@ -58,6 +58,33 @@ export const BLOCK_DEF = {
     19: { name: 'Lilia Wodna (Lily Pad)', tiles: [TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD], solid: false, transparent: true, isLilyPad: true }
 };
 
+export function renderWaterTile(c, time, offsetX = 0, offsetY = 0) {
+    for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 16; x++) {
+            const w1 = Math.sin((x + time * 3.2) * 0.45) * 0.5;
+            const w2 = Math.cos((y + time * 2.6) * 0.55) * 0.5;
+            const wave = (w1 + w2) * 0.5;
+
+            let r, g, b;
+            if (wave > 0.32) {
+                // Shimmering ripple highlight
+                r = 175; g = 235; b = 255;
+            } else if (wave > 0.06) {
+                // Azure crest
+                r = 50; g = 165; b = 245;
+            } else if (wave > -0.22) {
+                // Deep clear water body
+                r = 28; g = 120; b = 220;
+            } else {
+                // Shadowed trough
+                r = 18; g = 85; b = 190;
+            }
+            c.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            c.fillRect(offsetX + x, offsetY + y, 1, 1);
+        }
+    }
+}
+
 // Build the canvas atlas
 function createAtlas() {
     const canvas = document.createElement('canvas');
@@ -344,33 +371,6 @@ function createAtlas() {
         c.fillRect(3, 3, 2, 2);
         c.fillRect(11, 10, 3, 1);
     });
-
-export function renderWaterTile(c, time, offsetX = 0, offsetY = 0) {
-    for (let y = 0; y < 16; y++) {
-        for (let x = 0; x < 16; x++) {
-            const w1 = Math.sin((x + time * 3.2) * 0.45) * 0.5;
-            const w2 = Math.cos((y + time * 2.6) * 0.55) * 0.5;
-            const wave = (w1 + w2) * 0.5;
-
-            let r, g, b;
-            if (wave > 0.32) {
-                // Shimmering ripple highlight
-                r = 175; g = 235; b = 255;
-            } else if (wave > 0.06) {
-                // Azure crest
-                r = 50; g = 165; b = 245;
-            } else if (wave > -0.22) {
-                // Deep clear water body
-                r = 28; g = 120; b = 220;
-            } else {
-                // Shadowed trough
-                r = 18; g = 85; b = 190;
-            }
-            c.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            c.fillRect(offsetX + x, offsetY + y, 1, 1);
-        }
-    }
-}
 
     // 11: WATER
     drawTile(TILES.WATER, (c) => {

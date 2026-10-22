@@ -1,4 +1,4 @@
-import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
+import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=coop_q1';
 import { ITEMS } from './crafting.js';
 import { getItem } from './items.js?v=flowers_1';
 import { eventBus } from './events.js';
@@ -225,7 +225,7 @@ export class UI {
 
         const tips = [
             "💡 Wskazówka: Naciśnij PPM na misia lub wciśnij P, aby na niego wsiąść i ujeżdżać! 🐻",
-            "💡 Wskazówka: Wciśnij dowolną strzałkę na klawiaturze, aby do gry dołączył Gracz 2! 🎮",
+            "💡 Wskazówka: Wciśnij klawisz Q („O z kreseczką” w rogu) lub strzałkę, aby do gry wszedł Gracz 2! 🎮",
             "💡 Wskazówka: Spadając do wody z dowolnej wysokości nie odniesiesz żadnych obrażeń! 🌊",
             "💡 Wskazówka: Zrywaj czerwone róże 🌹 i żółte mlecze 🌼, aby karmić owieczki oraz świnki!"
         ];
