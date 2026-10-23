@@ -121,6 +121,10 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🛡️'; // Kamienna Zbroja
             itemSpan.style.filter = 'drop-shadow(0 0 5px #94a3b8)';
         }
+        else if (itemId === 44) {
+            itemSpan.innerText = '🎁'; // Mystery Box
+            itemSpan.style.filter = 'drop-shadow(0 0 7px #f59e0b)';
+        }
         return itemSpan;
     }
     if (itemId === 17) {
@@ -845,9 +849,9 @@ export class UI {
     initEvents() {
         // Keyboard 1-9 & 'R' or 'E' for backpack/inventory/crafting & Chat triggers
         window.addEventListener('keydown', (e) => {
-            // When chat is open, let user type freely, only handle Escape
+            // When chat is open, handle toggle or Escape with Q
             if (this.isChatOpen) {
-                if (e.key === 'Escape') {
+                if (e.key === 'Escape' || e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q') {
                     e.preventDefault();
                     this.closeChat();
                 }
@@ -1074,15 +1078,15 @@ export class UI {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.submitChat();
-            } else if (e.key === 'Escape') {
+            } else if (e.key === 'Escape' || e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q') {
                 e.preventDefault();
                 this.closeChat();
             }
         });
 
-        // Initial welcome tip in chat
+        // Initial welcome tip in chat (secret codes NOT spoiled!)
         setTimeout(() => {
-            this.addChatMessage('Serwer', '💬 Wciśnij Q (lub T / =), aby otworzyć czat! Wpisz Tymek, aby odebrać zestaw startowy 🎁', 'chat-server');
+            this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Odkrywaj tajne hasła... 🤫✨', 'chat-server');
         }, 3000);
     }
 
@@ -1111,6 +1115,10 @@ export class UI {
         this.chatInputRowEl.style.display = 'none';
         this.chatInputEl.blur();
         this.chatInputEl.value = '';
+        if (document.activeElement) {
+            try { document.activeElement.blur(); } catch (e) {}
+        }
+        window.focus();
         this.lastUnlockAllowedTime = Date.now() + 600;
         if (this.player && this.player.controls) {
             try {
@@ -1129,7 +1137,15 @@ export class UI {
         const stripped = raw.replace(/^[/=\-]/, '').trim();
         const lower = stripped.toLowerCase();
 
-        // Check for Tymek Starter Pack code!
+        // Secret code 1: "miał" or "mial" gives Mystery Box!
+        if (lower === 'miał' || lower === 'mial' || lower === 'miau' || lower === 'kot') {
+            this.addItem(44, 'Mystery Box', 1);
+            this.addChatMessage('Serwer', '🐱 Miau! Odkryłeś tajne hasło! Otrzymałeś Mystery Boxa 🎁! Kliknij na niego PPM w ręku, aby go otworzyć!', 'chat-success');
+            this.showPopup('🐱 Tajne hasło "miał" odkryte! +1 Mystery Box 🎁');
+            return;
+        }
+
+        // Secret code 2: Tymek Starter Pack!
         if (lower === 'tymek' || lower === 'startpack' || lower === 'starter' || lower === 'kit') {
             this.playerName = 'Tymek';
             
@@ -1144,7 +1160,7 @@ export class UI {
         }
 
         if (lower === 'pomoc' || lower === 'help') {
-            this.addChatMessage('Serwer', '💡 Komendy: Wciśnij Q i wpisz Tymek - Odbierz Zestaw Startowy 🎁 | /clear - Wyczyść czat 🧹', 'chat-server');
+            this.addChatMessage('Serwer', '💡 Wpisuj tajne hasła na czacie, aby zdobywać nagrody! | /clear - Wyczyść czat 🧹', 'chat-server');
             return;
         }
 

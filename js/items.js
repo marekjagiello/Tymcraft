@@ -56,7 +56,8 @@ export const ITEMS = {
     BEEF: { id: 40, name: 'Surowa Wołowina', type: ITEM_TYPES.FOOD, nutrition: 5, heals: 3, icon: 'beef' },
     LEATHER: { id: 41, name: 'Skóra', type: ITEM_TYPES.MATERIAL, icon: 'leather' },
     WOOL: { id: 42, name: 'Biała Wełna', type: ITEM_TYPES.MATERIAL, icon: 'wool' },
-    STONE_ARMOR: { id: 43, name: 'Kamienna Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'stone_armor' }
+    STONE_ARMOR: { id: 43, name: 'Kamienna Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'stone_armor' },
+    MYSTERY_BOX: { id: 44, name: 'Mystery Box', type: ITEM_TYPES.MATERIAL, icon: 'mystery_box' }
 };
 
 // Fast lookup map by ID

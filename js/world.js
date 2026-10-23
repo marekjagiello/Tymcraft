@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SimplexNoise } from './simplex-noise.js?v=world_gen4';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=beautify_1';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=mystery_1';
 
 export const CHUNK_SIZE = 16;
 export const CHUNKS_X = 4;

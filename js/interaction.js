@@ -173,6 +173,12 @@ export class Interaction {
                     return;
                 }
 
+                // Check if opening Mystery Box (ID: 44) with Right Click (PPM)
+                if (activeItemId === 44) {
+                    this.openMysteryBox();
+                    return;
+                }
+
                 // Check if right-clicking disguised Dirtik
                 const targetAnimal = this.raycastAnimal();
                 if (targetAnimal && targetAnimal.type === 'dirtik' && !targetAnimal.isAwakened) {
@@ -368,6 +374,60 @@ export class Interaction {
         }
 
         this.cancelBowDraw();
+    }
+
+    openMysteryBox() {
+        eventBus.emit('item:consume');
+        if (this.onItemConsumed) this.onItemConsumed(44);
+
+        // Sound effect: joyful C5-E5-G5-C6 arpeggio chime!
+        try {
+            const audioCtx = window._audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime + idx * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.08 + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + idx * 0.08);
+                osc.stop(audioCtx.currentTime + idx * 0.08 + 0.35);
+            });
+        } catch (e) {}
+
+        // Surprise Loot Table
+        const lootTable = [
+            { id: 34, name: 'Rubin', count: 3, icon: '🔴', rarity: 'Legendarny!' },
+            { id: 35, name: 'Rubinowy Miecz', count: 1, icon: '🗡️', rarity: 'Mityczny Jackpot!' },
+            { id: 30, name: 'Diament', count: 5, icon: '💎', rarity: 'Epicki!' },
+            { id: 31, name: 'Diamentowy Miecz', count: 1, icon: '⚔️', rarity: 'Epicki!' },
+            { id: 32, name: 'Diamentowa Zbroja', count: 1, icon: '🛡️', rarity: 'Epicki!' },
+            { id: 33, name: 'Diamentowy Kilof', count: 1, icon: '⛏️', rarity: 'Rzadki!' },
+            { id: 43, name: 'Kamienna Zbroja', count: 1, icon: '🛡️', rarity: 'Fajny!' },
+            { id: 23, name: 'Jabłko', count: 8, icon: '🍎', rarity: 'Pyszny!' },
+            { id: 40, name: 'Surowa Wołowina', count: 6, icon: '🥩', rarity: 'Pyszny!' }
+        ];
+
+        const prize = lootTable[Math.floor(Math.random() * lootTable.length)];
+
+        // Add to inventory
+        if (this.ui) {
+            this.ui.addItem(prize.id, prize.name, prize.count);
+        } else {
+            eventBus.emit('item:add', { id: prize.id, name: prize.name, count: prize.count });
+        }
+
+        const msg = `🎁 Otwarto Mystery Boxa! Zdobyto: +${prize.count}x ${prize.name} ${prize.icon} (${prize.rarity})`;
+        eventBus.emit('ui:popup', msg);
+        if (this.ui) {
+            this.ui.showPopup(msg);
+            if (this.ui.addChatMessage) {
+                this.ui.addChatMessage('Mystery Box', `🎉 Wylosowano: +${prize.count}x ${prize.name} ${prize.icon} [${prize.rarity}]`, 'chat-success');
+            }
+        }
     }
 
     cancelBowDraw() {

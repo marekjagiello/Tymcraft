@@ -134,6 +134,8 @@ export class Player {
         window.addEventListener('keydown', onKeyDown);
         window.addEventListener('keyup', onKeyUp);
         window.addEventListener('blur', () => this.resetKeys());
+        this.controls.addEventListener('lock', () => this.resetKeys());
+        this.controls.addEventListener('unlock', () => this.resetKeys());
     }
 
     resetKeys() {

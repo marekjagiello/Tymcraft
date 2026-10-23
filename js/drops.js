@@ -323,6 +323,24 @@ function createArmorDropMesh(colorHex) {
     return group;
 }
 
+// Helper to create a vibrant 3D Mystery Box drop mesh (golden/purple gift box with ribbon)
+function createMysteryBoxMesh() {
+    const group = new THREE.Group();
+    const boxMat = new THREE.MeshLambertMaterial({ color: 0x9333ea }); // Royal purple
+    const ribbonMat = new THREE.MeshLambertMaterial({ color: 0xfacc15, emissive: 0x854d0e }); // Golden ribbon
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), boxMat);
+    box.castShadow = true;
+    group.add(box);
+    const r1 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.06), ribbonMat);
+    group.add(r1);
+    const r2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.25, 0.25), ribbonMat);
+    group.add(r2);
+    const bow = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, 0.10), ribbonMat);
+    bow.position.y = 0.14;
+    group.add(bow);
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -391,6 +409,8 @@ export class DroppedItem {
             this.mesh = createWoolMesh();
         } else if (this.id === 43) {
             this.mesh = createArmorDropMesh(0x78716c);
+        } else if (this.id === 44) {
+            this.mesh = createMysteryBoxMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
