@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
-import { playSwingSound, playHitSound, playEatSound, playBowShootSound, playBowDrawSound } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js?v=flowers_1';
+import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound } from './audio.js';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js?v=grat_1';
+
 import { eventBus } from './events.js';
 
 // Re-export audio helpers for backward compatibility
@@ -268,13 +269,18 @@ export class Interaction {
                     return;
                 }
 
-                // Eat Food (Apple or Rotten Flesh, or any food in registry)
+                // Eat Food or Drink Water
                 if (isFood(activeItemId)) {
                     const foodDef = getItem(activeItemId);
                     const nutrition = foodDef?.nutrition || 2;
                     const heals = foodDef?.heals || 0;
 
-                    playEatSound();
+                    if (activeItemId === 45) {
+                        playDrinkSound();
+                    } else {
+                        playEatSound();
+                    }
+
                     eventBus.emit('player:feed', nutrition);
                     if (heals > 0) eventBus.emit('player:heal', heals);
                     eventBus.emit('item:consume');
@@ -288,6 +294,8 @@ export class Interaction {
                         msg = '🍖 Zjedzono surową baraninę (+3 głód, +1 HP)!';
                     } else if (activeItemId === 40) {
                         msg = '🥩 Zjedzono wyborną wołowinę (+5 głód, +3 HP)!';
+                    } else if (activeItemId === 45) {
+                        msg = '💧 Napiłeś się orzeźwiającej wody (+2 głód, +2 HP)!';
                     }
 
                     eventBus.emit('ui:popup', msg);
@@ -299,6 +307,7 @@ export class Interaction {
                     if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
                     return;
                 }
+
 
                 this.placeBlock();
             }

@@ -106,6 +106,28 @@ export function playEatSound() {
     } catch (_) {}
 }
 
+export function playDrinkSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        // Two refreshing drinking gulps
+        [0, 0.12].forEach((offset) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(320, ctx.currentTime + offset);
+            osc.frequency.exponentialRampToValueAtTime(480, ctx.currentTime + offset + 0.09);
+            gain.gain.setValueAtTime(0.18, ctx.currentTime + offset);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.09);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + offset);
+            osc.stop(ctx.currentTime + offset + 0.09);
+        });
+    } catch (_) {}
+}
+
+
 export function playHissSound(duration = 1.0) {
     try {
         const ctx = getAudioContext();

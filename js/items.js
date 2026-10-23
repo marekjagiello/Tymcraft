@@ -57,8 +57,10 @@ export const ITEMS = {
     LEATHER: { id: 41, name: 'Skóra', type: ITEM_TYPES.MATERIAL, icon: 'leather' },
     WOOL: { id: 42, name: 'Biała Wełna', type: ITEM_TYPES.MATERIAL, icon: 'wool' },
     STONE_ARMOR: { id: 43, name: 'Kamienna Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'stone_armor' },
-    MYSTERY_BOX: { id: 44, name: 'Mystery Box', type: ITEM_TYPES.MATERIAL, icon: 'mystery_box' }
+    MYSTERY_BOX: { id: 44, name: 'Mystery Box', type: ITEM_TYPES.MATERIAL, icon: 'mystery_box' },
+    WATER_BOTTLE: { id: 45, name: 'Butelka Wody', type: ITEM_TYPES.FOOD, nutrition: 2, heals: 2, icon: 'water_bottle' }
 };
+
 
 // Fast lookup map by ID
 const ITEMS_BY_ID = new Map();

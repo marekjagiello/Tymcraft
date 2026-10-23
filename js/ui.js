@@ -125,8 +125,13 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🎁'; // Mystery Box
             itemSpan.style.filter = 'drop-shadow(0 0 7px #f59e0b)';
         }
+        else if (itemId === 45) {
+            itemSpan.innerText = '💧'; // Butelka Wody
+            itemSpan.style.filter = 'drop-shadow(0 0 6px #38bdf8)';
+        }
         return itemSpan;
     }
+
     if (itemId === 17) {
         const itemSpan = document.createElement('span');
         itemSpan.style.fontSize = '20px';
@@ -1144,6 +1149,15 @@ export class UI {
             this.showPopup('🐱 Tajne hasło "miał" odkryte! +1 Mystery Box 🎁');
             return;
         }
+
+        // Secret code 2: "grat" or "rat" gives Water Bottle!
+        if (lower === 'grat' || lower === 'rat' || lower === 'gratt' || lower === 'woda' || lower === 'butelka' || lower === 'water') {
+            this.addItem(45, 'Butelka Wody', 1);
+            this.addChatMessage('Serwer', '💧 Odkryłeś tajne hasło! Otrzymałeś Butelkę Wody 💧! Kliknij na nią PPM w ręku, aby się orzeźwić!', 'chat-success');
+            this.showPopup('💧 Tajne hasło odkryte! +1 Butelka Wody 💧');
+            return;
+        }
+
 
         // Secret code 2: Tymek Starter Pack!
         if (lower === 'tymek' || lower === 'startpack' || lower === 'starter' || lower === 'kit') {

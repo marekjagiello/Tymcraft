@@ -341,7 +341,35 @@ function createMysteryBoxMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Water Bottle drop mesh
+
+function createWaterBottleMesh() {
+    const group = new THREE.Group();
+    const glassMat = new THREE.MeshLambertMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.75 });
+    const waterMat = new THREE.MeshLambertMaterial({ color: 0x0284c7 });
+    const corkMat = new THREE.MeshLambertMaterial({ color: 0xd97706 }); // Wooden cork
+
+    // Bottle body
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.20, 0.14), glassMat);
+    group.add(body);
+    // Water inside
+    const water = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.12), waterMat);
+    water.position.y = -0.02;
+    group.add(water);
+    // Neck
+    const neck = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.06), glassMat);
+    neck.position.y = 0.13;
+    group.add(neck);
+    // Cork
+    const cork = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.07), corkMat);
+    cork.position.y = 0.17;
+    group.add(cork);
+
+    return group;
+}
+
 export class DroppedItem {
+
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
         this.world = world;
@@ -411,9 +439,12 @@ export class DroppedItem {
             this.mesh = createArmorDropMesh(0x78716c);
         } else if (this.id === 44) {
             this.mesh = createMysteryBoxMesh();
+        } else if (this.id === 45) {
+            this.mesh = createWaterBottleMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
+
 
         this.mesh.position.copy(this.position);
         this.scene.add(this.mesh);
