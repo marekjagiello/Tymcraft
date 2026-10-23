@@ -105,15 +105,15 @@ function createAtlas() {
         ctx.restore();
     };
 
-    // 0: GRASS TOP (Vibrant natural lawn with lush grass blades)
+    // 0: GRASS TOP (Vibrant lush meadow lawn)
     drawTile(TILES.GRASS_TOP, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
                 const cluster = (hash(Math.floor(x / 2) * 11, Math.floor(y / 2) * 13) - 0.5) * 16;
                 const blade = (hash(x * 43 + 7, y * 47 + 13) - 0.5) * 32;
-                const r = Math.max(60, Math.min(130, Math.round(92 + cluster * 0.6 + blade * 0.6)));
-                const g = Math.max(125, Math.min(210, Math.round(168 + cluster + blade)));
-                const b = Math.max(35, Math.min(95, Math.round(52 + cluster * 0.4 + blade * 0.4)));
+                const r = Math.max(65, Math.min(130, Math.round(95 + cluster * 0.5 + blade * 0.5)));
+                const g = Math.max(140, Math.min(225, Math.round(180 + cluster + blade)));
+                const b = Math.max(30, Math.min(85, Math.round(48 + cluster * 0.3 + blade * 0.3)));
                 c.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 c.fillRect(x, y, 1, 1);
             }
@@ -327,12 +327,17 @@ function createAtlas() {
         }
     });
 
-    // 7: SAND
+    // 7: SAND (Warm golden desert sand with gentle wind wave ripples)
     drawTile(TILES.SAND, (c) => {
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const n = (hash(x, y) - 0.5) * 20;
-                c.fillStyle = `rgb(${215 + n}, ${200 + n}, ${150 + n * 0.8})`;
+                const wave = Math.sin((x + y * 0.5) * 0.8) * 6;
+                const grain = (hash(x * 19 + 3, y * 29 + 7) - 0.5) * 16;
+                const base = 216 + wave + grain;
+                const r = Math.max(170, Math.min(240, Math.round(base)));
+                const g = Math.max(150, Math.min(220, Math.round(base * 0.92)));
+                const b = Math.max(110, Math.min(175, Math.round(base * 0.68)));
+                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 c.fillRect(x, y, 1, 1);
             }
         }
@@ -350,30 +355,70 @@ function createAtlas() {
         }
     });
 
-    // 9: PLANKS
+    // 9: PLANKS (Warm golden Minecraft oak planks with wood grain and bevel grooves)
     drawTile(TILES.PLANKS, (c) => {
         for (let y = 0; y < 16; y++) {
+            const plankRow = Math.floor(y / 4);
+            const rowY = y % 4; // 0..3 inside the plank
+            const isBottomSeam = (rowY === 3);
+            const isTopHighlight = (rowY === 0);
+
             for (let x = 0; x < 16; x++) {
-                let n = (hash(x, y) - 0.5) * 18;
-                let isSeam = (y % 4 === 0) || (y < 4 && x === 7) || (y >= 4 && y < 8 && x === 14) || (y >= 8 && y < 12 && x === 4) || (y >= 12 && x === 11);
-                let r = 168 + n, g = 125 + n * 0.8, b = 80 + n * 0.5;
-                if (isSeam) { r *= 0.65; g *= 0.65; b *= 0.65; }
-                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                const isSplit = (plankRow === 0 && x === 8) ||
+                                (plankRow === 1 && x === 14) ||
+                                (plankRow === 2 && x === 5) ||
+                                (plankRow === 3 && x === 11);
+
+                const grain = Math.sin(x * 0.7 + plankRow * 2.3) * 6 + (hash(x * 17, y * 13) - 0.5) * 12;
+                
+                let r = 182 + grain;
+                let g = 138 + grain * 0.85;
+                let b = 86 + grain * 0.6;
+
+                if (isBottomSeam) {
+                    r *= 0.52; g *= 0.52; b *= 0.52;
+                } else if (isTopHighlight) {
+                    r = Math.min(235, r + 18);
+                    g = Math.min(195, g + 16);
+                    b = Math.min(145, b + 12);
+                }
+
+                if (isSplit) {
+                    r *= 0.50; g *= 0.50; b *= 0.50;
+                }
+
+                // Tiny iron nail accents
+                const isNail = ((x === 7 && rowY === 1 && plankRow === 0) ||
+                                (x === 13 && rowY === 1 && plankRow === 1) ||
+                                (x === 4 && rowY === 1 && plankRow === 2) ||
+                                (x === 10 && rowY === 1 && plankRow === 3));
+                if (isNail) {
+                    r = 75; g = 75; b = 80;
+                }
+
+                c.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
                 c.fillRect(x, y, 1, 1);
             }
         }
     });
 
-    // 10: GLASS
+    // 10: GLASS (Clean crystal clear glass with border and diagonal glare streaks)
     drawTile(TILES.GLASS, (c) => {
-        c.fillStyle = 'rgba(210, 240, 255, 0.2)';
+        c.clearRect(0, 0, 16, 16);
+        c.fillStyle = 'rgba(215, 245, 255, 0.14)';
         c.fillRect(0, 0, 16, 16);
-        c.strokeStyle = 'rgba(235, 250, 255, 0.9)';
-        c.lineWidth = 1;
-        c.strokeRect(0.5, 0.5, 15, 15);
-        c.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        c.fillRect(3, 3, 2, 2);
-        c.fillRect(11, 10, 3, 1);
+        c.fillStyle = 'rgba(235, 250, 255, 0.92)';
+        c.fillRect(0, 0, 16, 1);
+        c.fillRect(0, 15, 16, 1);
+        c.fillRect(0, 0, 1, 16);
+        c.fillRect(15, 0, 1, 16);
+        // Diagonal glass glare reflections
+        c.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        c.fillRect(2, 2, 2, 2);
+        c.fillRect(3, 4, 1, 1);
+        c.fillRect(12, 10, 2, 1);
+        c.fillRect(11, 11, 2, 1);
+        c.fillRect(10, 12, 1, 1);
     });
 
     // 11: WATER
@@ -421,14 +466,57 @@ function createAtlas() {
         }
     });
 
-    // 15: COBBLESTONE
+    // 15: COBBLESTONE (Authentic stylized Minecraft cobblestone with mortar crevices and rock bevels)
     drawTile(TILES.COBBLE, (c) => {
+        const rockIdMap = [
+            0,1,1,1,1,0,2,2,2,2,2,2,2,0,3,3,
+            1,1,1,1,1,0,2,2,2,2,2,2,2,0,3,3,
+            1,1,1,1,1,0,2,2,2,2,2,2,2,0,3,3,
+            1,1,1,1,0,0,0,2,2,2,2,2,0,0,0,3,
+            0,0,0,0,4,4,4,0,0,0,5,5,5,5,5,0,
+            6,6,6,0,4,4,4,4,4,0,5,5,5,5,5,0,
+            6,6,6,0,4,4,4,4,4,0,5,5,5,5,5,0,
+            6,6,6,0,4,4,4,4,4,0,0,5,5,5,0,0,
+            0,0,0,0,0,4,4,4,0,7,7,0,0,0,8,8,
+            9,9,9,9,0,0,0,0,7,7,7,7,7,0,8,8,
+            9,9,9,9,9,9,0,7,7,7,7,7,7,0,8,8,
+            9,9,9,9,9,9,0,7,7,7,7,7,7,0,8,8,
+            0,9,9,9,9,0,0,0,7,7,7,7,0,0,0,8,
+            0,0,0,0,0,10,10,10,0,0,0,0,11,11,0,0,
+            12,12,12,0,10,10,10,10,10,0,11,11,11,11,11,0,
+            12,12,12,0,10,10,10,10,10,0,11,11,11,11,11,0
+        ];
+
         for (let y = 0; y < 16; y++) {
             for (let x = 0; x < 16; x++) {
-                const rock = ((x >> 2) + (y >> 2)) % 2 === 0;
-                const n = (hash(x, y) - 0.5) * 35;
-                const base = rock ? 110 : 90;
-                c.fillStyle = `rgb(${base + n}, ${base + n}, ${base + n})`;
+                const idx = y * 16 + x;
+                const rockId = rockIdMap[idx];
+                const grain = (hash(x * 19 + 7, y * 23 + 11) - 0.5) * 16;
+
+                if (rockId === 0) {
+                    const seamBase = 46 + grain * 0.4;
+                    c.fillStyle = `rgb(${seamBase}, ${seamBase}, ${seamBase + 2})`;
+                } else {
+                    const upId = (y > 0) ? rockIdMap[(y - 1) * 16 + x] : rockId;
+                    const leftId = (x > 0) ? rockIdMap[y * 16 + (x - 1)] : rockId;
+                    const downId = (y < 15) ? rockIdMap[(y + 1) * 16 + x] : rockId;
+                    const rightId = (x < 15) ? rockIdMap[y * 16 + (x + 1)] : rockId;
+
+                    const isHighlight = (upId === 0 || leftId === 0);
+                    const isShadow = (downId === 0 || rightId === 0);
+
+                    const rockTone = ((rockId * 37) % 18) - 9;
+                    let baseVal = 118 + rockTone + grain;
+
+                    if (isHighlight && !isShadow) {
+                        baseVal += 28;
+                    } else if (isShadow && !isHighlight) {
+                        baseVal -= 30;
+                    }
+
+                    const val = Math.max(55, Math.min(185, Math.round(baseVal)));
+                    c.fillStyle = `rgb(${val}, ${val}, ${val + 2})`;
+                }
                 c.fillRect(x, y, 1, 1);
             }
         }

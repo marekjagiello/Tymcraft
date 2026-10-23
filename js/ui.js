@@ -854,8 +854,9 @@ export class UI {
                 return;
             }
 
-            // Open chat triggers: '=', '/', '-', 'T', or 'Enter'
-            const isChatTrigger = e.key === '=' || e.key === '/' || e.key === '-' ||
+            // Open chat triggers: 'Q', '=', '/', '-', 'T', or 'Enter'
+            const isChatTrigger = e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' ||
+                                  e.key === '=' || e.key === '/' || e.key === '-' ||
                                   e.code === 'KeyT' || e.key === 't' || e.key === 'T' ||
                                   e.key === 'Enter';
             if (isChatTrigger && !this.isCraftingOpen && !this.isLoading) {
@@ -1081,7 +1082,7 @@ export class UI {
 
         // Initial welcome tip in chat
         setTimeout(() => {
-            this.addChatMessage('Serwer', '💬 Wciśnij = lub / lub T, aby otworzyć czat! Wpisz Tymek, aby odebrać zestaw startowy 🎁', 'chat-server');
+            this.addChatMessage('Serwer', '💬 Wciśnij Q (lub T / =), aby otworzyć czat! Wpisz Tymek, aby odebrać zestaw startowy 🎁', 'chat-server');
         }, 3000);
     }
 
@@ -1143,7 +1144,7 @@ export class UI {
         }
 
         if (lower === 'pomoc' || lower === 'help') {
-            this.addChatMessage('Serwer', '💡 Komendy: =Tymek (lub /Tymek) - Odbierz Zestaw Startowy 🎁 | /clear - Wyczyść czat 🧹', 'chat-server');
+            this.addChatMessage('Serwer', '💡 Komendy: Wciśnij Q i wpisz Tymek - Odbierz Zestaw Startowy 🎁 | /clear - Wyczyść czat 🧹', 'chat-server');
             return;
         }
 

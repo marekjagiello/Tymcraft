@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SimplexNoise } from './simplex-noise.js?v=world_gen4';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=water_2';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=beautify_1';
 
 export const CHUNK_SIZE = 16;
 export const CHUNKS_X = 4;
@@ -8,7 +8,7 @@ export const CHUNKS_Z = 4;
 export const WORLD_SIZE_X = CHUNKS_X * CHUNK_SIZE; // 64 (spawn reference)
 export const WORLD_SIZE_Z = CHUNKS_Z * CHUNK_SIZE; // 64 (spawn reference)
 export const WORLD_HEIGHT = 32;
-export const SEA_LEVEL = 7;
+export const SEA_LEVEL = 3; // Significantly reduced sea level so the world is dry land
 export const RENDER_RADIUS = 4; // 9x9 chunks around player
 
 export class World {
@@ -225,18 +225,17 @@ export class World {
                     h = 8 + Math.floor(this.noise.fbm2D(x * 0.035, z * 0.035, 3) * 3);
                 }
 
-                // Malownicze stawy i jeziora na powierzchni (Scenic Surface Lakes & Ponds)
-                // Naturalne zagłębienia terenu w dolinach nizin i lasów, poza bezpieczną strefą spawnu
-                const isNearSpawn = (Math.abs(x - 32) <= 8 && Math.abs(z - 32) <= 8);
+                // Rzadkie i malownicze małe oczka wodne (dużo mniej wody na mapie)
+                const isNearSpawn = (Math.abs(x - 32) <= 12 && Math.abs(z - 32) <= 12);
                 const lakeNoiseVal = this.noise.noise2D(x * 0.032 + 35, z * 0.032 + 75);
                 let isLake = false;
-                const waterLevel = (biome === 'Forest') ? 9 : 8;
+                const waterLevel = 5;
 
-                if (!isNearSpawn && (biome === 'Plains' || biome === 'Forest') && lakeNoiseVal < -0.22) {
+                if (!isNearSpawn && (biome === 'Plains' || biome === 'Forest') && lakeNoiseVal < -0.58) {
                     isLake = true;
-                    const depth = Math.min(3.5, (-0.22 - lakeNoiseVal) * 6.5);
+                    const depth = Math.min(2.0, (-0.58 - lakeNoiseVal) * 4.5);
                     h = Math.floor(h - depth);
-                    h = Math.max(3, h);
+                    h = Math.max(4, h);
                 }
 
                 h = Math.max(2, Math.min(WORLD_HEIGHT - 6, h));
@@ -285,12 +284,14 @@ export class World {
                     }
                 }
 
-                // Napełnianie wodą: jeziora do poziomu waterLevel oraz tereny poniżej SEA_LEVEL
-                const fillToWaterY = isLake ? Math.max(SEA_LEVEL, waterLevel) : SEA_LEVEL;
-                for (let y = h + 1; y <= fillToWaterY; y++) {
-                    const lIdx = this.localIndex(lx, y, lz);
-                    if (chunk.voxels[lIdx] === 0) {
-                        chunk.voxels[lIdx] = 10; // Water
+                // Napełnianie wodą: tylko małe rzadkie jeziorka lub najgłębsze rowy poniżej SEA_LEVEL (3)
+                const fillToWaterY = isLake ? waterLevel : SEA_LEVEL;
+                if (h < fillToWaterY) {
+                    for (let y = h + 1; y <= fillToWaterY; y++) {
+                        const lIdx = this.localIndex(lx, y, lz);
+                        if (chunk.voxels[lIdx] === 0) {
+                            chunk.voxels[lIdx] = 10; // Water
+                        }
                     }
                 }
 
