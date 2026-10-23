@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
 import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js?v=grat_1';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js?v=bedrock_1';
 
 import { eventBus } from './events.js';
 

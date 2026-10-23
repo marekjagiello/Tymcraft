@@ -1,5 +1,5 @@
 // 2x2 Crafting system using centralized Item Registry
-import { ITEMS } from './items.js?v=flowers_1';
+import { ITEMS } from './items.js?v=bedrock_1';
 
 export { ITEMS };
 
@@ -110,9 +110,18 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 15. Bedrock Sword (Miecz Bedrockowy): Bedrock (14) + Patyk (20) lub 2 Bedrocki (14)
+        if ((s0 === 14 && s2 === 20 && !s1 && !s3) || (s1 === 14 && s3 === 20 && !s0 && !s2) ||
+            (s0 === 14 && s2 === 14 && !s1 && !s3) || (s1 === 14 && s3 === 14 && !s0 && !s2) ||
+            (nonNulls.length === 2 && nonNulls.includes(14) && (nonNulls.includes(20) || nonNulls.filter(x => x === 14).length === 2))) {
+            this.output = { item: ITEMS.BEDROCK_SWORD, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }
+
 
     craft() {
         if (!this.output) return null;

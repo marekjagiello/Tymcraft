@@ -178,6 +178,45 @@ body, html {
     transition: opacity 0.6s ease;
 }
 
+/* Full-Screen Warning Banners (as requested by Tymek) */
+#warning-banner {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 99;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 900;
+    padding: 14px 28px;
+    border-radius: 12px;
+    pointer-events: none;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    animation: bannerPulse 0.9s infinite alternate;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85);
+}
+
+#warning-banner.banner-freeze {
+    background: rgba(14, 116, 144, 0.94);
+    color: #e0f2fe;
+    border: 3px solid #38bdf8;
+    box-shadow: 0 0 35px rgba(56, 189, 248, 0.8);
+}
+
+#warning-banner.banner-heat {
+    background: rgba(194, 65, 12, 0.94);
+    color: #fef08a;
+    border: 3px solid #f97316;
+    box-shadow: 0 0 35px rgba(249, 115, 22, 0.8);
+}
+
+@keyframes bannerPulse {
+    0% { transform: translate(-50%, -50%) scale(0.96); }
+    100% { transform: translate(-50%, -50%) scale(1.05); }
+}
+
+
 
 #debug-info .badge {
     background: #3b82f6;

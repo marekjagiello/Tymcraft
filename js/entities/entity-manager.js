@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot } from './mobs/hostile.js?v=quests_robot_1';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot } from './mobs/hostile.js?v=bedrock_1';
 
 import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=drops_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';

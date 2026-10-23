@@ -50,12 +50,16 @@ export class Player {
         this.underwaterOverlayEl = null;
         this.freezeOverlayEl = document.getElementById('freeze-overlay');
         this.heatOverlayEl = document.getElementById('heat-overlay');
+        this.warningBannerEl = document.getElementById('warning-banner');
         this.isFreezing = false;
         this.isHydrated = false;
         this.hydrateTimer = 0;
         this.freezeTimer = 0;
         this.desertTimer = 0;
+        this.freezeDamageTimer = 0;
+        this.heatDamageTimer = 0;
         this.questManager = null;
+
 
         eventBus.on('water:drank', () => {
             this.isHydrated = true;
@@ -868,6 +872,9 @@ export class Player {
         const isSnowyPeak = (biome === 'Mountains' && this.position.y >= 14) || underBlock === 7;
         const hasJacket = this.ui && (this.ui.hasItem(46) || this.hasWarmJacket);
 
+        let activeWarning = null;
+
+        // 1. Cold mountain hazard (freezing & shivering & damage)
         if (isSnowyPeak && !hasJacket) {
             this.isFreezing = true;
             // Shiver / shake camera
@@ -878,35 +885,74 @@ export class Player {
             this.camera.position.y += shiverY;
 
             this.freezeTimer = (this.freezeTimer || 0) + dt;
-            if (this.freezeTimer >= 4.0) {
+            if (this.freezeTimer >= 3.5) {
                 this.freezeTimer = 0;
                 playFreezeShiverSound();
-                eventBus.emit('ui:popup', '🥶 Brrr! Zimno na szczycie góry! Trzęsiesz się z zimna! Załóż Ciepłą Kurtkę (Quest 1)!');
             }
+
+            // Damage player every 2.5s from extreme cold
+            this.freezeDamageTimer = (this.freezeDamageTimer || 0) + dt;
+            if (this.freezeDamageTimer >= 2.5) {
+                this.freezeDamageTimer = 0;
+                eventBus.emit('player:damage', { amount: 1, reason: 'Odmrożenie z zimna na szczycie góry! ❄️' });
+            }
+
+            activeWarning = {
+                type: 'freeze',
+                text: '❄️ UWAGA! UWAGA! NIE MASZ CIEPŁEGO UBRANIA! 🥶'
+            };
+
             if (this.freezeOverlayEl) this.freezeOverlayEl.style.opacity = '0.55';
         } else {
             this.isFreezing = false;
+            this.freezeDamageTimer = 0;
             if (this.freezeOverlayEl) this.freezeOverlayEl.style.opacity = '0';
         }
 
-        // Desert heat & thirst
+        // 2. Desert heat hazard (extreme heat & thirst damage)
         if (biome === 'Desert') {
-            this.desertTimer = (this.desertTimer || 0) + dt;
             if (this.heatOverlayEl) {
                 this.heatOverlayEl.style.opacity = this.isHydrated ? '0.08' : '0.45';
             }
-            if (this.desertTimer >= 7.0 && !this.isHydrated) {
-                this.desertTimer = 0;
-                eventBus.emit('ui:popup', '☀️ Upał na pustyni! Chce Ci się pić! Użyj Butelki Wody (kod "grat")!');
+
+            if (!this.isHydrated) {
+                // Damage player every 2.5s from dehydration
+                this.heatDamageTimer = (this.heatDamageTimer || 0) + dt;
+                if (this.heatDamageTimer >= 2.5) {
+                    this.heatDamageTimer = 0;
+                    eventBus.emit('player:damage', { amount: 1, reason: 'Odwodnienie i udar słoneczny na pustyni! ☀️💧' });
+                }
+
+                if (!activeWarning) {
+                    activeWarning = {
+                        type: 'heat',
+                        text: '☀️ UWAGA! UWAGA! NIE MASZ WODY! PIJ Z BUTELKI (KOD "GRAT")! 💧'
+                    };
+                }
+            } else {
+                this.heatDamageTimer = 0;
             }
         } else {
+            this.heatDamageTimer = 0;
             if (this.heatOverlayEl) this.heatOverlayEl.style.opacity = '0';
+        }
+
+        // Update full-screen warning banner
+        if (this.warningBannerEl) {
+            if (activeWarning) {
+                this.warningBannerEl.className = activeWarning.type === 'freeze' ? 'banner-freeze' : 'banner-heat';
+                this.warningBannerEl.innerHTML = activeWarning.text;
+                this.warningBannerEl.style.display = 'block';
+            } else {
+                this.warningBannerEl.style.display = 'none';
+            }
         }
 
         // Quest Manager position tracking
         if (this.questManager) {
             this.questManager.checkPlayerLocation(this.position.x, this.position.y, this.position.z, biome, hasJacket);
         }
+
 
         // Underwater bubble particles & visual tint
 

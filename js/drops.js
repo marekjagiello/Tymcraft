@@ -402,7 +402,31 @@ function createLaserSwordMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Bedrock Sword drop mesh
+function createBedrockSwordMesh() {
+    const group = new THREE.Group();
+    const handleMat = new THREE.MeshLambertMaterial({ color: 0x18181b });
+    const bedrockBladeMat = new THREE.MeshLambertMaterial({
+        color: 0x27272a,
+        emissive: 0x581c87,
+        emissiveIntensity: 0.5
+    });
+
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.14, 0.04), handleMat);
+    group.add(handle);
+    const crossguard = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.04), handleMat);
+    crossguard.position.y = 0.08;
+    group.add(crossguard);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.46, 0.03), bedrockBladeMat);
+    blade.position.y = 0.32;
+    group.add(blade);
+
+    group.rotation.z = Math.PI / 4;
+    return group;
+}
+
 export class DroppedItem {
+
 
 
     constructor(scene, world, id, name, x, y, z) {
@@ -480,9 +504,12 @@ export class DroppedItem {
             this.mesh = createWarmJacketMesh();
         } else if (this.id === 47) {
             this.mesh = createLaserSwordMesh();
+        } else if (this.id === 48) {
+            this.mesh = createBedrockSwordMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
+
 
 
 

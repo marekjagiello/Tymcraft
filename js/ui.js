@@ -1,6 +1,6 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
 import { ITEMS } from './crafting.js';
-import { getItem } from './items.js?v=flowers_1';
+import { getItem } from './items.js?v=bedrock_1';
 import { eventBus } from './events.js';
 
 export const HOTBAR_BLOCKS = [
@@ -137,8 +137,13 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '⚡'; // Laserowy Miecz
             itemSpan.style.filter = 'drop-shadow(0 0 8px #38bdf8)';
         }
+        else if (itemId === 48) {
+            itemSpan.innerText = '🗡️'; // Miecz Bedrockowy
+            itemSpan.style.filter = 'drop-shadow(0 0 9px #7c3aed)';
+        }
         return itemSpan;
     }
+
 
 
     if (itemId === 17) {
@@ -1166,6 +1171,15 @@ export class UI {
             this.showPopup('💧 Tajne hasło odkryte! +1 Butelka Wody 💧');
             return;
         }
+
+        // Secret code 3: "1234" gives Bedrock!
+        if (lower === '1234' || lower === '1 2 3 4' || lower === 'bedrock' || lower === '1-2-3-4') {
+            this.addItem(14, 'Skała Macierzysta', 4);
+            this.addChatMessage('Serwer', '🪨 Odkryłeś tajne hasło 1234! Otrzymałeś 4x Bedrock! Ułóż go w craftingu [R/E] z patykiem, aby stworzyć potężny Miecz Bedrockowy! 🗡️', 'chat-success');
+            this.showPopup('🪨 Tajne hasło 1234 odkryte! +4 Bedrock 🪨');
+            return;
+        }
+
 
 
         // Secret code 2: Tymek Starter Pack!

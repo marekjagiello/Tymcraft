@@ -1125,8 +1125,9 @@ export class Robot extends Mob {
         this.maxHealth = 40;
         this.health = 40;
         this.walkSpeed = 1.4;
-        this.attackDamage = 10; // Exactly 5 hearts!
+        this.attackDamage = 7; // Exactly 3 hits without armor (7 * 3 = 21 DMG vs 20 HP)!
         this.isAwakened = false;
+
         this.awakenDistance = 5.0;
         this.attackCooldown = 0;
         this.swingTime = 0;
@@ -1365,8 +1366,9 @@ export class Robot extends Mob {
                 if (this.manager?.survival) {
                     this.manager.survival.takeDamage(this.attackDamage, 'Cios Laserowym Mieczem Robota! 🤖⚡');
                 }
-                eventBus.emit('ui:popup', '💥 Robot trafił Cię mieczem! (-5 serduszek)');
+                eventBus.emit('ui:popup', '💥 Robot trafił Cię mieczem! (3 hity do zgonu bez zbroi!)');
             }
+
         } else {
             this.state = 'idle';
         }
