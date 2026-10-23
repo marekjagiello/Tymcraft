@@ -102,6 +102,21 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🛡️';
             itemSpan.style.filter = 'drop-shadow(0 0 8px #ef4444)';
         }
+        else if (itemId === 38) {
+            itemSpan.innerText = '🥩'; // Surowy Schab
+        }
+        else if (itemId === 39) {
+            itemSpan.innerText = '🍖'; // Surowa Baranina
+        }
+        else if (itemId === 40) {
+            itemSpan.innerText = '🥩'; // Surowa Wołowina
+        }
+        else if (itemId === 41) {
+            itemSpan.innerText = '🟤'; // Skóra
+        }
+        else if (itemId === 42) {
+            itemSpan.innerText = '🧶'; // Biała Wełna
+        }
         return itemSpan;
     }
     if (itemId === 17) {

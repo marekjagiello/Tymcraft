@@ -182,8 +182,9 @@ export class Interaction {
 
                 // Check if interacting with a Bear (feeding or mounting with PPM!)
                 if (targetAnimal && targetAnimal.type === 'bear') {
-                    // Jeśli gracz trzyma jedzenie (zgniłe mięso lub jabłko) i miś jest ranny -> nakarm misia!
-                    if ((activeItemId === 26 || activeItemId === 23) && targetAnimal.health < targetAnimal.maxHealth) {
+                    // Jeśli gracz trzyma jedzenie (zgniłe mięso, jabłko lub surowe mięso: schab, baranina, wołowina) i miś jest ranny -> nakarm misia!
+                    const isBearFood = activeItemId === 26 || activeItemId === 23 || activeItemId === 38 || activeItemId === 39 || activeItemId === 40;
+                    if (isBearFood && targetAnimal.health < targetAnimal.maxHealth) {
                         if (targetAnimal.feedWithRottenFlesh) {
                             targetAnimal.feedWithRottenFlesh();
                         } else if (targetAnimal.interactWithApple) {
@@ -231,8 +232,8 @@ export class Interaction {
                     }
                 }
 
-                // Check if feeding sheep or pig with flowers (ID 17: Rose, ID 18: Dandelion)
-                if (targetAnimal && (targetAnimal.type === 'sheep' || targetAnimal.type === 'pig') && (activeItemId === 17 || activeItemId === 18)) {
+                // Check if feeding sheep, pig or cow with flowers (ID 17: Rose, ID 18: Dandelion)
+                if (targetAnimal && (targetAnimal.type === 'sheep' || targetAnimal.type === 'pig' || targetAnimal.type === 'cow') && (activeItemId === 17 || activeItemId === 18)) {
                     if (targetAnimal.feedWithFlower) {
                         targetAnimal.feedWithFlower(activeItemId);
                     } else if (targetAnimal.interactWithApple) {
@@ -240,7 +241,7 @@ export class Interaction {
                     }
                     eventBus.emit('item:consume');
                     const flowerName = (activeItemId === 17) ? 'Czerwoną Różą 🌹' : 'Żółtym Mleczem 🌼';
-                    const animalName = (targetAnimal.type === 'sheep') ? 'owcę 🐑' : 'świnkę 🐷';
+                    const animalName = (targetAnimal.type === 'sheep') ? 'owcę 🐑' : (targetAnimal.type === 'pig' ? 'świnkę 🐷' : 'krówkę 🐮');
                     const feedMsg = `❤️ Nakarmiono ${animalName} ${flowerName}! Pojawiły się serca!`;
                     eventBus.emit('ui:popup', feedMsg);
                     if (this.onItemConsumed) this.onItemConsumed(activeItemId);
@@ -253,7 +254,7 @@ export class Interaction {
                 if (animal && activeItemId === 23) {
                     animal.interactWithApple();
                     eventBus.emit('item:consume');
-                    const mobName = animal.type === 'snake' ? 'węża 🐍' : (animal.type === 'sheep' ? 'owcę 🐑' : (animal.type === 'pig' ? 'świnkę 🐷' : 'zwierzę 🐾'));
+                    const mobName = animal.type === 'snake' ? 'węża 🐍' : (animal.type === 'sheep' ? 'owcę 🐑' : (animal.type === 'pig' ? 'świnkę 🐷' : (animal.type === 'cow' ? 'krówkę 🐮' : 'zwierzę 🐾')));
                     const feedMsg = `❤️ Nakarmiono ${mobName}! Pojawiły się serca!`;
                     eventBus.emit('ui:popup', feedMsg);
                     if (this.onItemConsumed) this.onItemConsumed(23);
@@ -272,9 +273,16 @@ export class Interaction {
                     if (heals > 0) eventBus.emit('player:heal', heals);
                     eventBus.emit('item:consume');
 
-                    const msg = activeItemId === 23
-                        ? '🍎 Zjedzono jabłko (+4 głód)!'
-                        : `🍖 Zjedzono ${foodDef?.name || 'jedzenie'} (+${nutrition} głód)!`;
+                    let msg = `🍖 Zjedzono ${foodDef?.name || 'jedzenie'} (+${nutrition} głód)!`;
+                    if (activeItemId === 23) {
+                        msg = '🍎 Zjedzono jabłko (+4 głód)!';
+                    } else if (activeItemId === 38) {
+                        msg = '🥩 Zjedzono soczysty schab (+4 głód, +2 HP)!';
+                    } else if (activeItemId === 39) {
+                        msg = '🍖 Zjedzono surową baraninę (+3 głód, +1 HP)!';
+                    } else if (activeItemId === 40) {
+                        msg = '🥩 Zjedzono wyborną wołowinę (+5 głód, +3 HP)!';
+                    }
 
                     eventBus.emit('ui:popup', msg);
 

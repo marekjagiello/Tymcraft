@@ -1,15 +1,15 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=water_2';
-import { Player } from './player.js?v=water_2';
-import { Interaction } from './interaction.js?v=water_2';
-import { AnimalManager } from './animals.js?v=water_2';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=water_2';
-import { StorageManager } from './storage.js?v=water_2';
-import { SurvivalManager } from './survival.js?v=water_2';
-import { CraftingManager } from './crafting.js?v=water_2';
-import { DropsManager } from './drops.js?v=water_2';
-import { eventBus } from './events.js?v=water_2';
-import { updateWaterAnimation } from './textures.js?v=water_2';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=drops_1';
+import { Player } from './player.js?v=drops_1';
+import { Interaction } from './interaction.js?v=drops_1';
+import { AnimalManager } from './animals.js?v=drops_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=drops_1';
+import { StorageManager } from './storage.js?v=drops_1';
+import { SurvivalManager } from './survival.js?v=drops_1';
+import { CraftingManager } from './crafting.js?v=drops_1';
+import { DropsManager } from './drops.js?v=drops_1';
+import { eventBus } from './events.js?v=drops_1';
+import { updateWaterAnimation } from './textures.js?v=drops_1';
 
 class Game {
     constructor() {

@@ -48,7 +48,14 @@ export const ITEMS = {
     RUBY: { id: 34, name: 'Rubin', type: ITEM_TYPES.MATERIAL, icon: 'ruby' },
     RUBY_SWORD: { id: 35, name: 'Rubinowy Miecz', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'ruby_sword' },
     GUNPOWDER: { id: 36, name: 'Proch Strzelniczy', type: ITEM_TYPES.MATERIAL, icon: 'gunpowder' },
-    RUBY_ARMOR: { id: 37, name: 'Rubinowa Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'ruby_armor' }
+    RUBY_ARMOR: { id: 37, name: 'Rubinowa Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'ruby_armor' },
+
+    // Animal drops (meat, leather, wool)
+    PORKCHOP: { id: 38, name: 'Surowy Schab', type: ITEM_TYPES.FOOD, nutrition: 4, heals: 2, icon: 'porkchop' },
+    MUTTON: { id: 39, name: 'Surowa Baranina', type: ITEM_TYPES.FOOD, nutrition: 3, heals: 1, icon: 'mutton' },
+    BEEF: { id: 40, name: 'Surowa Wołowina', type: ITEM_TYPES.FOOD, nutrition: 5, heals: 3, icon: 'beef' },
+    LEATHER: { id: 41, name: 'Skóra', type: ITEM_TYPES.MATERIAL, icon: 'leather' },
+    WOOL: { id: 42, name: 'Biała Wełna', type: ITEM_TYPES.MATERIAL, icon: 'wool' }
 };
 
 // Fast lookup map by ID

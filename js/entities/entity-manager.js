@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake, Bear } from './mobs/passive.js?v=bear_ride_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=bear_ride_1';
-import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=bear_ride_1';
+import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
+import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=drops_1';
+import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=drops_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -29,24 +29,27 @@ export class EntityManager {
         // Expose globally for convenience
         if (typeof window !== 'undefined') {
             window.killSnakesExceptOne = () => this.killSnakesExceptOne();
+            window.spawnCow = () => this.spawnPassiveNear(this.player?.position?.x || 32, this.player?.position?.z || 32, 'cow', 2, 4);
         }
     }
 
     spawnInitialAnimals() {
-        // 1. Standardowe zwierzęta (świnie, owce)
+        // 1. Zwierzęta gospodarskie (świnie, owce, krowy)
         const spawnData = [
             { x: 28, z: 28, type: 'pig' },
             { x: 36, z: 25, type: 'sheep' },
-            { x: 20, z: 35, type: 'pig' },
+            { x: 22, z: 36, type: 'cow' },
             { x: 38, z: 45, type: 'sheep' },
-            { x: 32, z: 18, type: 'pig' }
+            { x: 34, z: 20, type: 'cow' },
+            { x: 42, z: 32, type: 'pig' }
         ];
 
         for (const data of spawnData) {
-            const animal = data.type === 'pig'
-                ? new Pig(this.scene, this.world, data.x, data.z, this)
-                : new Sheep(this.scene, this.world, data.x, data.z, this);
-            this.animals.push(animal);
+            let animal = null;
+            if (data.type === 'pig') animal = new Pig(this.scene, this.world, data.x, data.z, this);
+            else if (data.type === 'sheep') animal = new Sheep(this.scene, this.world, data.x, data.z, this);
+            else if (data.type === 'cow') animal = new Cow(this.scene, this.world, data.x, data.z, this);
+            if (animal) this.animals.push(animal);
         }
 
         // 2. DOKŁADNIE 1 WĄŻ w całym świecie (obok gracza lub w bazie)
@@ -196,6 +199,33 @@ export class EntityManager {
                 maxLife: 0.55
             });
         }
+    }
+
+    spawnPassiveNear(centerX, centerZ, type = 'cow', minDist = 15, maxDist = 35) {
+        for (let attempt = 0; attempt < 25; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = minDist + Math.random() * (maxDist - minDist);
+            const bx = Math.floor(centerX + Math.cos(angle) * dist);
+            const bz = Math.floor(centerZ + Math.sin(angle) * dist);
+
+            const gy = this.getGroundHeight(bx, bz);
+            const groundBlockId = this.world.getBlock(bx, gy - 1, bz);
+
+            if (!groundBlockId || groundBlockId === 10 || groundBlockId === 5) continue;
+            if (this.world.getBlock(bx, gy, bz) !== 0) continue;
+
+            let animal = null;
+            if (type === 'cow') animal = new Cow(this.scene, this.world, bx + 0.5, bz + 0.5, this);
+            else if (type === 'sheep') animal = new Sheep(this.scene, this.world, bx + 0.5, bz + 0.5, this);
+            else if (type === 'pig') animal = new Pig(this.scene, this.world, bx + 0.5, bz + 0.5, this);
+
+            if (animal) {
+                this.animals.push(animal);
+                console.log(`[EntityManager] Zespawnowano ${type} na (${(bx + 0.5).toFixed(1)}, gy=${gy}, ${(bz + 0.5).toFixed(1)})`);
+                return animal;
+            }
+        }
+        return null;
     }
 
     spawnSnakeNearPlayer(player = this.player, offsetX = 3.0, offsetZ = 2.0) {
@@ -416,6 +446,16 @@ export class EntityManager {
                 const pool = ['polar', 'brown', 'black', 'panda', 'grizzly', 'kermode'];
                 const chosen = pool[Math.floor(Math.random() * pool.length)];
                 this.spawnBearNear(playerPosition.x, playerPosition.z, chosen, 25, 50);
+            }
+
+            // Utrzymuj do 5-6 zwierząt gospodarskich (świnie, owce, krowy)
+            const passives = this.animals.filter(a => (a.type === 'pig' || a.type === 'sheep' || a.type === 'cow') && !a.isDead);
+            this.passiveSpawnTimer = (this.passiveSpawnTimer || 0) + dt;
+            if (passives.length < 6 && this.passiveSpawnTimer >= 18.0) {
+                this.passiveSpawnTimer = 0;
+                const pool = ['pig', 'sheep', 'cow'];
+                const chosen = pool[Math.floor(Math.random() * pool.length)];
+                this.spawnPassiveNear(playerPosition.x, playerPosition.z, chosen, 18, 38);
             }
         }
 

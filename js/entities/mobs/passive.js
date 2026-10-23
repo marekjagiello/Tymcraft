@@ -3,6 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z } from '../../world.js';
 import { playHitSound, playEatSound } from '../../audio.js';
 import { eventBus } from '../../events.js';
+import { DroppedItem } from '../../drops.js';
 
 // Helper to create a 3D pixel heart mesh (Minecraft-style voxel heart)
 export function createPixelHeartMesh() {
@@ -133,6 +134,30 @@ export class Pig extends Mob {
 
         this.updateFooting(dt);
     }
+
+    die() {
+        if (this.isDead) return;
+
+        // Drop Raw Porkchop (ID 38)
+        if (this.manager && this.manager.drops) {
+            const count = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < count; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    38,
+                    'Surowy Schab',
+                    this.position.x + (Math.random() - 0.5) * 0.4,
+                    this.position.y + 0.3,
+                    this.position.z + (Math.random() - 0.5) * 0.4
+                );
+                this.manager.drops.items.push(drop);
+            }
+            console.log(`[Drops] Ze świnki wypadł Surowy Schab (ID: 38) x${count}!`);
+        }
+
+        super.die();
+    }
 }
 
 export class Sheep extends Mob {
@@ -239,6 +264,227 @@ export class Sheep extends Mob {
         }
 
         this.updateFooting(dt);
+    }
+
+    die() {
+        if (this.isDead) return;
+
+        // Drop White Wool (ID 42) & Raw Mutton (ID 39)
+        if (this.manager && this.manager.drops) {
+            // Zawsze 1 Biała Wełna
+            const woolDrop = new DroppedItem(
+                this.scene,
+                this.world,
+                42,
+                'Biała Wełna',
+                this.position.x,
+                this.position.y + 0.3,
+                this.position.z
+            );
+            this.manager.drops.items.push(woolDrop);
+
+            // 1-2 sztuki Surowej Baraniny
+            const count = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < count; i++) {
+                const muttonDrop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    39,
+                    'Surowa Baranina',
+                    this.position.x + (Math.random() - 0.5) * 0.4,
+                    this.position.y + 0.3,
+                    this.position.z + (Math.random() - 0.5) * 0.4
+                );
+                this.manager.drops.items.push(muttonDrop);
+            }
+            console.log(`[Drops] Z owieczki wypadła Biała Wełna (ID: 42) oraz Surowa Baranina (ID: 39) x${count}!`);
+        }
+
+        super.die();
+    }
+}
+
+export class Cow extends Mob {
+    constructor(scene, world, x = 32, z = 32, manager = null) {
+        super(scene, world, 'cow', x, z, manager);
+        this.maxHealth = 10;
+        this.health = 10;
+        this.walkSpeed = 1.45;
+
+        this.buildModel();
+        this.snapToGround();
+        this.scene.add(this.group);
+    }
+
+    buildModel() {
+        // Minecraft spotted cow palette
+        const hideMat = new THREE.MeshLambertMaterial({ color: 0x4a2e1b }); // warm dark brown hide
+        const spotMat = new THREE.MeshLambertMaterial({ color: 0xe5e5e5 }); // white spots
+        const snoutMat = new THREE.MeshLambertMaterial({ color: 0xd4a59a }); // pinkish snout
+        const hornMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af }); // light grey horns
+        const udderMat = new THREE.MeshLambertMaterial({ color: 0xfbcfe8 }); // pink udder
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x18181b });
+
+        // Body: 0.9 x 0.85 x 1.35
+        const bodyGeo = new THREE.BoxGeometry(0.9, 0.85, 1.35);
+        const body = new THREE.Mesh(bodyGeo, hideMat);
+        body.position.set(0, 0.95, 0);
+        this.group.add(body);
+
+        // White spots on cow body
+        const spot1 = new THREE.Mesh(new THREE.BoxGeometry(0.91, 0.45, 0.5), spotMat);
+        spot1.position.set(0, 0.95, 0.15);
+        this.group.add(spot1);
+
+        const spot2 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.91), spotMat);
+        spot2.position.set(-0.28, 1.05, -0.2);
+        this.group.add(spot2);
+
+        // Pink Udder under the rear belly
+        const udder = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.3), udderMat);
+        udder.position.set(0, 0.45, -0.3);
+        this.group.add(udder);
+
+        // Head
+        const headGeo = new THREE.BoxGeometry(0.55, 0.55, 0.55);
+        this.head = new THREE.Mesh(headGeo, hideMat);
+        this.head.position.set(0, 1.25, 0.85);
+
+        // White spot on forehead
+        const headSpot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.05), spotMat);
+        headSpot.position.set(0, 0.12, 0.28);
+        this.head.add(headSpot);
+
+        // Snout
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.25, 0.22), snoutMat);
+        snout.position.set(0, -0.14, 0.32);
+        this.head.add(snout);
+
+        // Horns
+        const hornGeo = new THREE.BoxGeometry(0.08, 0.18, 0.08);
+        const hornL = new THREE.Mesh(hornGeo, hornMat);
+        hornL.position.set(-0.32, 0.32, -0.05);
+        hornL.rotation.z = 0.2;
+        const hornR = new THREE.Mesh(hornGeo, hornMat);
+        hornR.position.set(0.32, 0.32, -0.05);
+        hornR.rotation.z = -0.2;
+        this.head.add(hornL, hornR);
+
+        // Eyes
+        const eyeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.05);
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeL.position.set(-0.24, 0.08, 0.26);
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeR.position.set(0.24, 0.08, 0.26);
+        this.head.add(eyeL, eyeR);
+
+        this.group.add(this.head);
+
+        // 4 Sturdy Legs
+        const legGeo = new THREE.BoxGeometry(0.24, 0.65, 0.24);
+        const legOffsets = [
+            [-0.30, 0.325, 0.45],  // front left
+            [0.30, 0.325, 0.45],   // front right
+            [-0.30, 0.325, -0.45], // back left
+            [0.30, 0.325, -0.45]   // back right
+        ];
+
+        for (let i = 0; i < 4; i++) {
+            const pivot = new THREE.Group();
+            pivot.position.set(legOffsets[i][0], 0.65, legOffsets[i][2]);
+            const legMesh = new THREE.Mesh(legGeo, hideMat);
+            legMesh.position.set(0, -0.325, 0);
+            pivot.add(legMesh);
+            this.group.add(pivot);
+            this.legs.push(pivot);
+        }
+    }
+
+    update(dt) {
+        this.updateHearts(dt);
+        this.stateTimer -= dt;
+        if (this.stateTimer <= 0) {
+            if (this.state === 'idle') {
+                this.state = 'walk';
+                this.stateTimer = 2.0 + Math.random() * 4.0;
+                this.targetRotationY = Math.random() * Math.PI * 2;
+            } else {
+                this.state = 'idle';
+                this.stateTimer = 2.5 + Math.random() * 4.5;
+            }
+        }
+
+        let diff = this.targetRotationY - this.rotationY;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.rotationY += diff * 3.5 * dt;
+        this.group.rotation.y = this.rotationY;
+
+        if (this.state === 'walk') {
+            this.animTime += dt * 6.5;
+            const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotationY);
+            const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
+            const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
+
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y > 1.15) {
+                this.targetRotationY += (Math.random() < 0.5 ? 0.75 : -0.75);
+            } else {
+                this.position.x = nextX;
+                this.position.z = nextZ;
+            }
+
+            const swing = Math.sin(this.animTime) * 0.55;
+            this.legs[0].rotation.x = swing;
+            this.legs[1].rotation.x = -swing;
+            this.legs[2].rotation.x = -swing;
+            this.legs[3].rotation.x = swing;
+        } else {
+            for (const leg of this.legs) leg.rotation.x *= 0.8;
+            if (this.head) this.head.rotation.y = Math.sin(Date.now() * 0.0015) * 0.12;
+        }
+
+        this.updateFooting(dt);
+    }
+
+    die() {
+        if (this.isDead) return;
+
+        // Drop Raw Beef (ID 40) & Leather (ID 41)
+        if (this.manager && this.manager.drops) {
+            // Surowa Wołowina x1-3
+            const beefCount = 1 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < beefCount; i++) {
+                const beefDrop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    40,
+                    'Surowa Wołowina',
+                    this.position.x + (Math.random() - 0.5) * 0.4,
+                    this.position.y + 0.35,
+                    this.position.z + (Math.random() - 0.5) * 0.4
+                );
+                this.manager.drops.items.push(beefDrop);
+            }
+
+            // Skóra x1-2
+            const leatherCount = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < leatherCount; i++) {
+                const leatherDrop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    41,
+                    'Skóra',
+                    this.position.x + (Math.random() - 0.5) * 0.4,
+                    this.position.y + 0.35,
+                    this.position.z + (Math.random() - 0.5) * 0.4
+                );
+                this.manager.drops.items.push(leatherDrop);
+            }
+            console.log(`[Drops] Z krówki wypadła Surowa Wołowina x${beefCount} oraz Skóra x${leatherCount}!`);
+        }
+
+        super.die();
     }
 }
 

@@ -229,6 +229,88 @@ function createLilyPadDropMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Raw Porkchop mesh
+function createPorkchopMesh() {
+    const group = new THREE.Group();
+    const meatMat = new THREE.MeshLambertMaterial({ color: 0xef7a7a });
+    const fatMat = new THREE.MeshLambertMaterial({ color: 0xffe4e6 });
+    const boneMat = new THREE.MeshLambertMaterial({ color: 0xf1f5f9 });
+
+    const meat = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.08, 0.16), meatMat);
+    meat.castShadow = true;
+    group.add(meat);
+
+    const fat = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.08, 0.04), fatMat);
+    fat.position.set(0, 0, 0.07);
+    group.add(fat);
+
+    const bone = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), boneMat);
+    bone.position.set(-0.11, 0, 0);
+    group.add(bone);
+
+    return group;
+}
+
+// Helper to create a miniature 3D Raw Mutton mesh
+function createMuttonMesh() {
+    const group = new THREE.Group();
+    const meatMat = new THREE.MeshLambertMaterial({ color: 0xbe123c });
+    const boneMat = new THREE.MeshLambertMaterial({ color: 0xf8fafc });
+
+    const meat = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.07, 0.14), meatMat);
+    meat.castShadow = true;
+    group.add(meat);
+
+    const bone = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.08), boneMat);
+    bone.position.set(0, 0, -0.09);
+    group.add(bone);
+
+    return group;
+}
+
+// Helper to create a miniature 3D Raw Beef steak mesh
+function createBeefMesh() {
+    const group = new THREE.Group();
+    const steakMat = new THREE.MeshLambertMaterial({ color: 0xb91c1c });
+    const marblingMat = new THREE.MeshLambertMaterial({ color: 0xfecdd3 });
+
+    const steak = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.18), steakMat);
+    steak.castShadow = true;
+    group.add(steak);
+
+    const streak = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.082, 0.04), marblingMat);
+    streak.position.set(0.02, 0, 0.02);
+    group.add(streak);
+
+    return group;
+}
+
+// Helper to create a miniature 3D Leather drop mesh
+function createLeatherMesh() {
+    const group = new THREE.Group();
+    const leatherMat = new THREE.MeshLambertMaterial({ color: 0x854d0e });
+    const pelt = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.20), leatherMat);
+    pelt.castShadow = true;
+    group.add(pelt);
+
+    const cornerMat = new THREE.MeshLambertMaterial({ color: 0xa16207 });
+    const corner = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.035, 0.08), cornerMat);
+    corner.position.set(0.07, 0, 0.06);
+    group.add(corner);
+
+    return group;
+}
+
+// Helper to create a miniature 3D White Wool drop mesh
+function createWoolMesh() {
+    const group = new THREE.Group();
+    const woolMat = new THREE.MeshLambertMaterial({ color: 0xf4f4f5 });
+    const wool = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), woolMat);
+    wool.castShadow = true;
+    group.add(wool);
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -281,6 +363,16 @@ export class DroppedItem {
             this.mesh = createRubyMesh();
         } else if (this.id === 36) {
             this.mesh = createGunpowderMesh();
+        } else if (this.id === 38) {
+            this.mesh = createPorkchopMesh();
+        } else if (this.id === 39) {
+            this.mesh = createMuttonMesh();
+        } else if (this.id === 40) {
+            this.mesh = createBeefMesh();
+        } else if (this.id === 41) {
+            this.mesh = createLeatherMesh();
+        } else if (this.id === 42) {
+            this.mesh = createWoolMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
