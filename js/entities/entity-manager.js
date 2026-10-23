@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './mobs/hostile.js?v=drops_1';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot } from './mobs/hostile.js?v=quests_robot_1';
+
 import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=drops_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
@@ -72,6 +73,10 @@ export class EntityManager {
         const startZ = (this.player && this.player.position) ? this.player.position.z : 32;
         this.spawnDirtikNear(startX, startZ, 22, 38);
 
+        // 4b. Początkowy ukryty Robot Transformer (16-26m)
+        this.spawnRobotNear(startX, startZ, 16, 26);
+
+
         // 5. Dokładnie 1 oswojony, przyjazny Niedźwiedź Brunatny tuż obok gracza (3-4 bloki) do natychmiastowej jazdy!
         const starterBear = this.spawnBearNear(startX, startZ, 'brown', 3.0, 4.5);
         if (starterBear) {
@@ -125,6 +130,37 @@ export class EntityManager {
         }
         return null;
     }
+
+    spawnRobotNear(centerX, centerZ, minDist = 16, maxDist = 32) {
+        for (let attempt = 0; attempt < 25; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = minDist + Math.random() * (maxDist - minDist);
+            const bx = Math.floor(centerX + Math.cos(angle) * dist);
+            const bz = Math.floor(centerZ + Math.sin(angle) * dist);
+
+            const gy = this.getGroundHeight(bx, bz);
+            const groundBlockId = this.world.getBlock(bx, gy - 1, bz);
+            if (groundBlockId <= 0 || groundBlockId === 10) continue; // Not in water
+
+            const robot = new Robot(this.scene, this.world, bx + 0.5, bz + 0.5, this);
+            this.animals.push(robot);
+            console.log(`[EntityManager] Zespawnowano ukrytego Robota na (${(bx + 0.5).toFixed(1)}, gy=${gy}, ${(bz + 0.5).toFixed(1)})`);
+            return robot;
+        }
+        return null;
+    }
+
+    spawnRobotInFrontOfPlayer(player = this.player, distance = 4.0) {
+        if (!player) return null;
+        const forward = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, player.rotation.y, 0, 'YXZ'));
+        const px = Math.floor(player.position.x + forward.x * distance) + 0.5;
+        const pz = Math.floor(player.position.z + forward.z * distance) + 0.5;
+        const robot = new Robot(this.scene, this.world, px, pz, this);
+        this.animals.push(robot);
+        console.log(`[EntityManager] Zespawnowano ukrytego Robota na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
+        return robot;
+    }
+
 
     findClosestBear(pos, maxDist = 4.0) {
         if (!pos) return null;
@@ -437,6 +473,15 @@ export class EntityManager {
                 this.dirtikSpawnTimer = 0;
                 this.spawnDirtikNear(playerPosition.x, playerPosition.z, 25, 45);
             }
+
+            // Utrzymuj do 1-2 ukrytych Robotów Transformerów w świecie (20-40m)
+            const activeRobots = this.animals.filter(a => a.type === 'robot' && !a.isDead);
+            this.robotSpawnTimer = (this.robotSpawnTimer || 0) + dt;
+            if (activeRobots.length < 1 && this.robotSpawnTimer >= 22.0) {
+                this.robotSpawnTimer = 0;
+                this.spawnRobotNear(playerPosition.x, playerPosition.z, 20, 38);
+            }
+
 
             // Utrzymuj do 3-4 niedźwiedzi w całym świecie, pojawiających się w oddali (25-50m)
             const activeBears = this.animals.filter(a => a.type === 'bear' && !a.isDead);

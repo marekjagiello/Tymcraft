@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SimplexNoise } from './simplex-noise.js?v=world_gen4';
-import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=mystery_1';
+import { BLOCK_DEF, AtlasMaterial, getTileUV } from './textures.js?v=quests_robot_1';
+
 
 export const CHUNK_SIZE = 16;
 export const CHUNKS_X = 4;
@@ -185,15 +186,24 @@ export class World {
     }
 
     getBiome(x, z) {
-        const scale = 0.02;
-        const temp = this.biomeNoise.noise2D(x * scale, z * scale);
-        const moisture = this.biomeNoise.noise2D((x + 200) * scale, (z + 200) * scale);
+        const dx = x - 32;
+        const dz = z - 32;
 
-        if (temp > 0.15 && moisture < 0.05) return 'Desert';
-        if (temp < -0.22) return 'Mountains';
-        if (moisture > 0.12) return 'Forest';
+        // Immediate spawn center (32, 32) is peaceful Plains
+        if (Math.abs(dx) <= 9 && Math.abs(dz) <= 9) return 'Plains';
+
+        // West: Beautiful Golden Desert with Sand and Cacti!
+        if (dx < -11) return 'Desert';
+
+        // East: Snowy Mountains with high freezing peaks!
+        if (dx > 14) return 'Mountains';
+
+        const scale = 0.025;
+        const moisture = this.biomeNoise.noise2D((x + 200) * scale, (z + 200) * scale);
+        if (moisture > 0.08) return 'Forest';
         return 'Plains';
     }
+
 
     // Procedural generation of a single chunk (Terrain, Biomes, Underground Caves, Trees)
     generateChunk(chunk) {

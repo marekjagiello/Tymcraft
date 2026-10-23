@@ -368,7 +368,42 @@ function createWaterBottleMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Warm Jacket drop mesh
+function createWarmJacketMesh() {
+    const group = new THREE.Group();
+    const coatMat = new THREE.MeshLambertMaterial({ color: 0xb45309 }); // Warm leather amber
+    const furMat = new THREE.MeshLambertMaterial({ color: 0xfef3c7 });  // Fluffy white fur collar
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.14), coatMat);
+    group.add(body);
+    const collar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.16), furMat);
+    collar.position.y = 0.13;
+    group.add(collar);
+    return group;
+}
+
+// Helper to create a miniature 3D Laser Sword drop mesh
+function createLaserSwordMesh() {
+    const group = new THREE.Group();
+    const handleMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    const laserMat = new THREE.MeshLambertMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.85
+    });
+
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.14, 0.04), handleMat);
+    group.add(handle);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.44, 0.03), laserMat);
+    blade.position.y = 0.28;
+    group.add(blade);
+
+    group.rotation.z = Math.PI / 4;
+    return group;
+}
+
 export class DroppedItem {
+
 
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -441,9 +476,14 @@ export class DroppedItem {
             this.mesh = createMysteryBoxMesh();
         } else if (this.id === 45) {
             this.mesh = createWaterBottleMesh();
+        } else if (this.id === 46) {
+            this.mesh = createWarmJacketMesh();
+        } else if (this.id === 47) {
+            this.mesh = createLaserSwordMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
+
 
 
         this.mesh.position.copy(this.position);

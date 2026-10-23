@@ -3,8 +3,9 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=water_2';
+
 
 export class Zombie extends Mob {
     constructor(scene, world, x = 32, z = 32, manager = null, hasHelmet = false) {
@@ -1111,3 +1112,306 @@ export class Dirtik extends Mob {
         this.updateFooting(dt);
     }
 }
+
+// -------------------------------------------------------------
+// Robot Transformer Mob (Disguised metallic cube -> Mecha Robot with laser sword)
+// Attacks for 10 DMG (5 hearts!), 40 HP, wakes within 5 blocks!
+// -------------------------------------------------------------
+export class Robot extends Mob {
+    constructor(scene, world, x = 32, z = 32, manager = null) {
+        const blockX = Math.floor(x) + 0.5;
+        const blockZ = Math.floor(z) + 0.5;
+        super(scene, world, 'robot', blockX, blockZ, manager);
+        this.maxHealth = 40;
+        this.health = 40;
+        this.walkSpeed = 1.4;
+        this.attackDamage = 10; // Exactly 5 hearts!
+        this.isAwakened = false;
+        this.awakenDistance = 5.0;
+        this.attackCooldown = 0;
+        this.swingTime = 0;
+
+        this.buildModels();
+        this.buildHealthBar(2.2);
+        if (this.healthBarGroup) {
+            this.healthBarGroup.visible = false;
+        }
+        this.snapToGround();
+        this.rotationY = 0;
+        this.targetRotationY = 0;
+        this.group.rotation.set(0, 0, 0);
+        this.scene.add(this.group);
+    }
+
+    buildModels() {
+        // --- 1. Disguised Mode: metallic high-tech cube (1x1x1) with glowing red sensor ---
+        this.disguisedGroup = new THREE.Group();
+        const steelMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+        const trimMat = new THREE.MeshLambertMaterial({ color: 0x64748b });
+        const ledMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+        const cubeGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+        const cubeMesh = new THREE.Mesh(cubeGeo, steelMat);
+        cubeMesh.position.set(0, 0.5, 0);
+        cubeMesh.castShadow = true;
+        this.disguisedGroup.add(cubeMesh);
+
+        // Tech trims on cube
+        const trimTop = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.08, 1.02), trimMat);
+        trimTop.position.set(0, 0.96, 0);
+        this.disguisedGroup.add(trimTop);
+
+        // Glowing red diode in center of front face
+        const diode = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.04), ledMat);
+        diode.position.set(0, 0.5, 0.51);
+        this.disguisedGroup.add(diode);
+
+        this.group.add(this.disguisedGroup);
+
+        // --- 2. Awakened Mode: Standing Mecha Robot with Laser Sword ---
+        this.awakenedGroup = new THREE.Group();
+        this.awakenedGroup.visible = false;
+
+        const bodyMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+        const armorMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+        const yellowMat = new THREE.MeshLambertMaterial({ color: 0xfacc15 }); // Hazard stripes
+        const visorMat = new THREE.MeshBasicMaterial({ color: 0xff2222 }); // Red visor
+        const laserMat = new THREE.MeshLambertMaterial({
+            color: 0x38bdf8,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.8
+        });
+
+        // Head (0.44 x 0.40 x 0.40)
+        const headGeo = new THREE.BoxGeometry(0.44, 0.40, 0.40);
+        this.head = new THREE.Mesh(headGeo, armorMat);
+        this.head.position.set(0, 1.48, 0);
+        this.head.castShadow = true;
+        this.awakenedGroup.add(this.head);
+
+        // Antenna
+        const ant = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.04), yellowMat);
+        ant.position.set(0, 0.3, 0);
+        this.head.add(ant);
+
+        // Visor
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.10, 0.03), visorMat);
+        visor.position.set(0, 0.02, 0.21);
+        this.head.add(visor);
+
+        // Torso / Chest (0.56 x 0.66 x 0.36)
+        const torsoGeo = new THREE.BoxGeometry(0.56, 0.66, 0.36);
+        this.body = new THREE.Mesh(torsoGeo, bodyMat);
+        this.body.position.set(0, 0.95, 0);
+        this.body.castShadow = true;
+        this.awakenedGroup.add(this.body);
+
+        // Glowing reactor core in chest
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const core = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.04), coreMat);
+        core.position.set(0, 0.05, 0.19);
+        this.body.add(core);
+
+        // Left Arm (pivot at shoulder)
+        const armGeo = new THREE.BoxGeometry(0.16, 0.60, 0.16);
+        this.lArmPivot = new THREE.Group();
+        this.lArmPivot.position.set(-0.38, 1.22, 0);
+        const lArmMesh = new THREE.Mesh(armGeo, armorMat);
+        lArmMesh.position.set(0, -0.28, 0);
+        lArmMesh.castShadow = true;
+        this.lArmPivot.add(lArmMesh);
+        this.awakenedGroup.add(this.lArmPivot);
+
+        // Right Arm (holds Laser Sword)
+        this.rArmPivot = new THREE.Group();
+        this.rArmPivot.position.set(0.38, 1.22, 0);
+        const rArmMesh = new THREE.Mesh(armGeo, armorMat);
+        rArmMesh.position.set(0, -0.28, 0);
+        rArmMesh.castShadow = true;
+        this.rArmPivot.add(rArmMesh);
+
+        // Laser Cyber-Sword
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06), bodyMat);
+        handle.position.set(0, -0.56, 0.15);
+        this.rArmPivot.add(handle);
+
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.85, 0.04), laserMat);
+        blade.position.set(0, 0.44, 0);
+        handle.add(blade);
+
+        this.awakenedGroup.add(this.rArmPivot);
+
+        // 2 Legs
+        const legGeo = new THREE.BoxGeometry(0.20, 0.62, 0.20);
+        this.lLegPivot = new THREE.Group();
+        this.lLegPivot.position.set(-0.16, 0.62, 0);
+        const lLeg = new THREE.Mesh(legGeo, armorMat);
+        lLeg.position.set(0, -0.31, 0);
+        lLeg.castShadow = true;
+        this.lLegPivot.add(lLeg);
+
+        this.rLegPivot = new THREE.Group();
+        this.rLegPivot.position.set(0.16, 0.62, 0);
+        const rLeg = new THREE.Mesh(legGeo, armorMat);
+        rLeg.position.set(0, -0.31, 0);
+        rLeg.castShadow = true;
+        this.rLegPivot.add(rLeg);
+
+        this.awakenedGroup.add(this.lLegPivot, this.rLegPivot);
+        this.legs = [this.lLegPivot, this.rLegPivot];
+
+        this.group.add(this.awakenedGroup);
+    }
+
+    awaken() {
+        if (this.isAwakened) return;
+        this.isAwakened = true;
+        this.disguisedGroup.visible = false;
+        this.awakenedGroup.visible = true;
+        if (this.healthBarGroup) {
+            this.healthBarGroup.visible = true;
+        }
+
+        playRobotWakeSound();
+        eventBus.emit('ui:popup', '🤖 UWAGA! Robot Transformer obudził się z mieczem!');
+        if (this.manager?.ui) {
+            this.manager.ui.addChatMessage('Serwer', '🤖 Bzzzt! Bojowy Robot powstał do walki! Uważaj na potężne ciosy za 5 serduszek!', 'chat-warning');
+        }
+    }
+
+    die() {
+        if (this.isDead) return;
+        super.die();
+        eventBus.emit('mob:killed', { type: 'robot' });
+
+        // Drops: Diamonds (30), Mystery Box (44), Gunpowder (36)
+        if (this.manager && this.manager.drops) {
+            // 2-3 Diamonds
+            const dCount = 2 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < dCount; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    30,
+                    'Diament',
+                    this.position.x + (Math.random() - 0.5) * 0.7,
+                    this.position.y + 0.6,
+                    this.position.z + (Math.random() - 0.5) * 0.7
+                );
+                this.manager.drops.add(drop);
+            }
+
+            // 1 Mystery Box
+            const mbox = new DroppedItem(
+                this.scene,
+                this.world,
+                44,
+                'Mystery Box',
+                this.position.x,
+                this.position.y + 0.6,
+                this.position.z
+            );
+            this.manager.drops.add(mbox);
+
+            // Laser Sword drop
+            const sword = new DroppedItem(
+                this.scene,
+                this.world,
+                47,
+                'Laserowy Miecz',
+                this.position.x + 0.3,
+                this.position.y + 0.6,
+                this.position.z + 0.3
+            );
+            this.manager.drops.add(sword);
+        }
+
+        if (this.manager?.ui) {
+            this.manager.ui.addChatMessage('Serwer', '🏆 Zwycięstwo! Pokonałeś potężnego Robota Transformera! Zgarnij jego Laserowy Miecz i Diamenty!', 'chat-success');
+        }
+    }
+
+    update(dt, playerPosition) {
+        if (this.isDead) return;
+
+        // Disguised mode: check proximity to wake up
+        if (!this.isAwakened) {
+            const dist = this.group.position.distanceTo(playerPosition);
+            if (dist <= this.awakenDistance) {
+                this.awaken();
+            } else {
+                return;
+            }
+        }
+
+        // Awakened combat AI
+        const dx = playerPosition.x - this.position.x;
+        const dz = playerPosition.z - this.position.z;
+        const dist = Math.hypot(dx, dz);
+
+        this.targetRotationY = Math.atan2(dx, dz);
+
+        // Move towards player if not in melee range
+        if (dist > 1.8 && dist < 35.0) {
+            this.state = 'walk';
+        } else if (dist <= 2.2) {
+            this.state = 'idle';
+            if (this.attackCooldown <= 0) {
+                this.attackCooldown = 1.4;
+                this.swingTime = 0.35;
+                playLaserSwordSound();
+                playHitSound();
+
+                if (this.manager?.survival) {
+                    this.manager.survival.takeDamage(this.attackDamage, 'Cios Laserowym Mieczem Robota! 🤖⚡');
+                }
+                eventBus.emit('ui:popup', '💥 Robot trafił Cię mieczem! (-5 serduszek)');
+            }
+        } else {
+            this.state = 'idle';
+        }
+
+        if (this.attackCooldown > 0) this.attackCooldown -= dt;
+
+        // Sword swing animation
+        if (this.swingTime > 0) {
+            this.swingTime -= dt;
+            this.rArmPivot.rotation.x = -1.4 + Math.sin(this.swingTime * 14) * 1.0;
+        } else {
+            this.rArmPivot.rotation.x = -0.3;
+        }
+
+        // Smooth rotation
+        let diff = this.targetRotationY - this.rotationY;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.rotationY += diff * 4 * dt;
+        this.group.rotation.y = this.rotationY;
+
+        // Walking animation & movement
+        if (this.state === 'walk') {
+            this.animTime += dt * 7.5;
+            const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotationY);
+            const nextX = this.position.x + fwd.x * this.walkSpeed * dt;
+            const nextZ = this.position.z + fwd.z * this.walkSpeed * dt;
+
+            const groundAtTarget = this.getGroundHeight(nextX, nextZ);
+            if (groundAtTarget - this.position.y <= 1.2) {
+                this.position.x = nextX;
+                this.position.z = nextZ;
+            }
+
+            const swing = Math.sin(this.animTime) * 0.6;
+            this.legs[0].rotation.x = swing;
+            this.legs[1].rotation.x = -swing;
+            this.lArmPivot.rotation.x = -swing;
+        } else {
+            this.legs[0].rotation.x *= 0.8;
+            this.legs[1].rotation.x *= 0.8;
+            this.lArmPivot.rotation.x *= 0.8;
+        }
+
+        this.updateFooting(dt);
+    }
+}
+

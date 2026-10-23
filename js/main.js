@@ -1,15 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=grat_1';
-import { Player } from './player.js?v=grat_1';
-import { Interaction } from './interaction.js?v=grat_1';
-import { AnimalManager } from './animals.js?v=grat_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=grat_1';
-import { StorageManager } from './storage.js?v=grat_1';
-import { SurvivalManager } from './survival.js?v=grat_1';
-import { CraftingManager } from './crafting.js?v=grat_1';
-import { DropsManager } from './drops.js?v=grat_1';
-import { eventBus } from './events.js?v=grat_1';
-import { updateWaterAnimation } from './textures.js?v=grat_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=quests_robot_1';
+import { Player } from './player.js?v=quests_robot_1';
+import { Interaction } from './interaction.js?v=quests_robot_1';
+import { AnimalManager } from './animals.js?v=quests_robot_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=quests_robot_1';
+import { StorageManager } from './storage.js?v=quests_robot_1';
+import { SurvivalManager } from './survival.js?v=quests_robot_1';
+import { CraftingManager } from './crafting.js?v=quests_robot_1';
+import { DropsManager } from './drops.js?v=quests_robot_1';
+import { eventBus } from './events.js?v=quests_robot_1';
+import { updateWaterAnimation } from './textures.js?v=quests_robot_1';
+import { QuestManager } from './quests.js?v=quests_robot_1';
+
 
 
 class Game {
@@ -140,6 +142,11 @@ class Game {
             this.ui.selectSlot(savedState.selectedSlot);
         }
 
+        // 6b. Quest Manager (Top-Left HUD and 5 Quests as requested by Tymek)
+        this.questManager = new QuestManager(this.ui, this.player, this.world);
+        this.player.questManager = this.questManager;
+        this.player.ui = this.ui;
+
         // 7. Drops System (floating mini-blocks and apples)
         this.drops = new DropsManager(this.scene, this.world);
 
@@ -167,8 +174,10 @@ class Game {
             window.game = this;
             window.spawnCreeper = () => this.animals.spawnCreeperInFrontOfPlayer(this.player, 5.0);
             window.spawnDirtik = () => this.animals.spawnDirtikInFrontOfPlayer(this.player, 4.0);
+            window.spawnRobot = () => this.animals.spawnRobotInFrontOfPlayer(this.player, 4.0);
             window.spawnBear = (variant = 'polar') => this.animals.spawnBearNear(this.player.position.x, this.player.position.z, variant, 2, 4);
         }
+
 
         // Klawisz P: Wsiadanie / zsiadanie z niedźwiedzia
         eventBus.on('player:toggle_mount', () => {

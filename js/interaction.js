@@ -64,8 +64,9 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85))));
-            const hitRadius = (animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95);
+            const height = (animal.type === 'robot') ? 2.0 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)))));
+            const hitRadius = (animal.type === 'robot') ? 1.15 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95));
+
 
             // Center of animal vertical capsule
             const center = animal.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
@@ -296,7 +297,12 @@ export class Interaction {
                         msg = '🥩 Zjedzono wyborną wołowinę (+5 głód, +3 HP)!';
                     } else if (activeItemId === 45) {
                         msg = '💧 Napiłeś się orzeźwiającej wody (+2 głód, +2 HP)!';
+                        const px = Math.floor(this.player.position.x);
+                        const pz = Math.floor(this.player.position.z);
+                        const biome = this.world?.getBiome ? this.world.getBiome(px, pz) : 'Plains';
+                        eventBus.emit('water:drank', { biome });
                     }
+
 
                     eventBus.emit('ui:popup', msg);
 
@@ -387,7 +393,9 @@ export class Interaction {
 
     openMysteryBox() {
         eventBus.emit('item:consume');
+        eventBus.emit('mystery_box:opened');
         if (this.onItemConsumed) this.onItemConsumed(44);
+
 
         // Sound effect: joyful C5-E5-G5-C6 arpeggio chime!
         try {

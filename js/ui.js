@@ -129,8 +129,17 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '💧'; // Butelka Wody
             itemSpan.style.filter = 'drop-shadow(0 0 6px #38bdf8)';
         }
+        else if (itemId === 46) {
+            itemSpan.innerText = '🧥'; // Ciepła Kurtka
+            itemSpan.style.filter = 'drop-shadow(0 0 6px #f59e0b)';
+        }
+        else if (itemId === 47) {
+            itemSpan.innerText = '⚡'; // Laserowy Miecz
+            itemSpan.style.filter = 'drop-shadow(0 0 8px #38bdf8)';
+        }
         return itemSpan;
     }
+
 
     if (itemId === 17) {
         const itemSpan = document.createElement('span');

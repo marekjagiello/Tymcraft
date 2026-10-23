@@ -58,8 +58,11 @@ export const ITEMS = {
     WOOL: { id: 42, name: 'Biała Wełna', type: ITEM_TYPES.MATERIAL, icon: 'wool' },
     STONE_ARMOR: { id: 43, name: 'Kamienna Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'stone_armor' },
     MYSTERY_BOX: { id: 44, name: 'Mystery Box', type: ITEM_TYPES.MATERIAL, icon: 'mystery_box' },
-    WATER_BOTTLE: { id: 45, name: 'Butelka Wody', type: ITEM_TYPES.FOOD, nutrition: 2, heals: 2, icon: 'water_bottle' }
+    WATER_BOTTLE: { id: 45, name: 'Butelka Wody', type: ITEM_TYPES.FOOD, nutrition: 2, heals: 2, icon: 'water_bottle' },
+    WARM_JACKET: { id: 46, name: 'Ciepła Kurtka', type: ITEM_TYPES.MATERIAL, icon: 'warm_jacket' },
+    LASER_SWORD: { id: 47, name: 'Laserowy Miecz', type: ITEM_TYPES.WEAPON, damage: 18.0, efficiency: 1.0, icon: 'laser_sword' }
 };
+
 
 
 // Fast lookup map by ID

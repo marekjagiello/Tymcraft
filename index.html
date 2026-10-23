@@ -56,7 +56,8 @@
         };
     })();
     </script>
-    <link rel="stylesheet" href="./css/style.css?v=mystery_1">
+    <link rel="stylesheet" href="./css/style.css?v=quests_robot_1">
+
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%235b8731'/><rect y='6' width='16' height='10' fill='%23866043'/></svg>">
     <script type="importmap">
     {
@@ -70,13 +71,19 @@
 <body>
     <div id="damage-vignette"></div>
     <div id="underwater-overlay"></div>
+    <div id="freeze-overlay"></div>
+    <div id="heat-overlay"></div>
     <div id="canvas-container"></div>
     <div id="crosshair"></div>
+
+    <!-- Quest Tracker HUD (Left Top Corner as requested by Tymek) -->
+    <div id="quest-hud"></div>
 
     <div id="debug-info">
         <div><b>Minecraft Web POC</b></div>
         <div>Ładowanie świata...</div>
     </div>
+
 
     <div id="block-name-popup"></div>
 
@@ -249,7 +256,8 @@
     </div>
 
     <!-- Main Game Script (ES Module) -->
-    <script type="module" src="./js/main.js?v=grat_1"></script>
+    <script type="module" src="./js/main.js?v=quests_robot_1"></script>
 </body>
+
 
 </html>

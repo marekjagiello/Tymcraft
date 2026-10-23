@@ -1,7 +1,7 @@
 import { Pig, Sheep, Snake, Bear, Cow, createPixelHeartMesh } from './entities/mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik } from './entities/mobs/hostile.js?v=drops_1';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot } from './entities/mobs/hostile.js?v=quests_robot_1';
 import { FlyingArrow, ThrownGunpowder } from './entities/projectile.js?v=drops_1';
-import { EntityManager } from './entities/entity-manager.js?v=drops_1';
+import { EntityManager } from './entities/entity-manager.js?v=quests_robot_1';
 
 export {
     createPixelHeartMesh,
@@ -16,6 +16,7 @@ export {
     Skeleton,
     Creeper,
     Dirtik,
+    Robot,
     EntityManager
 };
 
@@ -23,12 +24,15 @@ export {
 export class Animal {
     constructor(scene, world, type = 'pig', x = 32, z = 32, manager = null, isBaby = false, hasHelmet = false) {
         switch (type) {
+            case 'robot':
+                return new Robot(scene, world, x, z, manager);
             case 'snake':
                 return new Snake(scene, world, x, z, manager, isBaby);
             case 'creeper':
                 return new Creeper(scene, world, x, z, manager);
             case 'dirtik':
                 return new Dirtik(scene, world, x, z, manager);
+
             case 'zombie':
                 return new Zombie(scene, world, x, z, manager, hasHelmet);
             case 'skeleton':

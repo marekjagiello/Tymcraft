@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from './world.js';
 import { eventBus } from './events.js';
+import { playFreezeShiverSound } from './audio.js';
+
 
 export class Player {
     constructor(camera, domElement, world, savedPosition = null) {
@@ -46,7 +48,22 @@ export class Player {
         this.bubbleParticles = [];
         this.bubbleSpawnTimer = 0;
         this.underwaterOverlayEl = null;
+        this.freezeOverlayEl = document.getElementById('freeze-overlay');
+        this.heatOverlayEl = document.getElementById('heat-overlay');
+        this.isFreezing = false;
+        this.isHydrated = false;
+        this.hydrateTimer = 0;
+        this.freezeTimer = 0;
+        this.desertTimer = 0;
+        this.questManager = null;
+
+        eventBus.on('water:drank', () => {
+            this.isHydrated = true;
+            this.hydrateTimer = 60.0;
+        });
+
         this.buildPlayerMesh();
+
 
         this.initControls();
         if (savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number' && typeof savedPosition.z === 'number' && !isNaN(savedPosition.x) && !isNaN(savedPosition.y) && !isNaN(savedPosition.z)) {
@@ -837,7 +854,62 @@ export class Player {
             this.camera.position.copy(camPos);
         }
 
+        // Hydration countdown
+        if (this.isHydrated) {
+            this.hydrateTimer -= dt;
+            if (this.hydrateTimer <= 0) {
+                this.isHydrated = false;
+            }
+        }
+
+        // Shivering on high snowy mountains & Desert heat
+        const biome = this.world?.getBiome ? this.world.getBiome(Math.floor(this.position.x), Math.floor(this.position.z)) : 'Plains';
+        const underBlock = this.world?.getBlock ? this.world.getBlock(Math.floor(this.position.x), Math.floor(this.position.y - 0.5), Math.floor(this.position.z)) : 0;
+        const isSnowyPeak = (biome === 'Mountains' && this.position.y >= 14) || underBlock === 7;
+        const hasJacket = this.ui && (this.ui.hasItem(46) || this.hasWarmJacket);
+
+        if (isSnowyPeak && !hasJacket) {
+            this.isFreezing = true;
+            // Shiver / shake camera
+            const t = performance.now() * 0.045;
+            const shiverX = Math.sin(t * 1.8) * 0.035;
+            const shiverY = Math.cos(t * 2.4) * 0.02;
+            this.camera.position.x += shiverX;
+            this.camera.position.y += shiverY;
+
+            this.freezeTimer = (this.freezeTimer || 0) + dt;
+            if (this.freezeTimer >= 4.0) {
+                this.freezeTimer = 0;
+                playFreezeShiverSound();
+                eventBus.emit('ui:popup', '🥶 Brrr! Zimno na szczycie góry! Trzęsiesz się z zimna! Załóż Ciepłą Kurtkę (Quest 1)!');
+            }
+            if (this.freezeOverlayEl) this.freezeOverlayEl.style.opacity = '0.55';
+        } else {
+            this.isFreezing = false;
+            if (this.freezeOverlayEl) this.freezeOverlayEl.style.opacity = '0';
+        }
+
+        // Desert heat & thirst
+        if (biome === 'Desert') {
+            this.desertTimer = (this.desertTimer || 0) + dt;
+            if (this.heatOverlayEl) {
+                this.heatOverlayEl.style.opacity = this.isHydrated ? '0.08' : '0.45';
+            }
+            if (this.desertTimer >= 7.0 && !this.isHydrated) {
+                this.desertTimer = 0;
+                eventBus.emit('ui:popup', '☀️ Upał na pustyni! Chce Ci się pić! Użyj Butelki Wody (kod "grat")!');
+            }
+        } else {
+            if (this.heatOverlayEl) this.heatOverlayEl.style.opacity = '0';
+        }
+
+        // Quest Manager position tracking
+        if (this.questManager) {
+            this.questManager.checkPlayerLocation(this.position.x, this.position.y, this.position.z, biome, hasJacket);
+        }
+
         // Underwater bubble particles & visual tint
+
         if (this.isInWater && (horizSpeed > 0.3 || this.keys.jump)) {
             this.bubbleSpawnTimer = (this.bubbleSpawnTimer || 0) + dt;
             if (this.bubbleSpawnTimer >= 0.12) {
