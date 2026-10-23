@@ -26,6 +26,13 @@ export class SurvivalManager {
         this.regenTimer = 0;
         this.starveTimer = 0;
 
+        // Oxygen & drowning
+        this.maxOxygen = 10;
+        this.oxygen = 10;
+        this.oxygenTimer = 0;
+        this.drownDamageTimer = 0;
+        this.onOxygenChange = null;
+
         this.vignetteEl = document.getElementById('damage-vignette');
         this.deathOverlayEl = document.getElementById('death-overlay');
 
@@ -157,6 +164,10 @@ export class SurvivalManager {
 
         this.player.spawnOnSurface();
         this.player.controls.lock();
+        this.oxygen = this.maxOxygen;
+        this.oxygenTimer = 0;
+        this.drownDamageTimer = 0;
+        if (this.onOxygenChange) this.onOxygenChange(this.oxygen, this.maxOxygen, false);
         this.onStatsChange(this.health, this.hunger);
     }
 
@@ -246,6 +257,41 @@ export class SurvivalManager {
             }
         } else {
             this.starveTimer = 0;
+        }
+
+        // Underwater oxygen bubbles & drowning damage
+        const isHeadUnderwater = this.player ? Boolean(this.player.isHeadUnderwater) : false;
+        if (isHeadUnderwater) {
+            this.oxygenTimer += dt;
+            // 1 bubble pops every 1.5s (15s underwater capacity)
+            if (this.oxygenTimer >= 1.5) {
+                this.oxygenTimer = 0;
+                this.oxygen = Math.max(0, this.oxygen - 1);
+                if (this.onOxygenChange) {
+                    this.onOxygenChange(this.oxygen, this.maxOxygen, true);
+                }
+            }
+
+            // Drowning damage when oxygen is completely exhausted!
+            if (this.oxygen <= 0) {
+                this.drownDamageTimer += dt;
+                if (this.drownDamageTimer >= 1.2) {
+                    this.drownDamageTimer = 0;
+                    this.takeDamage(2, 'drowning');
+                    eventBus.emit('ui:popup', '🫧 Brak tlenu! Toniesz pod wodą! Wynurz się! 🌊');
+                }
+            } else {
+                this.drownDamageTimer = 0;
+            }
+        } else {
+            // Head is above water: rapidly refill oxygen
+            this.drownDamageTimer = 0;
+            if (this.oxygen < this.maxOxygen) {
+                this.oxygen = Math.min(this.maxOxygen, this.oxygen + dt * 6.0);
+                if (this.onOxygenChange) {
+                    this.onOxygenChange(this.oxygen, this.maxOxygen, false);
+                }
+            }
         }
     }
 }

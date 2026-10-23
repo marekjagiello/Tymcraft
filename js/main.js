@@ -1,16 +1,15 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=coop_q1';
-import { Player } from './player.js?v=coop_q1';
-import { Interaction } from './interaction.js?v=coop_q1';
-import { AnimalManager } from './animals.js?v=coop_q1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=coop_q1';
-import { StorageManager } from './storage.js?v=coop_q1';
-import { SurvivalManager } from './survival.js?v=coop_q1';
-import { CraftingManager } from './crafting.js?v=coop_q1';
-import { DropsManager } from './drops.js?v=coop_q1';
-import { eventBus } from './events.js?v=coop_q1';
-import { updateWaterAnimation } from './textures.js?v=coop_q1';
-import { SecondPlayer } from './player2.js?v=coop_q1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=water_2';
+import { Player } from './player.js?v=water_2';
+import { Interaction } from './interaction.js?v=water_2';
+import { AnimalManager } from './animals.js?v=water_2';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=water_2';
+import { StorageManager } from './storage.js?v=water_2';
+import { SurvivalManager } from './survival.js?v=water_2';
+import { CraftingManager } from './crafting.js?v=water_2';
+import { DropsManager } from './drops.js?v=water_2';
+import { eventBus } from './events.js?v=water_2';
+import { updateWaterAnimation } from './textures.js?v=water_2';
 
 class Game {
     constructor() {
@@ -125,6 +124,9 @@ class Game {
 
         // 6. UI & HUD (Hearts, Hunger, Backpack modal, Reset button)
         this.ui = new UI(this.player, this.world, this.survival, this.crafting, this.storage);
+        this.survival.onOxygenChange = (oxygen, maxOxygen, isHeadUnderwater) => {
+            if (this.ui) this.ui.updateBubblesBar(oxygen, maxOxygen, isHeadUnderwater);
+        };
         this.survival.getArmorType = () => {
             if (!this.ui) return 0;
             if (this.ui.hasItem(37)) return 37; // Ruby Armor (Najlepsza!)
@@ -159,12 +161,8 @@ class Game {
         this.interaction.animals = this.animals;
         if (this.ui) this.ui.animals = this.animals;
 
-        // 10. Second Player (Shared-Screen 2-Player Co-op mode)
-        this.player2 = new SecondPlayer(this.scene, this.world, this.player);
-
         if (typeof window !== 'undefined') {
             window.game = this;
-            window.player2 = this.player2;
             window.spawnCreeper = () => this.animals.spawnCreeperInFrontOfPlayer(this.player, 5.0);
             window.spawnDirtik = () => this.animals.spawnDirtikInFrontOfPlayer(this.player, 4.0);
             window.spawnBear = (variant = 'polar') => this.animals.spawnBearNear(this.player.position.x, this.player.position.z, variant, 2, 4);
@@ -241,48 +239,6 @@ class Game {
         this.dirLight.intensity = 0.1 + 0.8 * dayFactor;
     }
 
-    updateCoopCamera(dt) {
-        if (!this.player2 || !this.player2.isActive) return;
-
-        // Ensure Player 1 3D model is visible in co-op mode
-        if (this.player.playerGroup) {
-            this.player.playerGroup.visible = true;
-        }
-
-        const p1Pos = this.player.position;
-        const p2Pos = this.player2.position;
-        const mid = p1Pos.clone().add(p2Pos).multiplyScalar(0.5);
-        const dist = p1Pos.distanceTo(p2Pos);
-
-        const lookTarget = mid.clone().add(new THREE.Vector3(0, 1.25, 0));
-
-        // Use player 1's camera yaw for consistent framing
-        const camYawEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-        camYawEuler.setFromQuaternion(this.camera.quaternion);
-        camYawEuler.x = 0;
-        camYawEuler.z = 0;
-        const backDir = new THREE.Vector3(0, 0, 1).applyEuler(camYawEuler);
-
-        const camDist = Math.max(5.5, Math.min(18.0, dist * 0.95 + 4.2));
-        const camHeight = Math.max(2.8, camDist * 0.45);
-
-        let targetCamPos = mid.clone()
-            .addScaledVector(backDir, camDist)
-            .add(new THREE.Vector3(0, camHeight, 0));
-
-        // Prevent camera from clipping through terrain
-        for (let d = 1.0; d <= camDist; d += 0.5) {
-            const checkP = mid.clone().addScaledVector(backDir, d).add(new THREE.Vector3(0, d * (camHeight / camDist), 0));
-            if (this.world.isSolid(Math.floor(checkP.x), Math.floor(checkP.y), Math.floor(checkP.z))) {
-                targetCamPos.copy(checkP.subScaledVector(backDir, 0.4));
-                break;
-            }
-        }
-
-        this.camera.position.lerp(targetCamPos, Math.min(1, dt * 6.0));
-        this.camera.lookAt(lookTarget);
-    }
-
     animate() {
         requestAnimationFrame(() => this.animate());
 
@@ -297,12 +253,6 @@ class Game {
         });
         const isDay = this.sun ? this.sun.position.y > 0 : true;
         this.animals.update(dt, this.player.position, isDay);
-
-        // Update Second Player and Shared Co-op camera when Player 2 is playing
-        if (this.player2 && this.player2.isActive) {
-            this.player2.update(dt);
-            this.updateCoopCamera(dt);
-        }
 
         this.world.update(this.player ? this.player.position : null);
         this.survival.update(dt);

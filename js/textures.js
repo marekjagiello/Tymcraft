@@ -59,27 +59,31 @@ export const BLOCK_DEF = {
 };
 
 export function renderWaterTile(c, time, offsetX = 0, offsetY = 0) {
+    // Clear slot
+    c.clearRect(offsetX, offsetY, 16, 16);
+
     for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
-            const w1 = Math.sin((x + time * 3.2) * 0.45) * 0.5;
-            const w2 = Math.cos((y + time * 2.6) * 0.55) * 0.5;
+            const w1 = Math.sin((x + time * 2.8) * 0.48) * 0.5;
+            const w2 = Math.cos((y + time * 2.2) * 0.52) * 0.5;
             const wave = (w1 + w2) * 0.5;
+            const sparkle = Math.sin(x * 1.4 - y * 0.9 + time * 3.6) > 0.88;
 
-            let r, g, b;
-            if (wave > 0.32) {
-                // Shimmering ripple highlight
-                r = 175; g = 235; b = 255;
-            } else if (wave > 0.06) {
-                // Azure crest
-                r = 50; g = 165; b = 245;
-            } else if (wave > -0.22) {
-                // Deep clear water body
-                r = 28; g = 120; b = 220;
+            let r, g, b, a;
+            if (sparkle || wave > 0.34) {
+                // Sunlit sparkling crest
+                r = 215; g = 248; b = 255; a = 0.88;
+            } else if (wave > 0.10) {
+                // Crystal tropical cyan-azure
+                r = 45; g = 185; b = 250; a = 0.80;
+            } else if (wave > -0.20) {
+                // Clear azure water body
+                r = 22; g = 135; b = 230; a = 0.75;
             } else {
-                // Shadowed trough
-                r = 18; g = 85; b = 190;
+                // Deep oceanic water
+                r = 14; g = 95; b = 205; a = 0.82;
             }
-            c.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            c.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
             c.fillRect(offsetX + x, offsetY + y, 1, 1);
         }
     }

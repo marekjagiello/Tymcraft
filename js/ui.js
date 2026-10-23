@@ -1,4 +1,4 @@
-import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=coop_q1';
+import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
 import { ITEMS } from './crafting.js';
 import { getItem } from './items.js?v=flowers_1';
 import { eventBus } from './events.js';
@@ -156,6 +156,7 @@ export class UI {
         this.loadingOverlayEl = document.getElementById('loading-overlay');
         this.blockNameEl = document.getElementById('block-name-popup');
         this.heartsBarEl = document.getElementById('hearts-bar');
+        this.bubblesBarEl = document.getElementById('bubbles-bar');
         this.hungerBarEl = document.getElementById('hunger-bar');
         this.craftingModalEl = document.getElementById('crafting-modal');
 
@@ -225,7 +226,7 @@ export class UI {
 
         const tips = [
             "💡 Wskazówka: Naciśnij PPM na misia lub wciśnij P, aby na niego wsiąść i ujeżdżać! 🐻",
-            "💡 Wskazówka: Wciśnij klawisz Q („O z kreseczką” w rogu) lub strzałkę, aby do gry wszedł Gracz 2! 🎮",
+            "💡 Wskazówka: Nurkując pod wodą, pilnuj bąbelków powietrza 🫧 – nie pozwól im zgasnąć!",
             "💡 Wskazówka: Spadając do wody z dowolnej wysokości nie odniesiesz żadnych obrażeń! 🌊",
             "💡 Wskazówka: Zrywaj czerwone róże 🌹 i żółte mlecze 🌼, aby karmić owieczki oraz świnki!"
         ];
@@ -323,6 +324,30 @@ export class UI {
             }
         }
         this.hungerBarEl.innerHTML = hungerHtml;
+    }
+
+    updateBubblesBar(oxygen = 10, maxOxygen = 10, isHeadUnderwater = false) {
+        if (!this.bubblesBarEl) {
+            this.bubblesBarEl = document.getElementById('bubbles-bar');
+        }
+        if (!this.bubblesBarEl) return;
+
+        // Display oxygen bubble meter whenever submerged or recovering
+        if (isHeadUnderwater || oxygen < maxOxygen) {
+            this.bubblesBarEl.style.display = 'flex';
+            const current = Math.ceil(oxygen);
+            let bubblesHtml = '';
+            for (let i = 0; i < maxOxygen; i++) {
+                if (i < current) {
+                    bubblesHtml += '<span class="bubble-icon">🫧</span>';
+                } else {
+                    bubblesHtml += '<span class="bubble-icon" style="opacity:0.3; filter:grayscale(1);">💨</span>';
+                }
+            }
+            this.bubblesBarEl.innerHTML = bubblesHtml;
+        } else {
+            this.bubblesBarEl.style.display = 'none';
+        }
     }
 
     renderHotbar() {

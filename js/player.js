@@ -41,6 +41,11 @@ export class Player {
         this.walkCycle = 0;
         this.mountedBear = null;
         this.currentArmorType = 0;
+        this.isInWater = false;
+        this.isHeadUnderwater = false;
+        this.bubbleParticles = [];
+        this.bubbleSpawnTimer = 0;
+        this.underwaterOverlayEl = null;
         this.buildPlayerMesh();
 
         this.initControls();
@@ -429,6 +434,18 @@ export class Player {
             const targetVelX = (forward.x * -moveVector.z + right.x * moveVector.x) * speed;
             const targetVelZ = (forward.z * -moveVector.z + right.z * moveVector.x) * speed;
 
+            // Bear physics: grounded jumping (NO flying!) & downward gravity
+            bear.velocityY = bear.velocityY || 0;
+            const currentGround = bear.getGroundHeight(bear.position.x, bear.position.z);
+            const isOnGround = Math.abs(bear.position.y - currentGround) <= 0.25 && bear.velocityY <= 0.05;
+            bear.isGrounded = isOnGround;
+
+            // Only jump when firmly on the ground!
+            if (this.keys.jump && isOnGround) {
+                bear.velocityY = 7.8; // High leap (~1.3 blocks)
+                bear.isGrounded = false;
+            }
+
             if (isMoving) {
                 bear.targetRotationY = Math.atan2(targetVelX, targetVelZ);
                 const nextX = bear.position.x + targetVelX * dt;
@@ -436,24 +453,48 @@ export class Player {
 
                 const groundAtTarget = bear.getGroundHeight(nextX, nextZ);
                 const stepDiff = groundAtTarget - bear.position.y;
-                if (stepDiff <= 1.25 && stepDiff >= -3.0) {
-                    bear.position.x = nextX;
-                    bear.position.z = nextZ;
-                    bear.position.y = groundAtTarget;
-                } else if (stepDiff <= 1.25) {
-                    bear.position.x = nextX;
-                    bear.position.z = nextZ;
+
+                if (isOnGround) {
+                    // Smoothly climb steps up to 1.15 block
+                    if (stepDiff <= 1.15 && stepDiff >= -1.5) {
+                        bear.position.x = nextX;
+                        bear.position.z = nextZ;
+                        bear.position.y = groundAtTarget;
+                    } else if (stepDiff < -1.5) {
+                        // Walk off a ledge: begin falling
+                        bear.position.x = nextX;
+                        bear.position.z = nextZ;
+                        bear.isGrounded = false;
+                    }
+                } else {
+                    // Mid-air movement: allow moving forward if not blocked by high wall
+                    if (groundAtTarget <= bear.position.y + 0.3) {
+                        bear.position.x = nextX;
+                        bear.position.z = nextZ;
+                    }
                 }
                 bear.state = 'walk';
             } else {
                 bear.state = 'idle';
             }
 
-            if (this.keys.jump && bear.onGround !== false) {
-                bear.position.y += 0.8;
+            // Apply gravity and vertical motion
+            if (!bear.isGrounded || bear.position.y > currentGround + 0.05 || bear.velocityY > 0) {
+                bear.velocityY -= 22.0 * dt; // Gravity
+                bear.position.y += bear.velocityY * dt;
+
+                if (bear.position.y <= currentGround) {
+                    bear.position.y = currentGround;
+                    bear.velocityY = 0;
+                    bear.isGrounded = true;
+                }
+            } else {
+                bear.position.y = currentGround;
+                bear.velocityY = 0;
+                bear.isGrounded = true;
             }
 
-            bear.updateFooting(dt);
+            bear.group.position.copy(bear.position);
             bear.rotationY += (bear.targetRotationY - bear.rotationY) * Math.min(1, dt * 8);
             bear.group.rotation.y = bear.rotationY;
 
@@ -524,10 +565,12 @@ export class Player {
         // Check if player is submerged or wading in water (ID 10)
         const feetY = Math.floor(this.position.y + 0.1);
         const waistY = Math.floor(this.position.y + 0.8);
+        const eyesY = Math.floor(this.position.y + this.eyeHeight);
         const px = Math.floor(this.position.x);
         const pz = Math.floor(this.position.z);
         const inWater = (this.world.getBlock(px, feetY, pz) === 10 || this.world.getBlock(px, waistY, pz) === 10);
         this.isInWater = inWater;
+        this.isHeadUnderwater = (this.world.getBlock(px, eyesY, pz) === 10);
 
         const baseSpeed = this.keys.sprint ? this.sprintSpeed : this.walkSpeed;
         const speed = inWater ? baseSpeed * 0.65 : baseSpeed;
@@ -778,6 +821,87 @@ export class Player {
             }
             const camPos = eyePos.clone().addScaledVector(forward, -dist).add(new THREE.Vector3(0, 0.2, 0));
             this.camera.position.copy(camPos);
+        }
+
+        // Underwater bubble particles & visual tint
+        if (this.isInWater && (horizSpeed > 0.3 || this.keys.jump)) {
+            this.bubbleSpawnTimer = (this.bubbleSpawnTimer || 0) + dt;
+            if (this.bubbleSpawnTimer >= 0.12) {
+                this.bubbleSpawnTimer = 0;
+                this.spawnWaterBubble();
+            }
+        }
+        this.updateWaterBubbles(dt);
+        this.updateUnderwaterVisuals(dt);
+    }
+
+    spawnWaterBubble() {
+        if (!this.world || !this.world.scene) return;
+        const bubbleGeo = new THREE.SphereGeometry(0.045, 6, 6);
+        const bubbleMat = new THREE.MeshBasicMaterial({
+            color: 0xbfeaff,
+            transparent: true,
+            opacity: 0.85
+        });
+        const bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
+        const offsetX = (Math.random() - 0.5) * 0.7;
+        const offsetZ = (Math.random() - 0.5) * 0.7;
+        const offsetY = 0.2 + Math.random() * 0.9;
+        bubble.position.set(this.position.x + offsetX, this.position.y + offsetY, this.position.z + offsetZ);
+        this.world.scene.add(bubble);
+
+        this.bubbleParticles.push({
+            mesh: bubble,
+            vy: 1.6 + Math.random() * 0.8,
+            vx: (Math.random() - 0.5) * 0.25,
+            vz: (Math.random() - 0.5) * 0.25,
+            life: 1.2,
+            maxLife: 1.2
+        });
+    }
+
+    updateWaterBubbles(dt) {
+        if (!this.bubbleParticles) return;
+        for (let i = this.bubbleParticles.length - 1; i >= 0; i--) {
+            const p = this.bubbleParticles[i];
+            p.life -= dt;
+            if (p.life <= 0) {
+                if (p.mesh && p.mesh.parent) {
+                    p.mesh.parent.remove(p.mesh);
+                }
+                this.bubbleParticles.splice(i, 1);
+            } else {
+                p.mesh.position.y += p.vy * dt;
+                p.mesh.position.x += p.vx * dt;
+                p.mesh.position.z += p.vz * dt;
+                const scale = Math.max(0.15, p.life / p.maxLife);
+                p.mesh.scale.set(scale, scale, scale);
+                // Pop bubble if it reaches the surface / air
+                const bx = Math.floor(p.mesh.position.x);
+                const by = Math.floor(p.mesh.position.y);
+                const bz = Math.floor(p.mesh.position.z);
+                if (this.world.getBlock(bx, by, bz) !== 10) {
+                    p.life = 0;
+                }
+            }
+        }
+    }
+
+    updateUnderwaterVisuals(dt) {
+        if (!this.underwaterOverlayEl) {
+            this.underwaterOverlayEl = document.getElementById('underwater-overlay');
+        }
+        if (this.underwaterOverlayEl) {
+            this.underwaterOverlayEl.style.opacity = this.isHeadUnderwater ? '1' : '0';
+        }
+        if (this.world && this.world.scene && this.world.scene.fog) {
+            if (this.isHeadUnderwater) {
+                this.world.scene.fog.color.setHex(0x0a528a);
+                this.world.scene.fog.density = 0.04;
+            } else {
+                this.world.scene.fog.color.setHex(0x78a7ff);
+                this.world.scene.fog.density = 0.016;
+            }
         }
     }
 }
