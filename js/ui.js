@@ -117,6 +117,10 @@ export function createSlotItemIcon(itemId) {
         else if (itemId === 42) {
             itemSpan.innerText = '🧶'; // Biała Wełna
         }
+        else if (itemId === 43) {
+            itemSpan.innerText = '🛡️'; // Kamienna Zbroja
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #94a3b8)';
+        }
         return itemSpan;
     }
     if (itemId === 17) {
@@ -185,6 +189,13 @@ export class UI {
         this.cursorItem = null;
         this.cursorItemEl = document.getElementById('cursor-item-display');
 
+        // In-game Chat state
+        this.isChatOpen = false;
+        this.playerName = 'Tymek';
+        this.chatMessagesEl = document.getElementById('chat-messages');
+        this.chatInputRowEl = document.getElementById('chat-input-row');
+        this.chatInputEl = document.getElementById('chat-input');
+
         this.fps = 60;
         this.lastFpsUpdate = performance.now();
         this.frameCount = 0;
@@ -195,6 +206,7 @@ export class UI {
         this.renderSurvivalBars(this.survival ? this.survival.health : 20, this.survival ? this.survival.hunger : 20);
         this.initEvents();
         this.initCraftingUI();
+        this.initChat();
         this.initBusEvents();
     }
 
@@ -307,15 +319,16 @@ export class UI {
     renderSurvivalBars(health = 20, hunger = 20, maxHealth = 20) {
         if (!this.heartsBarEl || !this.hungerBarEl) return;
 
-        // Render hearts up to maxHealth (10 hearts for 20 HP, 15 hearts for Diamond, 20 hearts for Ruby)
+        // Render hearts up to maxHealth (10 hearts for 20 HP, 13 for Stone, 15 for Diamond, 20 for Ruby)
         const isRuby = (this.survival && this.survival.hasRubyArmor) || maxHealth >= 40;
+        const isStone = (this.survival && this.survival.armorType === 43) || maxHealth === 26;
         const totalHearts = Math.max(10, Math.ceil(maxHealth / 2));
         let heartsHtml = '';
         for (let i = 0; i < totalHearts; i++) {
             const heartVal = (i + 1) * 2;
             const isArmorHeart = i >= 10;
-            const fullIcon = isArmorHeart ? (isRuby ? '🔴' : '💎') : '❤️';
-            const halfIcon = isArmorHeart ? (isRuby ? '🛡️' : '🔷') : '💔';
+            const fullIcon = isArmorHeart ? (isRuby ? '🔴' : (isStone ? '🩶' : '💎')) : '❤️';
+            const halfIcon = isArmorHeart ? (isRuby ? '🛡️' : (isStone ? '🛡️' : '🔷')) : '💔';
             if (health >= heartVal) {
                 heartsHtml += `<span class="heart-icon">${fullIcon}</span>`;
             } else if (health === heartVal - 1) {
@@ -830,8 +843,31 @@ export class UI {
     }
 
     initEvents() {
-        // Keyboard 1-9 & 'R' or 'E' for backpack/inventory/crafting
+        // Keyboard 1-9 & 'R' or 'E' for backpack/inventory/crafting & Chat triggers
         window.addEventListener('keydown', (e) => {
+            // When chat is open, let user type freely, only handle Escape
+            if (this.isChatOpen) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    this.closeChat();
+                }
+                return;
+            }
+
+            // Open chat triggers: '=', '/', '-', 'T', or 'Enter'
+            const isChatTrigger = e.key === '=' || e.key === '/' || e.key === '-' ||
+                                  e.code === 'KeyT' || e.key === 't' || e.key === 'T' ||
+                                  e.key === 'Enter';
+            if (isChatTrigger && !this.isCraftingOpen && !this.isLoading) {
+                e.preventDefault();
+                let initChar = '';
+                if (e.key === '=' || e.key === '/' || e.key === '-') {
+                    initChar = e.key;
+                }
+                this.openChat(initChar);
+                return;
+            }
+
             const isR = e.code === 'KeyR' || e.key === 'r' || e.key === 'R';
             const isE = e.code === 'KeyE' || e.key === 'e' || e.key === 'E';
             if (isR || isE) {
@@ -942,7 +978,7 @@ export class UI {
         // Clicking on game canvas also locks controls if menu is closed and not loading
         if (this.player && this.player.domElement) {
             this.player.domElement.addEventListener('click', () => {
-                if (this.isGameActive && !this.isLoading && this.overlayEl.style.display === 'none' && !this.isCraftingOpen && !this.survival?.isDead) {
+                if (this.isGameActive && !this.isLoading && this.overlayEl.style.display === 'none' && !this.isCraftingOpen && !this.isChatOpen && !this.survival?.isDead) {
                     this.lastUnlockAllowedTime = Date.now() + 500;
                     try {
                         this.player.controls.lock();
@@ -958,8 +994,8 @@ export class UI {
 
         this.player.controls.addEventListener('unlock', () => {
             // Guard: Only show pause menu if the game is active, not currently loading,
-            // not in crafting modal, player is alive, and grace period has elapsed!
-            if (this.isGameActive && !this.isLoading && !this.isCraftingOpen && !this.survival?.isDead) {
+            // not in crafting modal, not in chat, player is alive, and grace period has elapsed!
+            if (this.isGameActive && !this.isLoading && !this.isCraftingOpen && !this.isChatOpen && !this.survival?.isDead) {
                 if (Date.now() < this.lastUnlockAllowedTime) {
                     return;
                 }
@@ -1028,5 +1064,123 @@ export class UI {
                 <div>W ręku: <b>${activeItem ? activeItem.name : 'Puste'}</b></div>
             `;
         }
+    }
+
+    initChat() {
+        if (!this.chatInputEl) return;
+
+        this.chatInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.submitChat();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.closeChat();
+            }
+        });
+
+        // Initial welcome tip in chat
+        setTimeout(() => {
+            this.addChatMessage('Serwer', '💬 Wciśnij = lub / lub T, aby otworzyć czat! Wpisz Tymek, aby odebrać zestaw startowy 🎁', 'chat-server');
+        }, 3000);
+    }
+
+    openChat(initialChar = '') {
+        if (!this.chatInputRowEl || !this.chatInputEl) return;
+        this.isChatOpen = true;
+        this.chatInputRowEl.style.display = 'flex';
+        this.chatInputEl.value = initialChar;
+        this.lastUnlockAllowedTime = Date.now() + 1000;
+        if (this.player && this.player.controls) {
+            try {
+                this.player.controls.unlock();
+            } catch (err) {}
+        }
+        setTimeout(() => {
+            this.chatInputEl.focus();
+            if (initialChar) {
+                this.chatInputEl.setSelectionRange(initialChar.length, initialChar.length);
+            }
+        }, 30);
+    }
+
+    closeChat() {
+        if (!this.chatInputRowEl || !this.chatInputEl) return;
+        this.isChatOpen = false;
+        this.chatInputRowEl.style.display = 'none';
+        this.chatInputEl.blur();
+        this.chatInputEl.value = '';
+        this.lastUnlockAllowedTime = Date.now() + 600;
+        if (this.player && this.player.controls) {
+            try {
+                this.player.controls.lock();
+            } catch (err) {}
+        }
+    }
+
+    submitChat() {
+        if (!this.chatInputEl) return;
+        const raw = this.chatInputEl.value.trim();
+        this.closeChat();
+        if (!raw) return;
+
+        // Strip leading symbols like =, /, -
+        const stripped = raw.replace(/^[/=\-]/, '').trim();
+        const lower = stripped.toLowerCase();
+
+        // Check for Tymek Starter Pack code!
+        if (lower === 'tymek' || lower === 'startpack' || lower === 'starter' || lower === 'kit') {
+            this.playerName = 'Tymek';
+            
+            // Give items: Stone Pickaxe (22), Stone Sword (25), Stone Armor (43)
+            this.addItem(22, 'Kamienny Kilof', 1);
+            this.addItem(25, 'Kamienny Miecz', 1);
+            this.addItem(43, 'Kamienna Zbroja', 1);
+
+            this.addChatMessage('Serwer', '🎁 Witaj Tymek! Otrzymałeś Zestaw Startowy: Kamienny Kilof ⛏️, Kamienny Miecz ⚔️ oraz Kamienną Zbroję 🛡️!', 'chat-success');
+            this.showPopup('🎁 Witaj Tymek! Zestaw Startowy dodany do ekwipunku!');
+            return;
+        }
+
+        if (lower === 'pomoc' || lower === 'help') {
+            this.addChatMessage('Serwer', '💡 Komendy: =Tymek (lub /Tymek) - Odbierz Zestaw Startowy 🎁 | /clear - Wyczyść czat 🧹', 'chat-server');
+            return;
+        }
+
+        if (lower === 'clear') {
+            if (this.chatMessagesEl) this.chatMessagesEl.innerHTML = '';
+            return;
+        }
+
+        // Regular chat message
+        this.addChatMessage(this.playerName, raw, 'chat-player');
+    }
+
+    addChatMessage(sender, text, type = 'chat-player') {
+        if (!this.chatMessagesEl) return;
+        const msgEl = document.createElement('div');
+        msgEl.className = `chat-message ${type}`;
+
+        const senderSpan = document.createElement('b');
+        senderSpan.innerText = `<${sender}> `;
+        if (type === 'chat-server' || type === 'chat-success') {
+            senderSpan.innerText = `[${sender}] `;
+        }
+        msgEl.appendChild(senderSpan);
+
+        const textSpan = document.createElement('span');
+        textSpan.innerText = text;
+        msgEl.appendChild(textSpan);
+
+        this.chatMessagesEl.appendChild(msgEl);
+        this.chatMessagesEl.scrollTop = this.chatMessagesEl.scrollHeight;
+
+        // Auto fade-out after 9 seconds like Minecraft
+        setTimeout(() => {
+            msgEl.classList.add('chat-fading');
+            setTimeout(() => {
+                if (msgEl.parentNode) msgEl.parentNode.removeChild(msgEl);
+            }, 600);
+        }, 9000);
     }
 }

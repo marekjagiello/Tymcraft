@@ -88,6 +88,10 @@ export class Player {
 
     initControls() {
         const onKeyDown = (e) => {
+            if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                return;
+            }
+
             switch (e.code) {
                 case 'KeyW': this.keys.forward = true; break;
                 case 'KeyS': this.keys.backward = true; break;
@@ -329,6 +333,14 @@ export class Player {
             this.armorChestMat.emissive.setHex(0x002244);
             this.armorHelmetMat.color.setHex(0x38bdf8);
             this.armorHelmetMat.emissive.setHex(0x002244);
+            this.armorChestMesh.visible = true;
+            this.armorHelmetMesh.visible = true;
+        } else if (type === 43) {
+            // Stone Armor: Solid slate-grey stone armor
+            this.armorChestMat.color.setHex(0x78716c);
+            this.armorChestMat.emissive.setHex(0x1c1917);
+            this.armorHelmetMat.color.setHex(0x78716c);
+            this.armorHelmetMat.emissive.setHex(0x1c1917);
             this.armorChestMesh.visible = true;
             this.armorHelmetMesh.visible = true;
         } else {

@@ -1,15 +1,15 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=drops_1';
-import { Player } from './player.js?v=drops_1';
-import { Interaction } from './interaction.js?v=drops_1';
-import { AnimalManager } from './animals.js?v=drops_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=drops_1';
-import { StorageManager } from './storage.js?v=drops_1';
-import { SurvivalManager } from './survival.js?v=drops_1';
-import { CraftingManager } from './crafting.js?v=drops_1';
-import { DropsManager } from './drops.js?v=drops_1';
-import { eventBus } from './events.js?v=drops_1';
-import { updateWaterAnimation } from './textures.js?v=drops_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=chat_1';
+import { Player } from './player.js?v=chat_1';
+import { Interaction } from './interaction.js?v=chat_1';
+import { AnimalManager } from './animals.js?v=chat_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=chat_1';
+import { StorageManager } from './storage.js?v=chat_1';
+import { SurvivalManager } from './survival.js?v=chat_1';
+import { CraftingManager } from './crafting.js?v=chat_1';
+import { DropsManager } from './drops.js?v=chat_1';
+import { eventBus } from './events.js?v=chat_1';
+import { updateWaterAnimation } from './textures.js?v=chat_1';
 
 class Game {
     constructor() {
@@ -131,6 +131,7 @@ class Game {
             if (!this.ui) return 0;
             if (this.ui.hasItem(37)) return 37; // Ruby Armor (Najlepsza!)
             if (this.ui.hasItem(32)) return 32; // Diamond Armor
+            if (this.ui.hasItem(43)) return 43; // Stone Armor (Kamienna Zbroja!)
             return 0;
         };
         this.survival.checkHasArmor = () => (this.survival.getArmorType() > 0);

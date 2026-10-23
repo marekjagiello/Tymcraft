@@ -56,7 +56,7 @@
         };
     })();
     </script>
-    <link rel="stylesheet" href="./css/style.css?v=drops_1">
+    <link rel="stylesheet" href="./css/style.css?v=chat_1">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%235b8731'/><rect y='6' width='16' height='10' fill='%23866043'/></svg>">
     <script type="importmap">
     {
@@ -79,6 +79,15 @@
     </div>
 
     <div id="block-name-popup"></div>
+
+    <!-- In-game Chat HUD (Messages & Chat Input) -->
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div id="chat-input-row" style="display: none;">
+            <span id="chat-prefix">&gt;</span>
+            <input type="text" id="chat-input" maxlength="120" placeholder="Napisz wiadomość lub komendę (np. Tymek)..." autocomplete="off" spellcheck="false" />
+        </div>
+    </div>
 
     <div id="hotbar-container">
         <div id="survival-bars">
@@ -114,6 +123,7 @@
                 • 1x Deski/Kamień + 1x Patyk ➔ Miecz<br>
                 • 3x Patyki ➔ 🏹 Łuk<br>
                 • 1x Patyk + 1x Kamień/Kość ➔ 🎯 4x Strzały<br>
+                • 3-4x Bruk ➔ 🛡️ Kamienna Zbroja (13 serc!)<br>
                 • 3-4x Diamenty ➔ 🛡️ Diamentowa Zbroja<br>
                 • 1x Rubin + 1x Patyk ➔ 🗡️ Rubinowy Miecz<br>
                 • 4x Rubiny ➔ 🛡️ Rubinowa Zbroja (50 ciosów wytrzymałości!)
@@ -239,6 +249,6 @@
     </div>
 
     <!-- Main Game Script (ES Module) -->
-    <script type="module" src="./js/main.js?v=drops_1"></script>
+    <script type="module" src="./js/main.js?v=chat_1"></script>
 </body>
 </html>

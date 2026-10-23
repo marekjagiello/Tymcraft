@@ -311,6 +311,18 @@ function createWoolMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Armor drop mesh (chestplate & helm)
+function createArmorDropMesh(colorHex) {
+    const group = new THREE.Group();
+    const mat = new THREE.MeshLambertMaterial({ color: colorHex });
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 0.12), mat);
+    group.add(chest);
+    const helm = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.14), mat);
+    helm.position.y = 0.18;
+    group.add(helm);
+    return group;
+}
+
 export class DroppedItem {
     constructor(scene, world, id, name, x, y, z) {
         this.scene = scene;
@@ -359,10 +371,14 @@ export class DroppedItem {
             this.mesh = createArrowDropMesh();
         } else if (this.id === 30) {
             this.mesh = createDiamondMesh();
+        } else if (this.id === 32) {
+            this.mesh = createArmorDropMesh(0x38bdf8);
         } else if (this.id === 34) {
             this.mesh = createRubyMesh();
         } else if (this.id === 36) {
             this.mesh = createGunpowderMesh();
+        } else if (this.id === 37) {
+            this.mesh = createArmorDropMesh(0xef4444);
         } else if (this.id === 38) {
             this.mesh = createPorkchopMesh();
         } else if (this.id === 39) {
@@ -373,6 +389,8 @@ export class DroppedItem {
             this.mesh = createLeatherMesh();
         } else if (this.id === 42) {
             this.mesh = createWoolMesh();
+        } else if (this.id === 43) {
+            this.mesh = createArmorDropMesh(0x78716c);
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }

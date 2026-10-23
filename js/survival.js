@@ -193,7 +193,7 @@ export class SurvivalManager {
             const currentArmor = this.getArmorType();
             if (currentArmor !== this.armorType) {
                 this.armorType = currentArmor;
-                this.hasArmor = currentArmor === 32 || currentArmor === 37;
+                this.hasArmor = currentArmor === 32 || currentArmor === 37 || currentArmor === 43;
                 this.hasRubyArmor = currentArmor === 37;
 
                 if (this.hasRubyArmor) {
@@ -203,6 +203,9 @@ export class SurvivalManager {
                 } else if (this.armorType === 32) {
                     this.maxHealth = 30; // 15 hearts
                     if (this.health <= 20) this.health = 30;
+                } else if (this.armorType === 43) {
+                    this.maxHealth = 26; // 13 hearts (Kamienna zbroja)
+                    if (this.health <= 20) this.health = 26;
                 } else {
                     this.maxHealth = 20;
                     if (this.health > 20) this.health = 20;

@@ -104,6 +104,12 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 14. Stone Armor (Kamienna Zbroja): 3 lub 4 Bruki/Kamienie w siatce 2x2
+        if (nonNulls.length >= 3 && nonNulls.every(id => id === 11 || id === 3)) {
+            this.output = { item: ITEMS.STONE_ARMOR, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

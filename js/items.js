@@ -55,7 +55,8 @@ export const ITEMS = {
     MUTTON: { id: 39, name: 'Surowa Baranina', type: ITEM_TYPES.FOOD, nutrition: 3, heals: 1, icon: 'mutton' },
     BEEF: { id: 40, name: 'Surowa Wołowina', type: ITEM_TYPES.FOOD, nutrition: 5, heals: 3, icon: 'beef' },
     LEATHER: { id: 41, name: 'Skóra', type: ITEM_TYPES.MATERIAL, icon: 'leather' },
-    WOOL: { id: 42, name: 'Biała Wełna', type: ITEM_TYPES.MATERIAL, icon: 'wool' }
+    WOOL: { id: 42, name: 'Biała Wełna', type: ITEM_TYPES.MATERIAL, icon: 'wool' },
+    STONE_ARMOR: { id: 43, name: 'Kamienna Zbroja', type: ITEM_TYPES.MATERIAL, icon: 'stone_armor' }
 };
 
 // Fast lookup map by ID
@@ -100,7 +101,7 @@ export function isPlaceableBlock(id) {
 }
 
 export function isArmor(id) {
-    return id === 32 || id === 37;
+    return id === 32 || id === 37 || id === 43;
 }
 
 export function isBow(id) {
