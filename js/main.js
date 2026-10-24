@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=portal_boss_v5';
-import { Player } from './player.js?v=portal_boss_v5';
-import { Interaction } from './interaction.js?v=portal_boss_v5';
-import { AnimalManager } from './animals.js?v=portal_boss_v5';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=portal_boss_v5';
-import { StorageManager } from './storage.js?v=portal_boss_v5';
-import { SurvivalManager } from './survival.js?v=portal_boss_v5';
-import { CraftingManager } from './crafting.js?v=portal_boss_v5';
-import { DropsManager } from './drops.js?v=portal_boss_v5';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=portal_boss_v6';
+import { Player } from './player.js?v=portal_boss_v6';
+import { Interaction } from './interaction.js?v=portal_boss_v6';
+import { AnimalManager } from './animals.js?v=portal_boss_v6';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=portal_boss_v6';
+import { StorageManager } from './storage.js?v=portal_boss_v6';
+import { SurvivalManager } from './survival.js?v=portal_boss_v6';
+import { CraftingManager } from './crafting.js?v=portal_boss_v6';
+import { DropsManager } from './drops.js?v=portal_boss_v6';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=portal_boss_v5';
-import { QuestManager } from './quests.js?v=portal_boss_v5';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=portal_boss_v5';
+import { updateWaterAnimation } from './textures.js?v=portal_boss_v6';
+import { QuestManager } from './quests.js?v=portal_boss_v6';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=portal_boss_v6';
 
 
 
@@ -275,24 +275,17 @@ class Game {
         this.player.position.set(1000, 12.5, 992);
         this.player.velocity.set(0, 0, 0);
 
-        // Sprawdź czy Boss Robot już żyje na arenie
-        const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
-        const activeBoss = this.animals.animals.find(a => a.type === 'boss_robot' && !a.isDead);
-        if (activeBoss) {
-            startBossRobotMusic();
-            if (this.ui) this.ui.showBossBar('👑 BOSS ROBOT', activeBoss.health, activeBoss.maxHealth);
+        // ZAWSZE upewnij się, że Boss Robot pojawia się na arenie (na życzenie Tymka: "jak wejdziesz to ma być boss, taki koks!")
+        let activeBoss = this.animals.animals.find(a => a.type === 'boss_robot' && !a.isDead);
+        if (!activeBoss) {
+            activeBoss = this.animals.spawnBossRobot(1000, 1000);
         }
 
+        startBossRobotMusic();
         if (this.ui) {
-            if (isDefeated) {
-                this.ui.addChatMessage('Serwer', '🏆 Wkroczyłeś do Mrocznego Wymiaru! Boss Robot został już pokonany na tej mapie! Zresetuj świat w menu, aby zmierzyć się z nim ponownie! 🌟', 'chat-server');
-                this.ui.showPopup('🏆 BOSS ROBOT POKONANY NA TEJ MAPIE!');
-            } else if (!activeBoss) {
-                this.ui.addChatMessage('Serwer', '🌌 Wkroczyłeś do Mrocznego Wymiaru! Zbuduj Totem: Ziemia (Dirt) na dole, Kamień (Stone) na górze i podpal Krzesiwem, aby obudzić Bossa! ⚡🤖', 'chat-server');
-                this.ui.showPopup('🌌 Zbuduj Totem: Ziemia na dole, Kamień na górze i podpal Krzesiwem! 🤖');
-            } else {
-                this.ui.showPopup('🌌 MROCZNY WYMIAR ROBOTA! ⚡🤖');
-            }
+            this.ui.showBossBar('👑 BOSS ROBOT', activeBoss.health, activeBoss.maxHealth);
+            this.ui.addChatMessage('Serwer', '🌌 Wkroczyłeś do Mrocznego Wymiaru! Na arenie pojawia się potężny 4-ramienny Boss Robot z mieczami i pistoletami! 🤖⚔️🔫', 'chat-warning');
+            this.ui.showPopup('🤖 POTĘŻNY 4-RAMIENNY BOSS ROBOT PRZEBUDZA SIĘ! 👑');
         }
     }
 

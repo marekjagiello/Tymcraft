@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playLaserPistolSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=water_2';
 
 
@@ -1393,10 +1393,64 @@ export class Robot extends Mob {
 }
 
 // -------------------------------------------------------------
-// Boss Robot Mob (Spawned via Totem: Dirt + Stone + Krzesiwo!)
-// Has 4 arms, starts small and grows GIANT (scale 3.5), smashes trees, 160 HP!
-// Dual industrial exhaust smokestacks emitting smoke particles, hydraulic pistons,
-// heavy stomping footsteps and camera shake!
+// Pocisk z Laserowego Pistoletu Bossa Robota (Ranged Blaster Bolt)
+// -------------------------------------------------------------
+export class BossLaserBolt {
+    constructor(scene, startPos, targetPos, color = 0x38bdf8) {
+        this.scene = scene;
+        this.position = startPos.clone();
+        const dir = new THREE.Vector3().subVectors(targetPos, startPos).normalize();
+        this.velocity = dir.multiplyScalar(22.0); // Szybki pocisk laserowy
+        this.life = 0;
+        this.maxLife = 2.5;
+        this.isDead = false;
+
+        const boltGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.75, 8);
+        const boltMat = new THREE.MeshBasicMaterial({ color: color });
+        this.mesh = new THREE.Mesh(boltGeo, boltMat);
+        this.mesh.position.copy(this.position);
+        this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+        this.scene.add(this.mesh);
+    }
+
+    update(dt, player, survival, ui) {
+        if (this.isDead) return;
+        this.life += dt;
+        if (this.life >= this.maxLife) {
+            this.destroy();
+            return;
+        }
+
+        this.position.addScaledVector(this.velocity, dt);
+        this.mesh.position.copy(this.position);
+
+        // Kolizja z graczem
+        if (player && player.position) {
+            const dist = this.position.distanceTo(player.position);
+            if (dist <= 1.4) {
+                if (survival) {
+                    survival.takeDamage(3, 'Trafienie z Laserowego Pistoletu Bossa! 🤖🔫⚡');
+                }
+                eventBus.emit('camera:shake', 0.22);
+                this.destroy();
+            }
+        }
+    }
+
+    destroy() {
+        this.isDead = true;
+        if (this.mesh && this.mesh.parent) {
+            this.scene.remove(this.mesh);
+        }
+        this.mesh?.geometry?.dispose();
+        this.mesh?.material?.dispose();
+    }
+}
+
+// -------------------------------------------------------------
+// Boss Robot Mob (Pojawia się w Mrocznym Wymiarze na arenie!)
+// Ma 4 ramiona (miecze i pistolety laserowe), rośnie w gigantycznego kolosa (scale 3.5),
+// ręce wysuwają się kolejno jedna po drugiej, smashes trees, 160 HP!
 // -------------------------------------------------------------
 export class BossRobot extends Mob {
     constructor(scene, world, x = 32, z = 32, manager = null) {
@@ -1412,14 +1466,22 @@ export class BossRobot extends Mob {
         this.targetScale = 3.5;
         this.attackCooldown = 0;
         this.swingTime = 0;
+        this.gunCooldown = 1.5;
         this.treeSmashCooldown = 0;
         this.smokeParticles = [];
         this.smokeTimer = 0;
         this.stompTimer = 0;
+        this.deployedArmsCount = 0;
 
         this.buildModel();
         this.buildHealthBar(3.5);
         this.group.scale.set(0.35, 0.35, 0.35); // Starts small, then grows!
+
+        // 4 ramiona startują schowane, a potem wysuwają się po kolei (na życzenie Tymka!)
+        this.arms = [this.upperRArm, this.upperLArm, this.lowerRArm, this.lowerLArm];
+        this.arms.forEach(arm => {
+            if (arm) arm.scale.set(0, 0, 0);
+        });
 
         this.snapToGround();
         this.rotationY = 0;
@@ -1524,52 +1586,80 @@ export class BossRobot extends Mob {
         rHorn.rotation.z = -0.3;
         this.head.add(rHorn);
 
-        // --- 4 MECHANICZNE RĘCE (4 ARMS) ---
+        // --- 4 MECHANICZNE RĘCE (4 ARMS: MIECZE I PISTOLETY na życzenie Tymka!) ---
         const armGeo = new THREE.BoxGeometry(0.20, 0.75, 0.20);
 
-        // 1. Upper Left Arm (holds Red Laser Blade)
-        this.upperLArm = new THREE.Group();
-        this.upperLArm.position.set(-0.64, 1.75, 0);
-        const uLMesh = new THREE.Mesh(armGeo, darkSteelMat);
-        uLMesh.position.set(0, -0.34, 0);
-        this.upperLArm.add(uLMesh);
-        const blade1 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.05, 0.06), redLaserMat);
-        blade1.position.set(0, -0.72, 0.22);
-        this.upperLArm.add(blade1);
-        this.modelGroup.add(this.upperLArm);
-
-        // 2. Upper Right Arm (holds Red Laser Blade)
+        // 1. Górne Prawe Ramię (Upper Right Arm - trzyma Czerwony Miecz Laserowy ⚔️)
         this.upperRArm = new THREE.Group();
         this.upperRArm.position.set(0.64, 1.75, 0);
         const uRMesh = new THREE.Mesh(armGeo, darkSteelMat);
         uRMesh.position.set(0, -0.34, 0);
         this.upperRArm.add(uRMesh);
-        const blade2 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.05, 0.06), redLaserMat);
-        blade2.position.set(0, -0.72, 0.22);
-        this.upperRArm.add(blade2);
+        const hilt1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.08), darkSteelMat);
+        hilt1.position.set(0, -0.62, 0.15);
+        this.upperRArm.add(hilt1);
+        const bladeRed = new THREE.Mesh(new THREE.BoxGeometry(0.10, 1.15, 0.06), redLaserMat);
+        bladeRed.position.set(0, -0.74, 0.22);
+        this.upperRArm.add(bladeRed);
         this.modelGroup.add(this.upperRArm);
 
-        // 3. Lower Left Arm (holds Cyan Laser Blade)
-        this.lowerLArm = new THREE.Group();
-        this.lowerLArm.position.set(-0.56, 1.20, 0);
-        const lLMesh = new THREE.Mesh(armGeo, armorGoldMat);
-        lLMesh.position.set(0, -0.34, 0);
-        this.lowerLArm.add(lLMesh);
-        const blade3 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.95, 0.06), cyanLaserMat);
-        blade3.position.set(0, -0.72, 0.22);
-        this.lowerLArm.add(blade3);
-        this.modelGroup.add(this.lowerLArm);
+        // 2. Górne Lewe Ramię (Upper Left Arm - trzyma Cyber-Pistolet Laserowy 🔫)
+        this.upperLArm = new THREE.Group();
+        this.upperLArm.position.set(-0.64, 1.75, 0);
+        const uLMesh = new THREE.Mesh(armGeo, darkSteelMat);
+        uLMesh.position.set(0, -0.34, 0);
+        this.upperLArm.add(uLMesh);
+        const pistol1 = new THREE.Group();
+        pistol1.position.set(0, -0.65, 0.20);
+        const p1Body = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.20, 0.38), darkSteelMat);
+        pistol1.add(p1Body);
+        const p1Barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.42, 8), darkSteelMat);
+        p1Barrel.rotation.x = Math.PI / 2;
+        p1Barrel.position.set(0, 0.04, 0.30);
+        pistol1.add(p1Barrel);
+        const p1Tip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.08), cyanLaserMat);
+        p1Tip.position.set(0, 0.04, 0.52);
+        pistol1.add(p1Tip);
+        this.upperLArm.add(pistol1);
+        this.modelGroup.add(this.upperLArm);
 
-        // 4. Lower Right Arm (holds Cyan Laser Blade)
+        // 3. Dolne Prawe Ramię (Lower Right Arm - trzyma Działko/Pistolet Plazmowy 🔫)
         this.lowerRArm = new THREE.Group();
         this.lowerRArm.position.set(0.56, 1.20, 0);
         const lRMesh = new THREE.Mesh(armGeo, armorGoldMat);
         lRMesh.position.set(0, -0.34, 0);
         this.lowerRArm.add(lRMesh);
-        const blade4 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.95, 0.06), cyanLaserMat);
-        blade4.position.set(0, -0.72, 0.22);
-        this.lowerRArm.add(blade4);
+        const pistol2 = new THREE.Group();
+        pistol2.position.set(0, -0.65, 0.20);
+        const p2Body = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.36), darkSteelMat);
+        pistol2.add(p2Body);
+        const bGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.38, 8);
+        const barrelL = new THREE.Mesh(bGeo, darkSteelMat);
+        barrelL.rotation.x = Math.PI / 2;
+        barrelL.position.set(-0.05, 0.03, 0.28);
+        const barrelR = new THREE.Mesh(bGeo, darkSteelMat);
+        barrelR.rotation.x = Math.PI / 2;
+        barrelR.position.set(0.05, 0.03, 0.28);
+        pistol2.add(barrelL, barrelR);
+        const p2Core = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.10), redLaserMat);
+        p2Core.position.set(0, 0.03, 0.48);
+        pistol2.add(p2Core);
+        this.lowerRArm.add(pistol2);
         this.modelGroup.add(this.lowerRArm);
+
+        // 4. Dolne Lewe Ramię (Lower Left Arm - trzyma Błękitny Miecz Energetyczny ⚔️)
+        this.lowerLArm = new THREE.Group();
+        this.lowerLArm.position.set(-0.56, 1.20, 0);
+        const lLMesh = new THREE.Mesh(armGeo, armorGoldMat);
+        lLMesh.position.set(0, -0.34, 0);
+        this.lowerLArm.add(lLMesh);
+        const hilt2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.20, 0.08), darkSteelMat);
+        hilt2.position.set(0, -0.62, 0.15);
+        this.lowerLArm.add(hilt2);
+        const bladeCyan = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.05, 0.06), cyanLaserMat);
+        bladeCyan.position.set(0, -0.72, 0.22);
+        this.lowerLArm.add(bladeCyan);
+        this.modelGroup.add(this.lowerLArm);
 
         // 2 Heavy Mecha Legs with hydraulic pistons
         const legGeo = new THREE.BoxGeometry(0.32, 0.90, 0.32);
@@ -1895,6 +1985,36 @@ export class BossRobot extends Mob {
         }
     }
 
+    shootLaserPistol(playerPos) {
+        if (!this.scene || !playerPos || this.isDead) return;
+
+        playLaserPistolSound();
+
+        // Wybierz losowo jeden z dwóch pistoletów (upperLArm lub lowerRArm)
+        const useUpper = Math.random() > 0.5;
+        const arm = useUpper ? this.upperLArm : this.lowerRArm;
+        const boltColor = useUpper ? 0x38bdf8 : 0xf43f5e;
+
+        const muzzlePos = new THREE.Vector3();
+        arm.getWorldPosition(muzzlePos);
+        muzzlePos.y += 0.4;
+
+        eventBus.emit('boss:attack_flash', {
+            color: boltColor,
+            intensity: 4.5,
+            x: muzzlePos.x,
+            y: muzzlePos.y,
+            z: muzzlePos.z
+        });
+
+        // Celuj w gracza (tułów)
+        const target = new THREE.Vector3(playerPos.x, playerPos.y + 1.2, playerPos.z);
+        const bolt = new BossLaserBolt(this.scene, muzzlePos, target, boltColor);
+        if (this.manager && this.manager.thrownProjectiles) {
+            this.manager.thrownProjectiles.push(bolt);
+        }
+    }
+
     update(dt, playerPosition) {
         if (this.isDead || !playerPosition) return;
 
@@ -1911,9 +2031,10 @@ export class BossRobot extends Mob {
         this.updateSmoke(dt);
 
         // 1. Awaken and Growth Animation: Starts small (0.35), then grows GIANT COLOSSUS (scale 3.5)!
+        // Na życzenie Tymka: "najpierw ma jedną rękę, potem drugą, potem trzecią, potem czwartą, i wszystkie mają miecze i pistolety"!
         if (this.isAwakening) {
             this.awakenTimer += dt;
-            const progress = Math.min(1.0, this.awakenTimer / 2.5);
+            const progress = Math.min(1.0, this.awakenTimer / 3.2);
             const currentScale = 0.35 + (this.targetScale - 0.35) * progress;
             this.group.scale.set(currentScale, currentScale, currentScale);
 
@@ -1921,11 +2042,56 @@ export class BossRobot extends Mob {
             this.group.position.x += (Math.random() - 0.5) * 0.08;
             this.group.position.z += (Math.random() - 0.5) * 0.08;
 
+            // Sekwencyjne wysuwanie 4 ramion (1., potem 2., potem 3., potem 4.!)
+            // 1. Górne Prawe (Miecz Czerwony ⚔️)
+            if (this.awakenTimer >= 0.7) {
+                const p1 = Math.min(1.0, (this.awakenTimer - 0.7) / 0.4);
+                if (this.upperRArm) this.upperRArm.scale.set(p1, p1, p1);
+                if (this.deployedArmsCount < 1) {
+                    this.deployedArmsCount = 1;
+                    playLaserSwordSound();
+                    eventBus.emit('ui:popup', '🤖⚡ Boss Robot wysuwa 1. ramię: Miecz Laserowy! ⚔️');
+                }
+            }
+            // 2. Górne Lewe (Pistolet Laserowy 🔫)
+            if (this.awakenTimer >= 1.4) {
+                const p2 = Math.min(1.0, (this.awakenTimer - 1.4) / 0.4);
+                if (this.upperLArm) this.upperLArm.scale.set(p2, p2, p2);
+                if (this.deployedArmsCount < 2) {
+                    this.deployedArmsCount = 2;
+                    playLaserPistolSound();
+                    eventBus.emit('ui:popup', '🤖🔫 Boss Robot wysuwa 2. ramię: Pistolet Laserowy! 🔫');
+                }
+            }
+            // 3. Dolne Prawe (Pistolet Plazmowy 🔫)
+            if (this.awakenTimer >= 2.1) {
+                const p3 = Math.min(1.0, (this.awakenTimer - 2.1) / 0.4);
+                if (this.lowerRArm) this.lowerRArm.scale.set(p3, p3, p3);
+                if (this.deployedArmsCount < 3) {
+                    this.deployedArmsCount = 3;
+                    playLaserPistolSound();
+                    eventBus.emit('ui:popup', '🤖🔫 Boss Robot wysuwa 3. ramię: Pistolet Plazmowy! 🔫');
+                }
+            }
+            // 4. Dolne Lewe (Błękitny Miecz ⚔️)
+            if (this.awakenTimer >= 2.8) {
+                const p4 = Math.min(1.0, (this.awakenTimer - 2.8) / 0.4);
+                if (this.lowerLArm) this.lowerLArm.scale.set(p4, p4, p4);
+                if (this.deployedArmsCount < 4) {
+                    this.deployedArmsCount = 4;
+                    playLaserSwordSound();
+                    eventBus.emit('ui:popup', '🤖⚔️ Boss Robot wysuwa 4. ramię: Błękitny Miecz! ⚔️');
+                }
+            }
+
             if (progress >= 1.0) {
                 this.isAwakening = false;
-                eventBus.emit('ui:popup', '🤖⚠️ POTĘŻNY BOSS ROBOT PRZEBUDZIŁ SIĘ! UWAŻAJ NA 4 RAMIONA! ⚠️🤖');
+                if (this.arms) {
+                    this.arms.forEach(a => { if (a) a.scale.set(1, 1, 1); });
+                }
+                eventBus.emit('ui:popup', '🤖⚠️ POTĘŻNY 4-RAMIENNY BOSS ROBOT PRZEBUDZONY! MIECZE I PISTOLETY W GOTOWOŚCI! ⚠️🤖');
                 if (this.manager?.ui) {
-                    this.manager.ui.showPopup('🤖⚠️ POTĘŻNY BOSS ROBOT PRZEBUDZIŁ SIĘ! ⚠️🤖');
+                    this.manager.ui.showPopup('👑 POTĘŻNY 4-RAMIENNY BOSS ROBOT PRZEBUDZONY! ⚔️🔫');
                 }
             }
             return;
@@ -1967,14 +2133,21 @@ export class BossRobot extends Mob {
             this.stompTimer = 0.4;
         }
 
-        // 3. Melee Attack: 4 arms swinging rapidly!
+        // 3a. Ostrzał z Pistoletów Laserowych na dystans (miecze i pistolety!)
+        this.gunCooldown = (this.gunCooldown || 1.8) - dt;
+        if (dist >= 3.2 && dist <= 28.0 && this.gunCooldown <= 0) {
+            this.gunCooldown = 2.0; // strzał co 2 sekundy
+            this.shootLaserPistol(playerPosition);
+        }
+
+        // 3b. Atak Wręcz: Cięcia mieczami laserowymi z bliska!
         this.attackCooldown -= dt;
-        if (dist <= 3.2 && this.attackCooldown <= 0) {
+        if (dist <= 3.8 && this.attackCooldown <= 0) {
             this.attackCooldown = 1.0; // Fast hits: every 1 second
             this.swingTime = 0.6;
             playLaserSwordSound();
 
-            // Ataki Bossa rozświetlają ciemną mapę błyskami laserów! ("I tylko jak atakuje to ci rozświetla ten ciemny świat")
+            // Ataki Bossa rozświetlają ciemną mapę błyskami laserów!
             eventBus.emit('boss:attack_flash', {
                 color: (Math.random() > 0.5 ? 0x38bdf8 : 0xf43f5e),
                 intensity: 4.8,
