@@ -1512,7 +1512,12 @@ export class BossRobot extends Mob {
             if (arm) arm.scale.set(0, 0, 0);
         });
 
-        this.snapToGround();
+        if (blockX >= 980 && blockX <= 1020) {
+            this.position.set(blockX, 12, blockZ);
+            this.group.position.copy(this.position);
+        } else {
+            this.snapToGround();
+        }
         this.rotationY = 0;
         this.targetRotationY = 0;
         this.group.rotation.set(0, 0, 0);
@@ -2090,7 +2095,11 @@ export class BossRobot extends Mob {
             const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
             const rx = this.position.x + Math.cos(angle) * 2.8;
             const rz = this.position.z + Math.sin(angle) * 2.8;
-            this.manager.spawnMiniRobot(rx, rz);
+            const mini = this.manager.spawnMiniRobot(rx, rz);
+            if (mini && rx >= 980 && rx <= 1020) {
+                mini.position.set(rx, 12, rz);
+                mini.group.position.copy(mini.position);
+            }
         }
     }
 
@@ -2251,6 +2260,11 @@ export class BossRobot extends Mob {
             this.position.z += (dz / dist) * moveStep;
             this.group.position.x = this.position.x;
             this.group.position.z = this.position.z;
+
+            if (this.position.x >= 980 && this.position.x <= 1020) {
+                this.position.y = 12;
+                this.group.position.y = 12;
+            }
 
             // Heavy Footstep Stomping sound and camera shake
             this.stompTimer += dt;
@@ -2541,7 +2555,12 @@ export class RedEyedPig extends Mob {
         this.attackCooldown = 0;
 
         this.buildModel();
-        this.snapToGround();
+        if (x >= 1980 && x <= 2020) {
+            this.position.set(x, 12, z);
+            this.group.position.copy(this.position);
+        } else {
+            this.snapToGround();
+        }
         this.scene.add(this.group);
         playPigGruntSound(false);
     }
@@ -2636,6 +2655,10 @@ export class RedEyedPig extends Mob {
         this.rotationY += diff * 6 * dt;
         this.group.rotation.y = this.rotationY;
 
+        if (this.position.x >= 1980 && this.position.x <= 2020) {
+            this.position.y = 12;
+        }
+
         this.group.position.copy(this.position);
     }
 
@@ -2671,7 +2694,12 @@ export class PigKing extends Mob {
         this.buildHealthBar(4.0);
         this.group.scale.set(this.targetScale, this.targetScale, this.targetScale);
 
-        this.snapToGround();
+        if (blockX >= 1980 && blockX <= 2020) {
+            this.position.set(blockX, 12, blockZ);
+            this.group.position.copy(this.position);
+        } else {
+            this.snapToGround();
+        }
         this.scene.add(this.group);
 
         if (this.manager?.ui) {
@@ -2813,7 +2841,11 @@ export class PigKing extends Mob {
             const px = this.position.x + Math.cos(angle) * dist;
             const pz = this.position.z + Math.sin(angle) * dist;
             if (this.manager.spawnRedEyedPig) {
-                this.manager.spawnRedEyedPig(px, pz);
+                const minion = this.manager.spawnRedEyedPig(px, pz);
+                if (minion) {
+                    minion.position.set(px, 12, pz);
+                    minion.group.position.copy(minion.position);
+                }
             }
         }
     }
@@ -2895,6 +2927,10 @@ export class PigKing extends Mob {
         while (diff > Math.PI) diff -= Math.PI * 2;
         this.rotationY += diff * 4 * dt;
         this.group.rotation.y = this.rotationY;
+
+        if (this.position.x >= 1980 && this.position.x <= 2020) {
+            this.position.y = 12;
+        }
 
         this.group.position.copy(this.position);
     }

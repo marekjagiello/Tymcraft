@@ -103,8 +103,24 @@ export class FlyingArrow extends Entity {
         if (this.shooter === 'player' && animals && Array.isArray(animals)) {
             for (const mob of animals) {
                 if (!mob || mob.isDead) continue;
-                const height = (mob.type === 'zombie' || mob.type === 'skeleton') ? 1.85 : ((mob.type === 'snake') ? 0.35 : 0.85);
-                const hitRadius = (mob.type === 'snake') ? 0.80 : ((mob.type === 'zombie' || mob.type === 'skeleton') ? 0.95 : 0.85);
+                const height = (mob.type === 'boss_robot') ? 7.5 :
+                               ((mob.type === 'boss_pig_king') ? 4.5 :
+                               ((mob.type === 'robot') ? 2.0 :
+                               ((mob.type === 'mini_robot') ? 0.95 :
+                               ((mob.type === 'red_eyed_pig') ? 1.1 :
+                               ((mob.type === 'zombie' || mob.type === 'skeleton') ? 1.85 :
+                               ((mob.type === 'creeper') ? 1.6 :
+                               ((mob.type === 'bear') ? 1.4 :
+                               ((mob.type === 'dirtik') ? 1.05 :
+                               ((mob.type === 'snake') ? 0.35 : 0.85)))))))));
+
+                const hitRadius = (mob.type === 'boss_robot') ? 3.6 :
+                                  ((mob.type === 'boss_pig_king') ? 3.2 :
+                                  ((mob.type === 'robot') ? 1.6 :
+                                  ((mob.type === 'mini_robot') ? 0.75 :
+                                  ((mob.type === 'red_eyed_pig') ? 1.05 :
+                                  ((mob.type === 'bear') ? 1.25 :
+                                  ((mob.type === 'snake') ? 0.80 : 0.95))))));
 
                 const center = mob.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
                 const dist = this.position.distanceTo(center);
@@ -115,10 +131,19 @@ export class FlyingArrow extends Entity {
                     const knockbackOrigin = this.position.clone().sub(this.velocity.clone().normalize().multiplyScalar(2.0));
                     mob.onAttacked(this.damage, knockbackOrigin);
 
-                    let name = 'zwierzę';
-                    if (mob.type === 'snake') name = 'Węża';
+                    let name = 'przeciwnika';
+                    if (mob.type === 'boss_pig_king') name = 'Króla Świń 👑';
+                    else if (mob.type === 'red_eyed_pig') name = 'Świnię z czerwonymi oczami 🔴';
+                    else if (mob.type === 'boss_robot') name = 'Bossa Robota 🤖';
+                    else if (mob.type === 'mini_robot') name = 'Małego Robota 🤖';
+                    else if (mob.type === 'robot') name = 'Robota 🤖';
+                    else if (mob.type === 'dirtik') name = 'Dirtika';
+                    else if (mob.type === 'creeper') name = 'Creepera';
+                    else if (mob.type === 'snake') name = 'Węża';
                     else if (mob.type === 'zombie') name = 'Zombie';
                     else if (mob.type === 'skeleton') name = 'Szkieleta';
+                    else if (mob.type === 'bear') name = 'Niedźwiedzia';
+                    else if (mob.type === 'cow') name = 'Krowę';
                     else if (mob.type === 'pig') name = 'Świnię';
                     else if (mob.type === 'sheep') name = 'Owcę';
 
@@ -126,13 +151,8 @@ export class FlyingArrow extends Entity {
                         const msg = `🏹💥 Trafienie! Pokonano ${name}!`;
                         eventBus.emit('ui:popup', msg);
                         if (ui && !ui._handledByEvent) ui.showPopup(msg);
-                    } else if (mob.type === 'zombie' || mob.type === 'skeleton') {
-                        const enemyName = mob.type === 'skeleton' ? 'Szkieleta' : 'Zombie';
-                        const msg = `🏹 Trafiono ${enemyName}! (${mob.health}/${mob.maxHealth} HP)`;
-                        eventBus.emit('ui:popup', msg);
-                        if (ui && !ui._handledByEvent) ui.showPopup(msg);
                     } else {
-                        const msg = `🏹 Trafiono ${name}! (${mob.health}/${mob.maxHealth} HP)`;
+                        const msg = `🏹 Trafiono ${name}! (${Math.max(0, mob.health)}/${mob.maxHealth} HP)`;
                         eventBus.emit('ui:popup', msg);
                         if (ui && !ui._handledByEvent) ui.showPopup(msg);
                     }
@@ -409,9 +429,10 @@ export class MagicStoneSpell extends Entity {
         if (animals && Array.isArray(animals)) {
             for (const mob of animals) {
                 if (!mob || mob.isDead || !mob.position) continue;
-                const mobCenter = mob.position.clone().add(new THREE.Vector3(0, (mob.type === 'boss_robot' ? 2.2 : (mob.type === 'robot' ? 1.4 : 0.9)), 0));
+                const isLargeBoss = (mob.type === 'boss_robot' || mob.type === 'boss_pig_king');
+                const mobCenter = mob.position.clone().add(new THREE.Vector3(0, (isLargeBoss ? 2.2 : (mob.type === 'robot' ? 1.4 : 0.9)), 0));
                 const dist = this.position.distanceTo(mobCenter);
-                const hitRadius = mob.type === 'boss_robot' ? 2.4 : (mob.type === 'robot' ? 1.6 : (mob.type === 'bear' ? 1.3 : 1.0));
+                const hitRadius = isLargeBoss ? 2.8 : (mob.type === 'robot' ? 1.6 : (mob.type === 'bear' ? 1.3 : 1.0));
                 if (dist <= hitRadius) {
                     this.onHitMob(mob);
                     return;
@@ -434,7 +455,9 @@ export class MagicStoneSpell extends Entity {
         if (mob.isDead) return;
 
         let name = mob.type || 'cel';
-        if (mob.type === 'boss_robot') name = 'Bossa Robota';
+        if (mob.type === 'boss_pig_king') name = 'Króla Świń 👑';
+        else if (mob.type === 'red_eyed_pig') name = 'Świnię z czerwonymi oczami 🔴';
+        else if (mob.type === 'boss_robot') name = 'Bossa Robota';
         else if (mob.type === 'robot') name = 'Robota Transformera';
         else if (mob.type === 'zombie') name = 'Zombie';
         else if (mob.type === 'skeleton') name = 'Szkieleta';
@@ -642,7 +665,7 @@ export class HomingRainbowArrow extends Entity {
                 let minDist = 9999;
                 for (const mob of animals) {
                     if (!mob || mob.isDead || !mob.position) continue;
-                    const isHostile = mob.type === 'boss_robot' || mob.type === 'robot' || mob.type === 'zombie' || mob.type === 'skeleton' || mob.type === 'creeper' || mob.type === 'dirtik';
+                    const isHostile = mob.type === 'boss_robot' || mob.type === 'boss_pig_king' || mob.type === 'red_eyed_pig' || mob.type === 'robot' || mob.type === 'mini_robot' || mob.type === 'zombie' || mob.type === 'skeleton' || mob.type === 'creeper' || mob.type === 'dirtik';
                     if (isHostile) {
                         const d = this.position.distanceTo(mob.position);
                         if (d < minDist) {
@@ -658,7 +681,8 @@ export class HomingRainbowArrow extends Entity {
         }
 
         if (this.targetMob && !this.targetMob.isDead) {
-            const mobHeight = this.targetMob.type === 'boss_robot' ? 2.2 : (this.targetMob.type === 'robot' ? 1.6 : 0.9);
+            const isLargeBoss = (this.targetMob.type === 'boss_robot' || this.targetMob.type === 'boss_pig_king');
+            const mobHeight = isLargeBoss ? 2.5 : (this.targetMob.type === 'robot' ? 1.6 : 0.9);
             const mobCenter = this.targetMob.position.clone().add(new THREE.Vector3(0, mobHeight, 0));
             const desiredDir = mobCenter.clone().sub(this.position).normalize();
             const currentDir = this.velocity.clone().normalize();
@@ -675,10 +699,11 @@ export class HomingRainbowArrow extends Entity {
         if (animals && Array.isArray(animals)) {
             for (const mob of animals) {
                 if (!mob || mob.isDead || !mob.position) continue;
-                const mobHeight = mob.type === 'boss_robot' ? 2.5 : (mob.type === 'robot' ? 1.8 : 1.0);
+                const isLargeBoss = (mob.type === 'boss_robot' || mob.type === 'boss_pig_king');
+                const mobHeight = isLargeBoss ? 2.5 : (mob.type === 'robot' ? 1.8 : 1.0);
                 const mobCenter = mob.position.clone().add(new THREE.Vector3(0, mobHeight * 0.5, 0));
                 const dist = this.position.distanceTo(mobCenter);
-                const hitRadius = mob.type === 'boss_robot' ? 2.3 : (mob.type === 'robot' ? 1.6 : 1.15);
+                const hitRadius = isLargeBoss ? 2.8 : (mob.type === 'robot' ? 1.6 : 1.15);
 
                 if (dist <= hitRadius) {
                     this.onHitMob(mob, ui);
@@ -700,16 +725,18 @@ export class HomingRainbowArrow extends Entity {
         playExplosionSound();
 
         let mobName = mob.type;
-        if (mob.type === 'boss_robot') mobName = 'Bossa Robota 🤖';
+        if (mob.type === 'boss_pig_king') mobName = 'Króla Świń 👑';
+        else if (mob.type === 'red_eyed_pig') mobName = 'Świnię z czerwonymi oczami 🔴';
+        else if (mob.type === 'boss_robot') mobName = 'Bossa Robota 🤖';
         else if (mob.type === 'robot') mobName = 'Robota Transformera 🤖';
         else if (mob.type === 'zombie') mobName = 'Zombie 🧟';
         else if (mob.type === 'skeleton') mobName = 'Szkieleta 🏹';
         else if (mob.type === 'creeper') mobName = 'Creepera 💥';
         else if (mob.type === 'dirtik') mobName = 'Dirtika 🐗';
 
-        if (mob.type === 'boss_robot') {
+        if (mob.type === 'boss_robot' || mob.type === 'boss_pig_king') {
             mob.onAttacked(50, this.position);
-            const msg = `🌈🎯 Potężne trafienie Kolorową Strzałą w Bossa Robota! (50 DMG!) [HP: ${Math.max(0, mob.health)}/100]`;
+            const msg = `🌈🎯 Potężne trafienie Kolorową Strzałą w ${mobName}! (50 DMG!) [HP: ${Math.max(0, mob.health)}/${mob.maxHealth}]`;
             eventBus.emit('ui:popup', msg);
             if (ui) ui.showPopup(msg);
         } else {

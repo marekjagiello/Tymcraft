@@ -60,7 +60,7 @@ export class Interaction {
         this.initEvents();
     }
 
-    raycastAnimal(maxDist = 5.0) {
+    raycastAnimal(maxDist = 5.5) {
         if (!this.animals || !this.animals.animals) return null;
 
         const origin = this.camera.position;
@@ -73,16 +73,34 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'boss_robot') ? 7.5 : ((animal.type === 'robot') ? 2.0 : ((animal.type === 'mini_robot') ? 0.95 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)))))));
-            const hitRadius = (animal.type === 'boss_robot') ? 3.2 : ((animal.type === 'robot') ? 1.15 : ((animal.type === 'mini_robot') ? 0.75 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95))));
+            const isBoss = (animal.type === 'boss_robot' || animal.type === 'boss_pig_king');
+            const effectiveMaxDist = isBoss ? Math.max(maxDist, 8.5) : maxDist;
 
+            const height = (animal.type === 'boss_robot') ? 7.5 :
+                           ((animal.type === 'boss_pig_king') ? 4.5 :
+                           ((animal.type === 'robot') ? 2.0 :
+                           ((animal.type === 'mini_robot') ? 0.95 :
+                           ((animal.type === 'red_eyed_pig') ? 1.1 :
+                           ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 :
+                           ((animal.type === 'creeper') ? 1.6 :
+                           ((animal.type === 'bear') ? 1.4 :
+                           ((animal.type === 'dirtik') ? 1.05 :
+                           ((animal.type === 'snake') ? 0.35 : 0.85)))))))));
+
+            const hitRadius = (animal.type === 'boss_robot') ? 3.6 :
+                              ((animal.type === 'boss_pig_king') ? 3.2 :
+                              ((animal.type === 'robot') ? 1.15 :
+                              ((animal.type === 'mini_robot') ? 0.75 :
+                              ((animal.type === 'red_eyed_pig') ? 1.05 :
+                              ((animal.type === 'bear') ? 1.25 :
+                              ((animal.type === 'snake') ? 0.80 : 0.95))))));
 
             // Center of animal vertical capsule
             const center = animal.position.clone().add(new THREE.Vector3(0, height * 0.5, 0));
             const toCenter = center.clone().sub(origin);
             const proj = toCenter.dot(dir);
 
-            if (proj > 0 && proj < closestDist) {
+            if (proj > 0 && proj < effectiveMaxDist && proj < closestDist) {
                 const rayPoint = origin.clone().addScaledVector(dir, proj);
                 const clampedY = THREE.MathUtils.clamp(rayPoint.y, animal.position.y, animal.position.y + height);
                 const closestAxisPoint = new THREE.Vector3(animal.position.x, clampedY, animal.position.z);

@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pig_king_boss_v14';
-import { Player } from './player.js?v=pig_king_boss_v14';
-import { Interaction } from './interaction.js?v=pig_king_boss_v14';
-import { AnimalManager } from './animals.js?v=pig_king_boss_v14';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pig_king_boss_v14';
-import { StorageManager } from './storage.js?v=pig_king_boss_v14';
-import { SurvivalManager } from './survival.js?v=pig_king_boss_v14';
-import { CraftingManager } from './crafting.js?v=pig_king_boss_v14';
-import { DropsManager } from './drops.js?v=pig_king_boss_v14';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_visible_hitbox_v15';
+import { Player } from './player.js?v=boss_visible_hitbox_v15';
+import { Interaction } from './interaction.js?v=boss_visible_hitbox_v15';
+import { AnimalManager } from './animals.js?v=boss_visible_hitbox_v15';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_visible_hitbox_v15';
+import { StorageManager } from './storage.js?v=boss_visible_hitbox_v15';
+import { SurvivalManager } from './survival.js?v=boss_visible_hitbox_v15';
+import { CraftingManager } from './crafting.js?v=boss_visible_hitbox_v15';
+import { DropsManager } from './drops.js?v=boss_visible_hitbox_v15';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=pig_king_boss_v14';
-import { QuestManager } from './quests.js?v=pig_king_boss_v14';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pig_king_boss_v14';
+import { updateWaterAnimation } from './textures.js?v=boss_visible_hitbox_v15';
+import { QuestManager } from './quests.js?v=boss_visible_hitbox_v15';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_visible_hitbox_v15';
 
 
 
@@ -345,15 +345,22 @@ class Game {
         this.player.velocity.set(0, 0, 0);
 
         // ZAWSZE upewnij się, że Boss Robot pojawia się na arenie gotowy do walki (reset do 100% HP przy rewanżu!)
+        this.animals.animals = this.animals.animals.filter(a => !(a.type === 'boss_robot' && a.isDead));
         let activeBoss = this.animals.animals.find(a => a.type === 'boss_robot' && !a.isDead);
         if (!activeBoss) {
             activeBoss = this.animals.spawnBossRobot(1000, 1000);
-        } else {
-            activeBoss.health = activeBoss.maxHealth;
-            activeBoss.position.set(1000, 12, 1000);
-            activeBoss.isAwakened = true;
-            activeBoss.unfoldedArms = 4;
-            activeBoss.isAttacking = false;
+        }
+        activeBoss.health = activeBoss.maxHealth;
+        activeBoss.position.set(1000, 12, 1000);
+        activeBoss.group.position.copy(activeBoss.position);
+        activeBoss.group.visible = true;
+        activeBoss.isAwakening = false;
+        activeBoss.isAwakened = true;
+        activeBoss.unfoldedArms = 4;
+        activeBoss.isAttacking = false;
+        activeBoss.group.scale.set(1.0, 1.0, 1.0);
+        if (activeBoss.arms) {
+            activeBoss.arms.forEach(a => { if (a) a.scale.set(1, 1, 1); });
         }
 
         startBossRobotMusic();
@@ -398,13 +405,15 @@ class Game {
         this.player.velocity.set(0, 0, 0);
 
         // ZAWSZE upewnij się, że Król Świnia pojawia się na arenie gotowy do walki
+        this.animals.animals = this.animals.animals.filter(a => !(a.type === 'boss_pig_king' && a.isDead));
         let activeKing = this.animals.animals.find(a => a.type === 'boss_pig_king' && !a.isDead);
         if (!activeKing) {
             activeKing = this.animals.spawnPigKing(2000, 2000);
-        } else {
-            activeKing.health = activeKing.maxHealth;
-            activeKing.position.set(2000, 12, 2000);
         }
+        activeKing.health = activeKing.maxHealth;
+        activeKing.position.set(2000, 12, 2000);
+        activeKing.group.position.copy(activeKing.position);
+        activeKing.group.visible = true;
 
         if (this.ui) {
             this.ui.showBossBar('👑 KRÓL ŚWINIA', activeKing.health, activeKing.maxHealth);
