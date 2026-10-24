@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot } from './mobs/hostile.js?v=boss_1';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot } from './mobs/hostile.js?v=boss_1';
 
 import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=epic_rainbow_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
@@ -168,6 +168,13 @@ export class EntityManager {
         this.animals.push(boss);
         console.log(`[EntityManager] Zespawnowano Bossa Robota na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
         return boss;
+    }
+
+    spawnMiniRobot(x, z) {
+        const mini = new MiniRobot(this.scene, this.world, x, z, this);
+        this.animals.push(mini);
+        console.log(`[EntityManager] Zespawnowano Małego Robocika na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
+        return mini;
     }
 
 
@@ -410,7 +417,11 @@ export class EntityManager {
             this.killSnakesExceptOne();
         }
 
-        // Zarządzanie populacją Zombie (wyłącznie w nocy)
+        // W Mrocznym Wymiarze Bossa Robota nie spawnują się żadne potwory ani zwierzęta ("Żadne potwory się nie pokazują na tej mapie")
+        const inDarkDimension = Boolean(playerPosition && playerPosition.x > 800);
+
+        if (!inDarkDimension) {
+            // Zarządzanie populacją Zombie (wyłącznie w nocy)
         if (!isDay && playerPosition) {
             const zombieCount = this.animals.filter(a => a.type === 'zombie' && !a.isDead).length;
             this.zombieSpawnTimer = (this.zombieSpawnTimer || 0) + dt;
@@ -523,6 +534,7 @@ export class EntityManager {
                 const chosen = pool[Math.floor(Math.random() * pool.length)];
                 this.spawnPassiveNear(playerPosition.x, playerPosition.z, chosen, 18, 38);
             }
+        }
         }
 
         // Update all entities

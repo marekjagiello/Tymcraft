@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=robot_dim_1';
-import { Player } from './player.js?v=robot_dim_1';
-import { Interaction } from './interaction.js?v=robot_dim_1';
-import { AnimalManager } from './animals.js?v=robot_dim_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=robot_dim_1';
-import { StorageManager } from './storage.js?v=robot_dim_1';
-import { SurvivalManager } from './survival.js?v=robot_dim_1';
-import { CraftingManager } from './crafting.js?v=robot_dim_1';
-import { DropsManager } from './drops.js?v=robot_dim_1';
-import { eventBus } from './events.js?v=robot_dim_1';
-import { updateWaterAnimation } from './textures.js?v=robot_dim_1';
-import { QuestManager } from './quests.js?v=robot_dim_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=dark_dimension_v2';
+import { Player } from './player.js?v=dark_dimension_v2';
+import { Interaction } from './interaction.js?v=dark_dimension_v2';
+import { AnimalManager } from './animals.js?v=dark_dimension_v2';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=dark_dimension_v2';
+import { StorageManager } from './storage.js?v=dark_dimension_v2';
+import { SurvivalManager } from './survival.js?v=dark_dimension_v2';
+import { CraftingManager } from './crafting.js?v=dark_dimension_v2';
+import { DropsManager } from './drops.js?v=dark_dimension_v2';
+import { eventBus } from './events.js?v=dark_dimension_v2';
+import { updateWaterAnimation } from './textures.js?v=dark_dimension_v2';
+import { QuestManager } from './quests.js?v=dark_dimension_v2';
 
 
 
@@ -48,6 +48,12 @@ class Game {
         this.dirLight.position.set(40, 60, 40);
         this.dirLight.castShadow = false; // keep fast 60 fps for POC
         this.scene.add(this.dirLight);
+
+        // Dynamiczna neonowa lampa błyskowa rozświetlająca Mroczny Wymiar podczas ataków Bossa Robota
+        this.bossFlashIntensity = 0;
+        this.bossFlashLight = new THREE.PointLight(0x38bdf8, 0, 45);
+        this.bossFlashLight.position.set(1000, 14, 1000);
+        this.scene.add(this.bossFlashLight);
 
         // Sun & Moon Visual Meshes
         const sunGeo = new THREE.BoxGeometry(6, 6, 6);
@@ -171,6 +177,8 @@ class Game {
         this.interaction.animals = this.animals;
         if (this.ui) this.ui.animals = this.animals;
 
+        this.eventBus = eventBus;
+
         if (typeof window !== 'undefined') {
             window.game = this;
             window.spawnCreeper = () => this.animals.spawnCreeperInFrontOfPlayer(this.player, 5.0);
@@ -204,6 +212,29 @@ class Game {
             }
         });
 
+        // Obsługa Mrocznego Wymiaru Bossa Robota
+        this.isInDarkDimension = false;
+        this.savedOverworldPos = new THREE.Vector3(32, 10, 32);
+
+        eventBus.on('boss:attack_flash', (data = {}) => {
+            const color = data.color ?? 0x38bdf8;
+            const intensity = data.intensity ?? 3.8;
+            const x = data.x ?? (this.player ? this.player.position.x : 1000);
+            const y = data.y ?? 14;
+            const z = data.z ?? (this.player ? this.player.position.z : 1000);
+            this.bossFlashLight.color.setHex(color);
+            this.bossFlashLight.position.set(x, y, z);
+            this.bossFlashIntensity = intensity;
+        });
+
+        eventBus.on('dimension:enter_dark', () => {
+            this.enterDarkDimension();
+        });
+
+        eventBus.on('dimension:return_to_overworld', () => {
+            this.exitDarkDimension();
+        });
+
         this.clock = new THREE.Clock();
         this.dayTime = 0.2; // 0 to 1 cycle
         this.dayDuration = 180; // 3 minutes full day-night cycle
@@ -213,6 +244,67 @@ class Game {
         this.animate();
     }
 
+    enterDarkDimension() {
+        if (this.isInDarkDimension) return;
+        this.isInDarkDimension = true;
+
+        if (this.player && this.player.position.x < 800) {
+            this.savedOverworldPos.copy(this.player.position);
+        }
+
+        // Natychmiastowe pre-generowanie i zbudowanie chunków areny wokół gracza (x=1000, z=1000)
+        const pcx = Math.floor(1000 / 16);
+        const pcz = Math.floor(1000 / 16);
+        for (let dx = -2; dx <= 2; dx++) {
+            for (let dz = -2; dz <= 2; dz++) {
+                this.world.getOrCreateChunk(pcx + dx, pcz + dz);
+                this.world.buildChunk(pcx + dx, pcz + dz);
+            }
+        }
+
+        // Teleportacja gracza na arenę (y=12.5)
+        this.player.position.set(1000, 12.5, 992);
+        this.player.velocity.set(0, 0, 0);
+
+        // Przywołanie Bossa Robota w Mrocznym Wymiarze, jeśli nie został jeszcze pokonany
+        const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
+        if (!isDefeated) {
+            let boss = this.animals.animals.find(a => a.type === 'boss_robot' && !a.isDead);
+            if (!boss) {
+                boss = this.animals.spawnBossRobot(1000, 1008);
+            } else {
+                boss.position.set(1000, 12, 1008);
+                boss.group.position.copy(boss.position);
+            }
+        }
+
+        if (this.ui) {
+            this.ui.addChatMessage('Serwer', '🌌 Wkroczyłeś do Mrocznego Wymiaru Bossa Robota! Ciemność rozświetlają tylko błyski energii mecha! ⚡🤖', 'chat-server');
+            this.ui.showPopup('🌌 MROCZNY WYMIAR ROBOTA! ⚡🤖');
+        }
+    }
+
+    exitDarkDimension() {
+        this.isInDarkDimension = false;
+        const target = (this.savedOverworldPos && this.savedOverworldPos.x < 800) ? this.savedOverworldPos : new THREE.Vector3(32, 10, 32);
+        this.player.position.copy(target);
+        this.player.velocity.set(0, 0, 0);
+
+        // Pre-build chunków wokół miejsca powrotu
+        const pcx = Math.floor(target.x / 16);
+        const pcz = Math.floor(target.z / 16);
+        for (let dx = -2; dx <= 2; dx++) {
+            for (let dz = -2; dz <= 2; dz++) {
+                this.world.getOrCreateChunk(pcx + dx, pcz + dz);
+                this.world.buildChunk(pcx + dx, pcz + dz);
+            }
+        }
+
+        if (this.ui) {
+            this.ui.showPopup('🌟 Powrót do bezpiecznego świata!');
+        }
+    }
+
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
@@ -220,6 +312,31 @@ class Game {
     }
 
     updateDayNight(dt) {
+        // --- Specjalna atmosfera Mrocznego Wymiaru (Czarne niebo, lekka poświata, błyski laserów) ---
+        if (this.isInDarkDimension || (this.player && this.player.position.x > 800)) {
+            this.isInDarkDimension = true;
+            const darkSky = new THREE.Color(0x06060c);
+            this.scene.background = darkSky;
+            this.scene.fog.color = darkSky;
+            this.scene.fog.density = 0.022;
+
+            // "Ale jest też trochę jasno" - chłodne, delikatne stalowo-niebieskie światło otoczenia
+            this.ambientLight.color.setHex(0x384260);
+            this.ambientLight.intensity = 0.45;
+            this.dirLight.intensity = 0.06;
+
+            // Wygaszanie błysku światła po ataku Bossa ("I tylko jak atakuje to ci rozświetla ten ciemny świat")
+            if (this.bossFlashIntensity > 0) {
+                this.bossFlashIntensity = Math.max(0, this.bossFlashIntensity - dt * 3.8);
+                this.bossFlashLight.intensity = this.bossFlashIntensity;
+            } else {
+                this.bossFlashLight.intensity = 0;
+            }
+            return;
+        }
+
+        // Standardowy cykl dnia i nocy w normalnym świecie
+        this.ambientLight.color.setHex(0xffffff);
         this.dayTime = (this.dayTime + dt / this.dayDuration) % 1.0;
 
         const angle = this.dayTime * Math.PI * 2;

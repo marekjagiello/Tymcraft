@@ -208,10 +208,59 @@ export class World {
             return 'Winter';
         }
 
+        // Mroczny Wymiar Bossa Robota (Dark Dimension) - sektor (960..1040, 960..1040)
+        if (x >= 960 && x <= 1040 && z >= 960 && z <= 1040) {
+            return 'DarkDimension';
+        }
+
         const scale = 0.025;
         const moisture = this.biomeNoise.noise2D((x + 200) * scale, (z + 200) * scale);
         if (moisture > 0.08) return 'Forest';
         return 'Plains';
+    }
+
+    // Generuje mroczną latającą arenę Bossa Robota (Bedrock, Bruk i zasilające niebieskie bloki)
+    generateDarkArenaChunk(chunk, startX, startZ) {
+        const centerX = 1000;
+        const centerZ = 1000;
+        const arenaFloorY = 11;
+        const arenaRadius = 15;
+
+        for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+            for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+                const x = startX + lx;
+                const z = startZ + lz;
+                const dx = x - centerX;
+                const dz = z - centerZ;
+                const dist = Math.hypot(dx, dz);
+
+                if (dist <= arenaRadius) {
+                    // Bedrockowa podstawa podłogi (y=10)
+                    chunk.voxels[this.localIndex(lx, arenaFloorY - 1, lz)] = 14;
+
+                    // Główna posadzka areny (y=11)
+                    let floorBlock = 14; // Domyślnie Bedrock / czarny kamień
+                    if (Math.abs(dist - 7) < 0.8) {
+                        floorBlock = 12; // Brukowy okrąg
+                    } else if ((Math.abs(dx) <= 1 || Math.abs(dz) <= 1) && dist <= 12) {
+                        floorBlock = 53; // Napiorunowany Kolorowy Blok (linie cyber-energii)
+                    } else if (dist <= 2.2) {
+                        floorBlock = 51; // Kolorowy Blok 626 (centralny piedestał)
+                    }
+                    chunk.voxels[this.localIndex(lx, arenaFloorY, lz)] = floorBlock;
+
+                    // Ochronne bariery na krawędziach areny (y=12, 13), by nie wypaść w próżnię
+                    if (dist >= arenaRadius - 1.2) {
+                        chunk.voxels[this.localIndex(lx, arenaFloorY + 1, lz)] = 14;
+                        chunk.voxels[this.localIndex(lx, arenaFloorY + 2, lz)] = 14;
+                        // Słupy energetyczne na 4 kierunkach
+                        if ((Math.abs(dx) <= 1 || Math.abs(dz) <= 1) && dist >= arenaRadius - 1.2) {
+                            chunk.voxels[this.localIndex(lx, arenaFloorY + 3, lz)] = 53;
+                        }
+                    }
+                }
+            }
+        }
     }
 
 
@@ -222,6 +271,14 @@ export class World {
 
         const startX = chunk.cx * CHUNK_SIZE;
         const startZ = chunk.cz * CHUNK_SIZE;
+
+        // Mroczny Wymiar Bossa Robota - Unikalna latająca cyber-arena w sektorze (cx 60..64, cz 60..64)
+        if (chunk.cx >= 60 && chunk.cx <= 64 && chunk.cz >= 60 && chunk.cz <= 64) {
+            this.generateDarkArenaChunk(chunk, startX, startZ);
+            this.applyChunkStorageDelta(chunk);
+            return;
+        }
+
         const treesToPlant = [];
         const cactiToPlant = [];
         const flowersToPlant = [];

@@ -73,8 +73,8 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'boss_robot') ? 4.5 : ((animal.type === 'robot') ? 2.0 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85))))));
-            const hitRadius = (animal.type === 'boss_robot') ? 2.2 : ((animal.type === 'robot') ? 1.15 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95)));
+            const height = (animal.type === 'boss_robot') ? 4.5 : ((animal.type === 'robot') ? 2.0 : ((animal.type === 'mini_robot') ? 0.95 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)))))));
+            const hitRadius = (animal.type === 'boss_robot') ? 2.2 : ((animal.type === 'robot') ? 1.15 : ((animal.type === 'mini_robot') ? 0.75 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95))));
 
 
             // Center of animal vertical capsule
@@ -154,6 +154,7 @@ export class Interaction {
                         if (wasAlive && animal.health <= 0) {
                             let name = 'zwierzę';
                             if (animal.type === 'boss_robot') name = 'Bossa Robota';
+                            else if (animal.type === 'mini_robot') name = 'małego robocika';
                             else if (animal.type === 'snake') name = 'węża';
                             else if (animal.type === 'zombie') name = 'Zombie';
                             else if (animal.type === 'skeleton') name = 'Szkieleta';
@@ -166,8 +167,8 @@ export class Interaction {
                             const msg = `💥 Pokonano ${name}!`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
-                        } else if ((animal.type === 'boss_robot' || animal.type === 'robot' || animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
-                            const enemyName = animal.type === 'boss_robot' ? 'Bossa Robota' : (animal.type === 'robot' ? 'Robota Transformera' : (animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie'))));
+                        } else if ((animal.type === 'boss_robot' || animal.type === 'robot' || animal.type === 'mini_robot' || animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
+                            const enemyName = animal.type === 'boss_robot' ? 'Bossa Robota' : (animal.type === 'mini_robot' ? 'Małego Robocika' : (animal.type === 'robot' ? 'Robota Transformera' : (animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie')))));
                             const msg = `⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
@@ -216,6 +217,14 @@ export class Interaction {
                 if (targetAnimal && targetAnimal.type === 'dirtik' && !targetAnimal.isAwakened) {
                     targetAnimal.awaken();
                     return;
+                }
+
+                // Check if right-clicking Robot -> cyber-promień i podróż do Mrocznego Wymiaru
+                if (targetAnimal && targetAnimal.type === 'robot') {
+                    if (typeof targetAnimal.triggerKidnap === 'function') {
+                        targetAnimal.triggerKidnap();
+                        return;
+                    }
                 }
 
                 // Check if interacting with a Bear (feeding or mounting with PPM!)

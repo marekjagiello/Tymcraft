@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playCyberTeleportSound, playMiniRobotZapSound } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=water_2';
 
 
@@ -1307,8 +1307,42 @@ export class Robot extends Mob {
         }
     }
 
+    triggerKidnap() {
+        const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
+        if (isDefeated) {
+            if (this.manager?.ui) {
+                this.manager.ui.showPopup('🤖 Robot: Bip-bip! Boss Robot został zniszczony, jesteś bohaterem! 🏆');
+            }
+            return;
+        }
+
+        if (this.isKidnapping) return;
+        this.isKidnapping = true;
+        if (!this.isAwakened) {
+            this.awaken();
+        }
+
+        playCyberTeleportSound();
+        eventBus.emit('boss:attack_flash', {
+            color: 0x38bdf8,
+            intensity: 4.5,
+            x: this.position.x,
+            y: this.position.y + 1,
+            z: this.position.z
+        });
+        eventBus.emit('ui:popup', '🌌⚡ Cyber-promień Robota wciąga Cię do Mrocznego Wymiaru Bossa!');
+        if (this.manager?.ui) {
+            this.manager.ui.addChatMessage('Robot', 'Bip-bip! Aktywacja hiper-skoku do wymiaru Bossa Robota! ⚡🌌', 'chat-server');
+        }
+
+        setTimeout(() => {
+            this.isKidnapping = false;
+            eventBus.emit('dimension:enter_dark');
+        }, 550);
+    }
+
     update(dt, playerPosition) {
-        if (this.isDead) return;
+        if (this.isDead || !playerPosition) return;
 
         // Disguised mode: check proximity to wake up
         if (!this.isAwakened) {
@@ -1326,6 +1360,18 @@ export class Robot extends Mob {
         const dist = Math.hypot(dx, dz);
 
         this.targetRotationY = Math.atan2(dx, dz);
+
+        // Porywanie gracza cyber-promieniem do Mrocznego Wymiaru Bossa Robota
+        if (dist <= 3.8 && !this.isKidnapping && (!this.lastKidnapAttempt || Date.now() - this.lastKidnapAttempt > 10000)) {
+            const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
+            if (!isDefeated) {
+                this.lastKidnapAttempt = Date.now();
+                this.triggerKidnap();
+                return;
+            }
+        }
+
+        if (this.isKidnapping) return;
 
         // Move towards player if not in melee range
         if (dist > 1.8 && dist < 35.0) {
@@ -1619,11 +1665,125 @@ export class BossRobot extends Mob {
                 this.position.z - 0.4
             );
             this.manager.drops.add(box);
+
+            // 4 Rubies
+            for (let i = 0; i < 4; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    35,
+                    'Rubin',
+                    this.position.x + (Math.random() - 0.5) * 1.5,
+                    this.position.y + 1.2,
+                    this.position.z + (Math.random() - 0.5) * 1.5
+                );
+                this.manager.drops.add(drop);
+            }
+
+            // 1 Kolorowy Blok 626
+            const block626 = new DroppedItem(
+                this.scene,
+                this.world,
+                51,
+                'Kolorowy Blok 626',
+                this.position.x - 0.4,
+                this.position.y + 1.2,
+                this.position.z + 0.4
+            );
+            this.manager.drops.add(block626);
+        }
+
+        // Zapisanie pokonania Bossa na zawsze w pamięci gry ("bossa możesz zrobić tylko raz")
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('m2_boss_robot_defeated', 'true');
+        }
+
+        // Likwidacja wszystkich pozostałych małych robocików
+        if (this.manager && this.manager.animals) {
+            const minis = this.manager.animals.filter(a => a.type === 'mini_robot' && !a.isDead);
+            minis.forEach(m => m.die());
         }
 
         if (this.manager?.ui) {
-            this.manager.ui.addChatMessage('Serwer', '👑 Zwycięstwo! Pokonałeś potężnego 4-ramiennego Bossa Robota! Zgarnij Niebieskie Pierwiastki 💠, Diamenty 💎 i Laserowy Miecz ⚡!', 'chat-success');
-            this.manager.ui.showPopup('👑 BOSS ROBOT POKONANY! Gratulacje! 🏆');
+            this.manager.ui.addChatMessage('Serwer', '👑 Zwycięstwo! Pokonałeś potężnego 4-ramiennego Bossa Robota! Zgarnij Niebieskie Pierwiastki 💠, Diamenty 💎, Rubiny 🔴 i Laserowy Miecz ⚡!', 'chat-success');
+            this.manager.ui.showPopup('👑 BOSS ROBOT POKONANY NA ZAWSZE! Gratulacje! 🏆');
+        }
+
+        // Złoty portal powrotny do normalnego świata
+        this.spawnVictoryPortal();
+    }
+
+    spawnVictoryPortal() {
+        if (!this.scene) return;
+        const portalGroup = new THREE.Group();
+        portalGroup.position.set(1000, 11, 1000);
+
+        // Złoty promienisty cylinder portalu
+        const portalGeo = new THREE.CylinderGeometry(1.6, 1.6, 6.0, 16, 1, true);
+        const portalMat = new THREE.MeshBasicMaterial({
+            color: 0xfbbf24,
+            transparent: true,
+            opacity: 0.7,
+            side: THREE.DoubleSide
+        });
+        const beamMesh = new THREE.Mesh(portalGeo, portalMat);
+        beamMesh.position.y = 3.0;
+        portalGroup.add(beamMesh);
+
+        // Górna korona portalu
+        const ringGeo = new THREE.TorusGeometry(1.6, 0.15, 8, 24);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.rotation.x = Math.PI / 2;
+        ringMesh.position.y = 5.8;
+        portalGroup.add(ringMesh);
+
+        this.scene.add(portalGroup);
+
+        if (this.manager?.ui) {
+            this.manager.ui.addChatMessage('Serwer', '🌟 Złoty Portal otwarty! Wejdź do niego w centrum areny, aby bezpiecznie powrócić do swojego świata ze skarbami!', 'chat-server');
+        }
+
+        const checkReturnInterval = setInterval(() => {
+            if (this.manager?.player && this.manager.player.position) {
+                const distToPortal = Math.hypot(this.manager.player.position.x - 1000, this.manager.player.position.z - 1000);
+                if (distToPortal <= 2.2) {
+                    clearInterval(checkReturnInterval);
+                    clearTimeout(autoReturnTimeout);
+                    this.scene.remove(portalGroup);
+                    eventBus.emit('dimension:return_to_overworld');
+                }
+            }
+        }, 200);
+
+        const autoReturnTimeout = setTimeout(() => {
+            clearInterval(checkReturnInterval);
+            this.scene.remove(portalGroup);
+            eventBus.emit('dimension:return_to_overworld');
+        }, 12000);
+    }
+
+    summonMiniRobots() {
+        if (!this.manager || this.isDead) return;
+        eventBus.emit('boss:attack_flash', {
+            color: 0xef4444,
+            intensity: 4.5,
+            x: this.position.x,
+            y: this.position.y + 2,
+            z: this.position.z
+        });
+        playRobotWakeSound();
+        eventBus.emit('ui:popup', '🤖🚨 Boss Robot wezwał małe robociki! (-2 HP!) 🚨🤖');
+        if (this.manager.ui) {
+            this.manager.ui.showPopup('🤖🚨 Boss Robot wezwał małe robociki! (-2 HP!)');
+        }
+
+        const count = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+            const rx = this.position.x + Math.cos(angle) * 2.8;
+            const rz = this.position.z + Math.sin(angle) * 2.8;
+            this.manager.spawnMiniRobot(rx, rz);
         }
     }
 
@@ -1659,7 +1819,7 @@ export class BossRobot extends Mob {
     }
 
     update(dt, playerPosition) {
-        if (this.isDead) return;
+        if (this.isDead || !playerPosition) return;
 
         // 1. Awaken and Growth Animation: Starts small (0.35), then grows GIANT (2.2)!
         if (this.isAwakening) {
@@ -1712,11 +1872,30 @@ export class BossRobot extends Mob {
             this.swingTime = 0.6;
             playLaserSwordSound();
 
+            // Ataki Bossa rozświetlają ciemną mapę błyskami laserów! ("I tylko jak atakuje to ci rozświetla ten ciemny świat")
+            eventBus.emit('boss:attack_flash', {
+                color: (Math.random() > 0.5 ? 0x38bdf8 : 0xf43f5e),
+                intensity: 4.2,
+                x: this.position.x,
+                y: this.position.y + 2,
+                z: this.position.z
+            });
+
             if (this.manager?.survival) {
                 // If player has armor: 1 heart (2 HP); without armor: 2 hearts (4 HP)
                 const hasArmor = Boolean(this.manager.survival.hasArmor || this.manager.survival.hasRubyArmor || this.manager.survival.hasStoneArmor);
                 const actualDamage = hasArmor ? 2 : 4;
                 this.manager.survival.takeDamage(actualDamage, 'Cios 4-ramiennego Bossa Robota! 🤖💥');
+            }
+        }
+
+        // 3b. Przywoływanie małych robocików w Mrocznym Wymiarze
+        this.summonTimer = (this.summonTimer || 0) + dt;
+        if (this.summonTimer >= 10.0) {
+            const miniRobots = this.manager ? this.manager.animals.filter(a => a.type === 'mini_robot' && !a.isDead) : [];
+            if (miniRobots.length < 3) {
+                this.summonTimer = 0;
+                this.summonMiniRobots();
             }
         }
 
@@ -1751,5 +1930,177 @@ export class BossRobot extends Mob {
         this.updateFooting(dt);
     }
 }
+
+// -------------------------------------------------------------
+// MiniRobot Mob (Przywoływany przez Bossa Robota w Mrocznym Wymiarze)
+// Zadaje dokładnie 2 HP (1 serduszko), szybki bieg, 12 HP!
+// -------------------------------------------------------------
+export class MiniRobot extends Mob {
+    constructor(scene, world, x = 1000, z = 1000, manager = null) {
+        super(scene, world, 'mini_robot', x, z, manager);
+        this.maxHealth = 12;
+        this.health = 12;
+        this.walkSpeed = 2.4;
+        this.attackDamage = 2; // DOKŁADNIE 2 HP na życzenie Tymka!
+        this.attackCooldown = 0;
+        this.swingTime = 0;
+
+        this.buildModel();
+        this.buildHealthBar(1.2);
+        this.group.scale.set(0.55, 0.55, 0.55);
+
+        this.snapToGround();
+        this.scene.add(this.group);
+    }
+
+    buildModel() {
+        this.modelGroup = new THREE.Group();
+
+        const slateMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+        const redLedMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        const cyanLaserMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+        // Kompaktowy korpus mini-robocika
+        const bodyGeo = new THREE.BoxGeometry(0.50, 0.45, 0.38);
+        this.body = new THREE.Mesh(bodyGeo, slateMat);
+        this.body.position.set(0, 0.55, 0);
+        this.modelGroup.add(this.body);
+
+        // Świecące czerwone oko sensora
+        const eyeGeo = new THREE.BoxGeometry(0.28, 0.10, 0.05);
+        const eye = new THREE.Mesh(eyeGeo, redLedMat);
+        eye.position.set(0, 0.08, 0.20);
+        this.body.add(eye);
+
+        // Dwie małe cyber-antenki
+        const antGeo = new THREE.BoxGeometry(0.04, 0.22, 0.04);
+        const lAnt = new THREE.Mesh(antGeo, slateMat);
+        lAnt.position.set(-0.14, 0.32, 0);
+        this.body.add(lAnt);
+        const lAntTip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), cyanLaserMat);
+        lAntTip.position.set(0, 0.12, 0);
+        lAnt.add(lAntTip);
+
+        const rAnt = new THREE.Mesh(antGeo, slateMat);
+        rAnt.position.set(0.14, 0.32, 0);
+        this.body.add(rAnt);
+        const rAntTip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), cyanLaserMat);
+        rAntTip.position.set(0, 0.12, 0);
+        rAnt.add(rAntTip);
+
+        // 2 mechaniczne ramiona z mini-ostrzami cybernetycznymi
+        const armGeo = new THREE.BoxGeometry(0.10, 0.35, 0.10);
+        this.lArmPivot = new THREE.Group();
+        this.lArmPivot.position.set(-0.32, 0.65, 0);
+        const lArm = new THREE.Mesh(armGeo, slateMat);
+        lArm.position.set(0, -0.16, 0);
+        this.lArmPivot.add(lArm);
+        const bladeL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.28, 0.02), cyanLaserMat);
+        bladeL.position.set(0, -0.28, 0.08);
+        this.lArmPivot.add(bladeL);
+        this.modelGroup.add(this.lArmPivot);
+
+        this.rArmPivot = new THREE.Group();
+        this.rArmPivot.position.set(0.32, 0.65, 0);
+        const rArm = new THREE.Mesh(armGeo, slateMat);
+        rArm.position.set(0, -0.16, 0);
+        this.rArmPivot.add(rArm);
+        const bladeR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.28, 0.02), cyanLaserMat);
+        bladeR.position.set(0, -0.28, 0.08);
+        this.rArmPivot.add(bladeR);
+        this.modelGroup.add(this.rArmPivot);
+
+        // 2 szybkie nóżki
+        const legGeo = new THREE.BoxGeometry(0.12, 0.35, 0.12);
+        this.legs = [];
+        const lLeg = new THREE.Mesh(legGeo, slateMat);
+        lLeg.position.set(-0.14, 0.18, 0);
+        this.modelGroup.add(lLeg);
+        this.legs.push(lLeg);
+
+        const rLeg = new THREE.Mesh(legGeo, slateMat);
+        rLeg.position.set(0.14, 0.18, 0);
+        this.modelGroup.add(rLeg);
+        this.legs.push(rLeg);
+
+        this.group.add(this.modelGroup);
+    }
+
+    die() {
+        super.die();
+        eventBus.emit('mob:killed', { type: 'mini_robot' });
+
+        if (this.manager && this.manager.drops) {
+            // Drop Niebieskiego Pierwiastka lub Jabłka
+            const dropId = Math.random() < 0.6 ? 49 : 23;
+            const dropName = dropId === 49 ? 'Niebieski Pierwiastek' : 'Jabłko';
+            const drop = new DroppedItem(
+                this.scene,
+                this.world,
+                dropId,
+                dropName,
+                this.position.x,
+                this.position.y + 0.6,
+                this.position.z
+            );
+            this.manager.drops.add(drop);
+        }
+    }
+
+    update(dt, playerPosition) {
+        if (this.isDead || !playerPosition) return;
+
+        const dx = playerPosition.x - this.position.x;
+        const dz = playerPosition.z - this.position.z;
+        const dist = Math.hypot(dx, dz);
+
+        this.targetRotationY = Math.atan2(dx, dz);
+
+        // Bieg w stronę gracza
+        if (dist > 1.2 && dist < 32.0) {
+            const moveStep = this.walkSpeed * dt;
+            this.position.x += (dx / dist) * moveStep;
+            this.position.z += (dz / dist) * moveStep;
+            this.group.position.x = this.position.x;
+            this.group.position.z = this.position.z;
+
+            this.animTime += dt * 12;
+            const legSwing = Math.sin(this.animTime) * 0.6;
+            this.legs[0].rotation.x = legSwing;
+            this.legs[1].rotation.x = -legSwing;
+            this.lArmPivot.rotation.x = -legSwing * 0.6;
+            this.rArmPivot.rotation.x = legSwing * 0.6;
+        }
+
+        // Atak mecha: dokładnie 2 HP (1 serduszko)!
+        this.attackCooldown -= dt;
+        if (dist <= 1.6 && this.attackCooldown <= 0) {
+            this.attackCooldown = 1.1;
+            this.swingTime = 0.3;
+            playMiniRobotZapSound();
+
+            eventBus.emit('boss:attack_flash', {
+                color: 0x38bdf8,
+                intensity: 1.8,
+                x: this.position.x,
+                y: this.position.y + 1,
+                z: this.position.z
+            });
+
+            if (this.manager?.survival) {
+                this.manager.survival.takeDamage(this.attackDamage, 'Cios małego robocika! 🤖⚡');
+            }
+        }
+
+        if (this.swingTime > 0) {
+            this.swingTime -= dt;
+            this.rArmPivot.rotation.x = -1.2 + Math.sin(this.swingTime * 18) * 0.8;
+            this.lArmPivot.rotation.x = -1.2 - Math.sin(this.swingTime * 18) * 0.8;
+        }
+
+        this.updateFooting(dt);
+    }
+}
+
 
 

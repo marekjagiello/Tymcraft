@@ -1,7 +1,7 @@
 import { Pig, Sheep, Snake, Bear, Cow, createPixelHeartMesh } from './entities/mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot } from './entities/mobs/hostile.js?v=boss_1';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot } from './entities/mobs/hostile.js?v=dark_dimension_v2';
 import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './entities/projectile.js?v=wand_1';
-import { EntityManager } from './entities/entity-manager.js?v=wand_1';
+import { EntityManager } from './entities/entity-manager.js?v=dark_dimension_v2';
 
 export {
     createPixelHeartMesh,
@@ -19,6 +19,7 @@ export {
     Dirtik,
     Robot,
     BossRobot,
+    MiniRobot,
     EntityManager
 };
 
@@ -28,6 +29,8 @@ export class Animal {
         switch (type) {
             case 'boss_robot':
                 return new BossRobot(scene, world, x, z, manager);
+            case 'mini_robot':
+                return new MiniRobot(scene, world, x, z, manager);
             case 'robot':
                 return new Robot(scene, world, x, z, manager);
             case 'snake':
