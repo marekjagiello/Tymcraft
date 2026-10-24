@@ -314,10 +314,11 @@ export class ThrownGunpowder extends Entity {
 }
 
 export class MagicStoneSpell extends Entity {
-    constructor(scene, world, origin, direction, manager = null) {
+    constructor(scene, world, origin, direction, manager = null, spellType = 'lightning') {
         super(scene, world, origin.x, origin.y, origin.z);
         this.manager = manager;
-        this.speed = 28.0;
+        this.spellType = spellType;
+        this.speed = spellType === 'lightning' ? 36.0 : (spellType === 'fireball' ? 26.0 : 28.0);
         this.velocity = direction.clone().normalize().multiplyScalar(this.speed);
         this.lifetime = 0;
         this.maxLifetime = 3.0;
@@ -328,30 +329,65 @@ export class MagicStoneSpell extends Entity {
     }
 
     buildMesh() {
-        // Glowing cyan-purple magical sphere / crystal with stone core
-        const stoneCoreGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
-        const stoneCoreMat = new THREE.MeshLambertMaterial({ color: 0x52525b });
-        const core = new THREE.Mesh(stoneCoreGeo, stoneCoreMat);
-        this.group.add(core);
+        if (this.spellType === 'lightning') {
+            // Electric glowing yellow-cyan lightning orb with crackling sparks
+            const coreGeo = new THREE.OctahedronGeometry(0.18, 0);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
+            this.group.add(new THREE.Mesh(coreGeo, coreMat));
 
-        const energyGeo = new THREE.SphereGeometry(0.22, 8, 8);
-        const energyMat = new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
-            transparent: true,
-            opacity: 0.75
-        });
-        const energy = new THREE.Mesh(energyGeo, energyMat);
-        this.group.add(energy);
+            const energyGeo = new THREE.SphereGeometry(0.24, 8, 8);
+            const energyMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.75,
+                wireframe: true
+            });
+            this.group.add(new THREE.Mesh(energyGeo, energyMat));
 
-        const haloGeo = new THREE.SphereGeometry(0.30, 8, 8);
-        const haloMat = new THREE.MeshBasicMaterial({
-            color: 0xa855f7,
-            transparent: true,
-            opacity: 0.4,
-            wireframe: true
-        });
-        const halo = new THREE.Mesh(haloGeo, haloMat);
-        this.group.add(halo);
+            const sparkGeo = new THREE.BoxGeometry(0.06, 0.16, 0.06);
+            const sparkMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+            for (let i = 0; i < 4; i++) {
+                const spark = new THREE.Mesh(sparkGeo, sparkMat);
+                spark.rotation.z = (i * Math.PI) / 2;
+                this.group.add(spark);
+            }
+        } else if (this.spellType === 'fireball') {
+            // Fiery orange-red burning fireball
+            const coreGeo = new THREE.SphereGeometry(0.18, 8, 8);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+            this.group.add(new THREE.Mesh(coreGeo, coreMat));
+
+            const flameGeo = new THREE.SphereGeometry(0.26, 8, 8);
+            const flameMat = new THREE.MeshBasicMaterial({
+                color: 0xef4444,
+                transparent: true,
+                opacity: 0.75
+            });
+            this.group.add(new THREE.Mesh(flameGeo, flameMat));
+        } else {
+            // Stone Freeze spell (cyan-purple crystal with stone core)
+            const stoneCoreGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+            const stoneCoreMat = new THREE.MeshLambertMaterial({ color: 0x52525b });
+            const core = new THREE.Mesh(stoneCoreGeo, stoneCoreMat);
+            this.group.add(core);
+
+            const energyGeo = new THREE.SphereGeometry(0.22, 8, 8);
+            const energyMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.75
+            });
+            this.group.add(new THREE.Mesh(energyGeo, energyMat));
+
+            const haloGeo = new THREE.SphereGeometry(0.30, 8, 8);
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: 0xa855f7,
+                transparent: true,
+                opacity: 0.4,
+                wireframe: true
+            });
+            this.group.add(new THREE.Mesh(haloGeo, haloMat));
+        }
     }
 
     update(dt, player = null, survival = null, ui = null, animals = null) {
@@ -373,9 +409,9 @@ export class MagicStoneSpell extends Entity {
         if (animals && Array.isArray(animals)) {
             for (const mob of animals) {
                 if (!mob || mob.isDead || !mob.position) continue;
-                const mobCenter = mob.position.clone().add(new THREE.Vector3(0, mob.type === 'robot' ? 1.4 : 0.9, 0));
+                const mobCenter = mob.position.clone().add(new THREE.Vector3(0, (mob.type === 'boss_robot' ? 2.2 : (mob.type === 'robot' ? 1.4 : 0.9)), 0));
                 const dist = this.position.distanceTo(mobCenter);
-                const hitRadius = mob.type === 'robot' ? 1.6 : (mob.type === 'bear' ? 1.3 : 1.0);
+                const hitRadius = mob.type === 'boss_robot' ? 2.4 : (mob.type === 'robot' ? 1.6 : (mob.type === 'bear' ? 1.3 : 1.0));
                 if (dist <= hitRadius) {
                     this.onHitMob(mob);
                     return;
@@ -396,11 +432,6 @@ export class MagicStoneSpell extends Entity {
 
     onHitMob(mob) {
         if (mob.isDead) return;
-        mob.onAttacked(10, this.position);
-        if (typeof mob.turnToStone === 'function') {
-            mob.turnToStone(5.0);
-        }
-        playHitSound();
 
         let name = mob.type || 'cel';
         if (mob.type === 'boss_robot') name = 'Bossa Robota';
@@ -411,7 +442,24 @@ export class MagicStoneSpell extends Entity {
         else if (mob.type === 'dirtik') name = 'Dirtika';
         else if (mob.type === 'bear') name = 'Niedźwiedzia';
 
-        const msg = `✨🪄 Magiczna Różdżka: ${name} zamieniony w kamień na 5 sekund! 🪨`;
+        let msg = '';
+        if (this.spellType === 'lightning') {
+            mob.onAttacked(16, this.position);
+            playExplosionSound();
+            msg = `⚡🪄 Piorun z Różdżki uderzył w ${name}! (16 obrażeń!) ⚡`;
+        } else if (this.spellType === 'fireball') {
+            mob.onAttacked(14, this.position);
+            playExplosionSound();
+            msg = `🔥🪄 Kula Ognia trafiła ${name}! (14 obrażeń!) 🔥`;
+        } else {
+            mob.onAttacked(8, this.position);
+            if (typeof mob.turnToStone === 'function') {
+                mob.turnToStone(5.0);
+            }
+            playHitSound();
+            msg = `🪨🪄 Magiczna Różdżka: ${name} zamieniony w kamień na 5 sekund! 🪨`;
+        }
+
         eventBus.emit('ui:popup', msg);
         if (this.manager?.ui) {
             this.manager.ui.showPopup(msg);
@@ -427,15 +475,23 @@ export class MagicStoneSpell extends Entity {
         const py = Math.floor(prevPos.y);
         const pz = Math.floor(prevPos.z);
 
-        if (this.world && py >= 1 && py < WORLD_HEIGHT && px >= 0 && px < WORLD_SIZE_X && pz >= 0 && pz < WORLD_SIZE_Z) {
-            const currentBlock = this.world.getBlock(px, py, pz);
-            if (currentBlock === 0) {
-                this.world.setBlock(px, py, pz, 3); // Kamień!
-                eventBus.emit('ui:popup', '✨🪄 Magiczna Różdżka wyczarowała Kamień! 🪨');
+        if (this.spellType === 'stone') {
+            if (this.world && py >= 1 && py < WORLD_HEIGHT && px >= 0 && px < WORLD_SIZE_X && pz >= 0 && pz < WORLD_SIZE_Z) {
+                const currentBlock = this.world.getBlock(px, py, pz);
+                if (currentBlock === 0) {
+                    this.world.setBlock(px, py, pz, 3); // Kamień!
+                    eventBus.emit('ui:popup', '✨🪄 Magiczna Różdżka wyczarowała Kamień! 🪨');
+                }
             }
+            playHitSound();
+        } else if (this.spellType === 'fireball') {
+            playExplosionSound();
+            eventBus.emit('ui:popup', '🔥🪄 Kula Ognia wybuchła! 🔥');
+        } else {
+            playExplosionSound();
+            eventBus.emit('ui:popup', '⚡🪄 Piorun uderzył w ziemię! ⚡');
         }
 
-        playHitSound();
         if (this.manager?.spawnDeathPoof) {
             this.manager.spawnDeathPoof(this.position);
         }

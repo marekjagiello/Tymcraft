@@ -391,8 +391,8 @@ export class EntityManager {
         return bomb;
     }
 
-    shootMagicStoneSpell(origin, direction) {
-        const spell = new MagicStoneSpell(this.scene, this.world, origin, direction, this);
+    shootMagicStoneSpell(origin, direction, spellType = 'lightning') {
+        const spell = new MagicStoneSpell(this.scene, this.world, origin, direction, this, spellType);
         this.thrownProjectiles.push(spell);
         return spell;
     }

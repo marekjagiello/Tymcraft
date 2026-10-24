@@ -131,6 +131,18 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 18. Napiorunowany Kolorowy Blok (53): Kolorowy Blok 626 (51) + Miecz Piorunowy/Laserowy (47)
+        if (nonNulls.includes(51) && nonNulls.includes(47)) {
+            this.output = { item: ITEMS.CHARGED_BLOCK_626, count: 1 };
+            return this.output;
+        }
+
+        // 19. Magiczna Różdżka z Różnymi Czarami (50): Napiorunowany Kolorowy Blok (53) + Patyk (20)
+        if (nonNulls.includes(53) && nonNulls.includes(20)) {
+            this.output = { item: ITEMS.MAGIC_WAND, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

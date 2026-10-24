@@ -48,6 +48,14 @@ export class Interaction {
         this.bowRecoil = 0.0;
         this.magicWandCooldown = 0.0;
 
+        // Magic Wand spells (Błyskawica ⚡, Kula Ognia 🔥, Skamienienie 🪨)
+        this.wandSpells = [
+            { id: 'lightning', name: 'Błyskawica ⚡', desc: 'Rażenie piorunem (16 DMG)' },
+            { id: 'fireball', name: 'Kula Ognia 🔥', desc: 'Wybuch ognia (14 DMG)' },
+            { id: 'stone', name: 'Skamienienie 🪨', desc: 'Zamiana w kamień na 5 sek.' }
+        ];
+        this.currentWandSpellIdx = 0;
+
         this.buildFirstPersonHand();
         this.initEvents();
     }
@@ -97,23 +105,9 @@ export class Interaction {
             const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
 
             if (e.button === 0) {
-                // If using Magiczna Różdżka (ID: 50) with Left Click
+                // If using Magiczna Różdżka (ID: 50) with Left Click: Cast current spell!
                 if (activeItemId === 50) {
-                    const wandAnimal = this.raycastAnimal();
-                    if (wandAnimal) {
-                        playHitSound();
-                        const hitPos = wandAnimal.position.clone().add(new THREE.Vector3(0, 0.9, 0));
-                        this.spawnHitParticles(hitPos);
-                        wandAnimal.onAttacked(10, this.player.position);
-                        if (typeof wandAnimal.turnToStone === 'function') {
-                            wandAnimal.turnToStone(5.0);
-                        }
-                        const msg = '✨🪄 Magiczna Różdżka: cel zamieniony w kamień na 5 sekund! 🪨';
-                        eventBus.emit('ui:popup', msg);
-                        if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
-                    } else {
-                        this.castMagicWand();
-                    }
+                    this.castMagicWand();
                     return;
                 }
 
@@ -181,9 +175,9 @@ export class Interaction {
                 // Right Click: Check if shooting bow
                 e.preventDefault();
 
-                // Check if casting with Magiczna Różdżka (ID: 50) with Right Click (PPM)
+                // Check if using Magiczna Różdżka (ID: 50) with Right Click (PPM): cycle spells!
                 if (activeItemId === 50) {
-                    this.castMagicWand();
+                    this.cycleWandSpell();
                     return;
                 }
 
@@ -410,6 +404,16 @@ export class Interaction {
             });
         }
 
+        // Keyboard shortcut for cycling wand spells
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyX' || e.code === 'KeyZ') {
+                const activeId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+                if (activeId === 50) {
+                    this.cycleWandSpell();
+                }
+            }
+        });
+
         // Prevent context menu in game
         window.addEventListener('contextmenu', (e) => {
             if (this.player.controls.isLocked) {
@@ -562,12 +566,21 @@ export class Interaction {
         }
     }
 
+    cycleWandSpell() {
+        this.currentWandSpellIdx = (this.currentWandSpellIdx + 1) % this.wandSpells.length;
+        const spell = this.wandSpells[this.currentWandSpellIdx];
+        playSwingSound();
+        const msg = `🪄 Przełączono czar różdżki: ${spell.name}! (${spell.desc}) [LPM: rzuć czar, PPM: przełącz]`;
+        eventBus.emit('ui:popup', msg);
+        if (this.ui) this.ui.showPopup(msg);
+    }
+
     castMagicWand() {
         const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
         if (activeItemId !== 50) return;
 
         if (this.magicWandCooldown > 0) return;
-        this.magicWandCooldown = 0.45;
+        this.magicWandCooldown = 0.35;
 
         this.triggerSwing();
 
@@ -576,13 +589,16 @@ export class Interaction {
         this.camera.getWorldDirection(dir);
         origin.addScaledVector(dir, 0.4);
 
+        const currentSpell = this.wandSpells[this.currentWandSpellIdx];
+
         if (this.animals && typeof this.animals.shootMagicStoneSpell === 'function') {
-            this.animals.shootMagicStoneSpell(origin, dir);
+            this.animals.shootMagicStoneSpell(origin, dir, currentSpell.id);
         }
 
-        eventBus.emit('ui:popup', '✨🪄 Rzucono zaklęcie Magicznej Różdżki! 🪨');
+        const msg = `🪄 Rzucono czar: ${currentSpell.name}!`;
+        eventBus.emit('ui:popup', msg);
         if (this.ui && !this.ui._handledByEvent) {
-            this.ui.showPopup('✨🪄 Rzucono zaklęcie Magicznej Różdżki! 🪨');
+            this.ui.showPopup(msg);
         }
     }
 

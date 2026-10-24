@@ -502,6 +502,46 @@ function createFlintAndSteelMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Kolorowy Blok 626 drop mesh (ID 51)
+function createColorBlockDropMesh() {
+    const group = new THREE.Group();
+    const cubeMat = new THREE.MeshLambertMaterial({
+        color: 0xec4899,
+        emissive: 0x8b5cf6,
+        emissiveIntensity: 0.6
+    });
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), cubeMat);
+    group.add(cube);
+
+    // Rainbow corners
+    const cornerMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const corner = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.26), cornerMat);
+    group.add(corner);
+    return group;
+}
+
+// Helper to create a miniature 3D Napiorunowany Kolorowy Blok drop mesh (ID 53)
+function createChargedBlockDropMesh() {
+    const group = new THREE.Group();
+    const cubeMat = new THREE.MeshLambertMaterial({
+        color: 0x06b6d4,
+        emissive: 0xfacc15,
+        emissiveIntensity: 0.8
+    });
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), cubeMat);
+    group.add(cube);
+
+    // Orbiting lightning spark particles
+    const sparkMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    for (let i = 0; i < 4; i++) {
+        const spark = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.05), sparkMat);
+        const ang = (i / 4) * Math.PI * 2;
+        spark.position.set(Math.cos(ang) * 0.20, (i % 2 === 0 ? 0.08 : -0.08), Math.sin(ang) * 0.20);
+        group.add(spark);
+    }
+    return group;
+}
+
 export class DroppedItem {
 
 
@@ -587,8 +627,12 @@ export class DroppedItem {
             this.mesh = createBlueElementMesh();
         } else if (this.id === 50) {
             this.mesh = createMagicWandMesh();
+        } else if (this.id === 51) {
+            this.mesh = createColorBlockDropMesh();
         } else if (this.id === 52) {
             this.mesh = createFlintAndSteelMesh();
+        } else if (this.id === 53) {
+            this.mesh = createChargedBlockDropMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }

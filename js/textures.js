@@ -32,7 +32,9 @@ export const TILES = {
     RUBY_ORE: 17,
     ROSE: 18,
     DANDELION: 19,
-    LILY_PAD: 20
+    LILY_PAD: 20,
+    COLOR_BLOCK_626: 21,
+    CHARGED_BLOCK_626: 22
 };
 
 // Map block types to tile faces: [Top, Bottom, Front, Back, Left, Right]
@@ -55,7 +57,9 @@ export const BLOCK_DEF = {
     16: { name: 'Ruda Rubinu (Ruby Ore)', tiles: [TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE, TILES.RUBY_ORE], solid: true },
     17: { name: 'Czerwona Róża (Rose)', tiles: [TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE, TILES.ROSE], solid: false, transparent: true, isPlant: true },
     18: { name: 'Żółty Mlecz (Dandelion)', tiles: [TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION], solid: false, transparent: true, isPlant: true },
-    19: { name: 'Lilia Wodna (Lily Pad)', tiles: [TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD], solid: false, transparent: true, isLilyPad: true }
+    19: { name: 'Lilia Wodna (Lily Pad)', tiles: [TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD], solid: false, transparent: true, isLilyPad: true },
+    51: { name: 'Kolorowy Blok 626', tiles: [TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626], solid: true },
+    53: { name: 'Napiorunowany Kolorowy Blok', tiles: [TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626], solid: true }
 };
 
 export function renderWaterTile(c, time, offsetX = 0, offsetY = 0) {
@@ -713,6 +717,48 @@ function createAtlas() {
             c.fillStyle = col;
             c.fillRect(px, py, 1, 1);
         }
+    });
+
+    // 21: COLOR_BLOCK_626 (Rainbow pixel block)
+    drawTile(TILES.COLOR_BLOCK_626, (c) => {
+        const rainbowColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899'];
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                const colorIdx = (x + y) % rainbowColors.length;
+                c.fillStyle = rainbowColors[colorIdx];
+                c.fillRect(x, y, 1, 1);
+            }
+        }
+        // Border frame
+        c.strokeStyle = '#ffffff';
+        c.lineWidth = 1;
+        c.strokeRect(0.5, 0.5, 15, 15);
+    });
+
+    // 22: CHARGED_BLOCK_626 (Electric rainbow block with lightning bolt)
+    drawTile(TILES.CHARGED_BLOCK_626, (c) => {
+        const bgColors = ['#0f172a', '#1e1b4b', '#312e81', '#064e3b'];
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                const colorIdx = (x + y) % bgColors.length;
+                c.fillStyle = bgColors[colorIdx];
+                c.fillRect(x, y, 1, 1);
+            }
+        }
+        // Glowing cyan border
+        c.strokeStyle = '#38bdf8';
+        c.lineWidth = 1;
+        c.strokeRect(0.5, 0.5, 15, 15);
+
+        // Yellow Lightning Bolt in center
+        c.fillStyle = '#fde047';
+        c.fillRect(8, 2, 3, 2);
+        c.fillRect(7, 4, 3, 2);
+        c.fillRect(6, 6, 3, 2);
+        c.fillRect(5, 7, 6, 2);
+        c.fillRect(7, 9, 3, 2);
+        c.fillRect(6, 11, 3, 2);
+        c.fillRect(5, 13, 2, 2);
     });
 
     const texture = new THREE.CanvasTexture(canvas);

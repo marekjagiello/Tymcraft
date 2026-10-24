@@ -149,9 +149,17 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🪄'; // Magiczna Różdżka
             itemSpan.style.filter = 'drop-shadow(0 0 10px #c084fc)';
         }
+        else if (itemId === 51) {
+            itemSpan.innerText = '🌈'; // Kolorowy Blok 626
+            itemSpan.style.filter = 'drop-shadow(0 0 9px #ec4899)';
+        }
         else if (itemId === 52) {
             itemSpan.innerText = '🔥'; // Krzesiwo
             itemSpan.style.filter = 'drop-shadow(0 0 9px #f97316)';
+        }
+        else if (itemId === 53) {
+            itemSpan.innerText = '⚡🌈'; // Napiorunowany Kolorowy Blok
+            itemSpan.style.filter = 'drop-shadow(0 0 11px #38bdf8)';
         }
         return itemSpan;
     }
@@ -1184,13 +1192,16 @@ export class UI {
             return;
         }
 
-        // Secret code: "626" gives Krzesiwo & Totem blocks for Boss Robot!
-        if (lower === '626' || lower === '6 2 6' || lower === '6-2-6' || lower === 'boss' || lower === 'krzesiwo') {
+        // Secret code: "6261" / "626" gives Kolorowy Blok 626, Pioruny (Laserowe Miecze), Patyki & Totem!
+        if (lower === '6261' || lower === '6 2 6 1' || lower === '6-2-6-1' || lower === '626' || lower === '6 2 6' || lower === '6-2-6' || lower === 'boss' || lower === 'krzesiwo') {
+            this.addItem(51, 'Kolorowy Blok 626', 1);
+            this.addItem(47, 'Laserowy Miecz', 2); // Pioruny!
+            this.addItem(20, 'Patyk', 2);
             this.addItem(52, 'Krzesiwo', 1);
             this.addItem(2, 'Ziemia', 2);
             this.addItem(3, 'Kamień', 2);
-            this.addChatMessage('Serwer', '🔥 Odkryłeś tajne hasło 626! Otrzymałeś Krzesiwo 🔥 oraz Ziemię i Kamień do zbudowania Totemu Bossa Robota (postaw Ziemię na dole, Kamień na górze i podpal Krzesiwem PPM)!', 'chat-success');
-            this.showPopup('🔥 Hasło 626 odkryte! +1 Krzesiwo i Totem Bossa 🤖');
+            this.addChatMessage('Serwer', '🌈⚡ Odkryłeś tajne hasło 6261! Otrzymałeś Kolorowy Blok 626 🌈, Pioruny (Laserowe Miecze ⚡) oraz Patyki! Połącz Kolorowy Blok z Piorunami w craftingu [R/E] na Napiorunowany Blok, a potem z Patykiem na Magiczną Różdżkę z czarami! 🪄', 'chat-success');
+            this.showPopup('🌈 Kod 6261 odkryty! +Kolorowy Blok, Pioruny ⚡ i Różdżka 🪄');
             return;
         }
 

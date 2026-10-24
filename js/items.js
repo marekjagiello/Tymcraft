@@ -64,7 +64,9 @@ export const ITEMS = {
     BEDROCK_SWORD: { id: 48, name: 'Miecz Bedrockowy', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'bedrock_sword' },
     BLUE_ELEMENT: { id: 49, name: 'Niebieski Pierwiastek', type: ITEM_TYPES.MATERIAL, icon: 'blue_element' },
     MAGIC_WAND: { id: 50, name: 'Magiczna Różdżka', type: ITEM_TYPES.TOOL, damage: 8.0, efficiency: 1.0, icon: 'magic_wand' },
-    FLINT_AND_STEEL: { id: 52, name: 'Krzesiwo', type: ITEM_TYPES.TOOL, damage: 2.0, efficiency: 1.0, icon: 'flint_and_steel' }
+    COLOR_BLOCK_626: { id: 51, name: 'Kolorowy Blok 626', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'color_block_626' },
+    FLINT_AND_STEEL: { id: 52, name: 'Krzesiwo', type: ITEM_TYPES.TOOL, damage: 2.0, efficiency: 1.0, icon: 'flint_and_steel' },
+    CHARGED_BLOCK_626: { id: 53, name: 'Napiorunowany Kolorowy Blok', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'charged_block_626' }
 };
 
 
@@ -106,6 +108,7 @@ export function isTool(id) {
 }
 
 export function isPlaceableBlock(id) {
+    if (id === 51 || id === 53) return true;
     if (id < 1 || id > 19) return false;
     const item = getItem(id);
     return item ? Boolean(item.placeable) : false;
