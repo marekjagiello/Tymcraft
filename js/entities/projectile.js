@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Entity } from './entity.js';
 import { eventBus } from '../events.js';
-import { playHitSound, playExplosionSound } from '../audio.js';
+import { playHitSound, playExplosionSound, playRainbowChimeSound } from '../audio.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 
 export class FlyingArrow extends Entity {
@@ -496,6 +496,241 @@ export class MagicStoneSpell extends Entity {
             this.manager.spawnDeathPoof(this.position);
         }
         this.destroy();
+    }
+
+    destroy() {
+        if (this.isDead) return;
+        this.isDead = true;
+        if (this.group && this.group.parent) {
+            this.scene.remove(this.group);
+        }
+    }
+}
+
+export class HomingRainbowArrow extends Entity {
+    constructor(scene, world, origin, initialDirection, targetMob = null, manager = null) {
+        super(scene, world, origin.x, origin.y, origin.z);
+        this.manager = manager;
+        this.targetMob = targetMob;
+        this.speed = 36.0;
+        this.velocity = initialDirection.clone().normalize().multiplyScalar(this.speed);
+        this.lifetime = 0;
+        this.isReturning = false;
+        this.rainbowHue = 0;
+
+        this.buildMesh();
+        this.group.position.copy(this.position);
+        this.updateRotation();
+        this.scene.add(this.group);
+    }
+
+    buildMesh() {
+        this.meshGroup = new THREE.Group();
+
+        // 6 rainbow segments along shaft
+        const colors = [0xef4444, 0xf97316, 0xeab308, 0x22c55e, 0x06b6d4, 0xa855f7];
+        const segLen = 0.6 / colors.length;
+        colors.forEach((col, idx) => {
+            const mat = new THREE.MeshBasicMaterial({ color: col });
+            const geo = new THREE.BoxGeometry(0.05, 0.05, segLen);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(0, 0, -0.25 + idx * segLen);
+            this.meshGroup.add(mesh);
+        });
+
+        // Glowing crystal arrowhead
+        const tipGeo = new THREE.OctahedronGeometry(0.10, 0);
+        const tipMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const tip = new THREE.Mesh(tipGeo, tipMat);
+        tip.position.set(0, 0, 0.35);
+        this.meshGroup.add(tip);
+
+        // Rainbow aura / halo
+        const haloGeo = new THREE.SphereGeometry(0.20, 8, 8);
+        this.haloMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.6,
+            wireframe: true
+        });
+        const halo = new THREE.Mesh(haloGeo, this.haloMat);
+        this.meshGroup.add(halo);
+
+        this.group.add(this.meshGroup);
+    }
+
+    makeReturningMesh() {
+        while (this.group.children.length > 0) {
+            this.group.remove(this.group.children[0]);
+        }
+        const orbGeo = new THREE.OctahedronGeometry(0.24, 0);
+        this.orbMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+        const orb = new THREE.Mesh(orbGeo, this.orbMat);
+        this.group.add(orb);
+
+        const haloGeo = new THREE.SphereGeometry(0.36, 8, 8);
+        this.returnHaloMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.75,
+            wireframe: true
+        });
+        this.group.add(new THREE.Mesh(haloGeo, this.returnHaloMat));
+    }
+
+    updateRotation() {
+        if (this.velocity.lengthSq() > 0.001) {
+            const dir = this.velocity.clone().normalize();
+            const targetPos = this.position.clone().add(dir);
+            this.group.lookAt(targetPos);
+        }
+    }
+
+    update(dt, player = null, survival = null, ui = null, animals = null) {
+        if (this.isDead) return;
+
+        this.lifetime += dt;
+        this.rainbowHue = (this.rainbowHue + dt * 2.5) % 1.0;
+        if (this.haloMat) {
+            this.haloMat.color.setHSL(this.rainbowHue, 1.0, 0.6);
+        }
+        if (this.orbMat) {
+            this.orbMat.color.setHSL(this.rainbowHue, 1.0, 0.6);
+        }
+
+        // Return state: flies directly to player and enters inventory
+        if (this.isReturning) {
+            this.group.rotation.x += 16 * dt;
+            this.group.rotation.y += 22 * dt;
+
+            let playerTarget = null;
+            if (player && player.position) {
+                playerTarget = player.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+            }
+
+            if (!playerTarget) {
+                this.destroy();
+                return;
+            }
+
+            const toPlayer = playerTarget.clone().sub(this.position);
+            const dist = toPlayer.length();
+
+            if (dist < 1.45 || this.lifetime > 12.0) {
+                // Reached player!
+                playRainbowChimeSound();
+                if (ui) {
+                    ui.addItem(56, 'Magiczna Kolorowa Strzała', 1);
+                    ui.showPopup('🌈✨ Kolorowa Strzała powróciła do Ciebie!');
+                    ui.addChatMessage('Serwer', '🌈✨ Magiczna Kolorowa Strzała powróciła do Twojego ekwipunku!', 'chat-success');
+                }
+                this.destroy();
+                return;
+            }
+
+            // High speed return homing
+            toPlayer.normalize();
+            this.position.addScaledVector(toPlayer, 38.0 * dt);
+            this.group.position.copy(this.position);
+            return;
+        }
+
+        // Forward homing state towards target mob
+        if (!this.targetMob || this.targetMob.isDead) {
+            if (animals && Array.isArray(animals)) {
+                let closestMob = null;
+                let minDist = 9999;
+                for (const mob of animals) {
+                    if (!mob || mob.isDead || !mob.position) continue;
+                    const isHostile = mob.type === 'boss_robot' || mob.type === 'robot' || mob.type === 'zombie' || mob.type === 'skeleton' || mob.type === 'creeper' || mob.type === 'dirtik';
+                    if (isHostile) {
+                        const d = this.position.distanceTo(mob.position);
+                        if (d < minDist) {
+                            minDist = d;
+                            closestMob = mob;
+                        }
+                    }
+                }
+                if (closestMob) {
+                    this.targetMob = closestMob;
+                }
+            }
+        }
+
+        if (this.targetMob && !this.targetMob.isDead) {
+            const mobHeight = this.targetMob.type === 'boss_robot' ? 2.2 : (this.targetMob.type === 'robot' ? 1.6 : 0.9);
+            const mobCenter = this.targetMob.position.clone().add(new THREE.Vector3(0, mobHeight, 0));
+            const desiredDir = mobCenter.clone().sub(this.position).normalize();
+            const currentDir = this.velocity.clone().normalize();
+            currentDir.lerp(desiredDir, 16.0 * dt).normalize();
+            this.velocity.copy(currentDir.multiplyScalar(this.speed));
+        }
+
+        // Move arrow
+        this.position.addScaledVector(this.velocity, dt);
+        this.group.position.copy(this.position);
+        this.updateRotation();
+
+        // Check mob impact
+        if (animals && Array.isArray(animals)) {
+            for (const mob of animals) {
+                if (!mob || mob.isDead || !mob.position) continue;
+                const mobHeight = mob.type === 'boss_robot' ? 2.5 : (mob.type === 'robot' ? 1.8 : 1.0);
+                const mobCenter = mob.position.clone().add(new THREE.Vector3(0, mobHeight * 0.5, 0));
+                const dist = this.position.distanceTo(mobCenter);
+                const hitRadius = mob.type === 'boss_robot' ? 2.3 : (mob.type === 'robot' ? 1.6 : 1.15);
+
+                if (dist <= hitRadius) {
+                    this.onHitMob(mob, ui);
+                    return;
+                }
+            }
+        }
+
+        // Failsafe: return if flying too long
+        if (this.lifetime >= 5.0) {
+            this.startReturn();
+        }
+    }
+
+    onHitMob(mob, ui = null) {
+        if (this.isReturning || this.isDead) return;
+
+        playHitSound();
+        playExplosionSound();
+
+        let mobName = mob.type;
+        if (mob.type === 'boss_robot') mobName = 'Bossa Robota 🤖';
+        else if (mob.type === 'robot') mobName = 'Robota Transformera 🤖';
+        else if (mob.type === 'zombie') mobName = 'Zombie 🧟';
+        else if (mob.type === 'skeleton') mobName = 'Szkieleta 🏹';
+        else if (mob.type === 'creeper') mobName = 'Creepera 💥';
+        else if (mob.type === 'dirtik') mobName = 'Dirtika 🐗';
+
+        if (mob.type === 'boss_robot') {
+            mob.onAttacked(50, this.position);
+            const msg = `🌈🎯 Potężne trafienie Kolorową Strzałą w Bossa Robota! (50 DMG!) [HP: ${Math.max(0, mob.health)}/100]`;
+            eventBus.emit('ui:popup', msg);
+            if (ui) ui.showPopup(msg);
+        } else {
+            const dmg = Math.max(40, mob.health + 10);
+            mob.onAttacked(dmg, this.position);
+            const msg = `🌈🎯 Trafienie bez pudła! Kolorowa Strzała zniszczyła ${mobName}!`;
+            eventBus.emit('ui:popup', msg);
+            if (ui) ui.showPopup(msg);
+        }
+
+        if (this.manager?.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position);
+        }
+
+        this.startReturn();
+    }
+
+    startReturn() {
+        if (this.isReturning) return;
+        this.isReturning = true;
+        this.makeReturningMesh();
     }
 
     destroy() {

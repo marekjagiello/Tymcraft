@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
-import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=wand_1';
+import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound, playRainbowChimeSound } from './audio.js';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=epic_rainbow_1';
 
 import { eventBus } from './events.js';
 
@@ -137,7 +137,14 @@ export class Interaction {
                     } else {
                         const damage = getItemDamage(activeItemId, 2.0);
 
-                        playHitSound();
+                        if (activeItemId === 54) {
+                            playRainbowChimeSound();
+                            const msg = '🌈🗡️ POTĘŻNE CIĘCIE KOLOROWYM MIECZEM! (25 OBRAŻEŃ!) 🌈';
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui) this.ui.showPopup(msg);
+                        } else {
+                            playHitSound();
+                        }
                         const hitPos = animal.position.clone().add(new THREE.Vector3(0, 0.9, 0));
                         this.spawnHitParticles(hitPos);
 
@@ -182,8 +189,8 @@ export class Interaction {
                 }
 
                 if (isBow(activeItemId)) {
-                    if (this.ui && !this.ui.hasItem(28)) {
-                        const msg = '⚠️ Brak strzał w ekwipunku! Stwórz je w craftingu (R) z patyka i kamienia/kości.';
+                    if (this.ui && !this.ui.hasItem(28) && !this.ui.hasItem(56)) {
+                        const msg = '⚠️ Brak strzał w ekwipunku! Zdobądź zwykłe strzały (28) lub Magiczną Kolorową Strzałę (56)!';
                         eventBus.emit('ui:popup', msg);
                         if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
                         return;
@@ -404,13 +411,16 @@ export class Interaction {
             });
         }
 
-        // Keyboard shortcut for cycling wand spells
+        // Keyboard shortcut for cycling wand spells and targeting
         window.addEventListener('keydown', (e) => {
             if (e.code === 'KeyX' || e.code === 'KeyZ') {
                 const activeId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
                 if (activeId === 50) {
                     this.cycleWandSpell();
                 }
+            }
+            if (e.code === 'KeyT') {
+                this.cycleHomingTarget();
             }
         });
 
@@ -432,23 +442,56 @@ export class Interaction {
     releaseBow() {
         if (!this.isDrawingBow) return;
 
+        const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+        const isRainbowBow = activeItemId === 55;
+
         if (this.bowCharge >= 0.15) {
-            let consumed = false;
-            if (this.ui) {
-                consumed = this.ui.consumeItem(28, 1);
+            const hasRainbowArrow = this.ui ? this.ui.hasItem(56) : false;
+            let shotRainbowArrow = false;
+
+            if (hasRainbowArrow) {
+                if (this.ui) {
+                    this.ui.consumeItem(56, 1);
+                } else {
+                    eventBus.emit('item:consume_specific', { id: 56, amount: 1 });
+                }
+                shotRainbowArrow = true;
             } else {
-                eventBus.emit('item:consume_specific', { id: 28, amount: 1 });
-                consumed = true;
+                let consumed = false;
+                if (this.ui) {
+                    consumed = this.ui.consumeItem(28, 1);
+                } else {
+                    eventBus.emit('item:consume_specific', { id: 28, amount: 1 });
+                    consumed = true;
+                }
+                if (!consumed) {
+                    const msg = '⚠️ Brak strzał w ekwipunku!';
+                    eventBus.emit('ui:popup', msg);
+                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+                    this.cancelBowDraw();
+                    return;
+                }
             }
 
-            if (consumed) {
-                playBowShootSound();
-                const dir = new THREE.Vector3();
-                this.camera.getWorldDirection(dir);
-                const origin = this.camera.position.clone().addScaledVector(dir, 0.4);
+            playBowShootSound();
+            const dir = new THREE.Vector3();
+            this.camera.getWorldDirection(dir);
+            const origin = this.camera.position.clone().addScaledVector(dir, 0.4);
 
-                const damage = Math.round(4 + this.bowCharge * 6); // 4 do 10 obrażeń
-                const speed = 18.0 + this.bowCharge * 18.0; // 18 do 36 m/s
+            if (shotRainbowArrow) {
+                playRainbowChimeSound();
+                if (this.animals && typeof this.animals.spawnHomingRainbowArrow === 'function') {
+                    this.animals.spawnHomingRainbowArrow(origin, dir, this.lockedTargetMob);
+                }
+                this.bowRecoil = 0.20;
+                const msg = '🌈🎯 Wystrzelono Samonaprowadzającą Kolorową Strzałę! (Nigdy nie pudłuje i powraca!)';
+                eventBus.emit('ui:popup', msg);
+                if (this.ui) this.ui.showPopup(msg);
+            } else {
+                const baseDmg = isRainbowBow ? 12 : 4;
+                const extraDmg = isRainbowBow ? 12 : 6;
+                const damage = Math.round(baseDmg + this.bowCharge * extraDmg);
+                const speed = 20.0 + this.bowCharge * 20.0;
 
                 if (this.animals && this.animals.spawnArrow) {
                     const arrow = this.animals.spawnArrow(origin, dir, 'player', damage);
@@ -456,22 +499,51 @@ export class Interaction {
                         arrow.velocity = dir.clone().multiplyScalar(speed);
                     }
                 }
-
-                // Odskok łuku po wystrzale (recoil kick)
                 this.bowRecoil = 0.14;
 
                 if (this.bowCharge >= 0.9) {
-                    eventBus.emit('ui:popup', '🏹 Maksymalny strzał z łuku! (10 obrażeń)');
-                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup('🏹 Maksymalny strzał z łuku! (10 obrażeń)');
+                    const msg = isRainbowBow ? '🌈🏹 Potężny strzał z Kolorowego Łuku! (24 obrażenia)' : '🏹 Maksymalny strzał z łuku! (10 obrażeń)';
+                    eventBus.emit('ui:popup', msg);
+                    if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
                 }
-            } else {
-                const msg = '⚠️ Brak strzał w ekwipunku!';
-                eventBus.emit('ui:popup', msg);
-                if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
             }
         }
 
         this.cancelBowDraw();
+    }
+
+    cycleHomingTarget() {
+        if (!this.animals || !Array.isArray(this.animals.animals)) return;
+        const monsters = this.animals.animals.filter(m => {
+            if (!m || m.isDead || !m.position) return false;
+            return m.type === 'boss_robot' || m.type === 'robot' || m.type === 'zombie' || m.type === 'skeleton' || m.type === 'creeper' || m.type === 'dirtik';
+        });
+
+        if (monsters.length === 0) {
+            const msg = '🔍 Skaner: Brak wrogich potworów na świecie! Świat jest bezpieczny! 🌸';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui) this.ui.showPopup(msg);
+            this.lockedTargetMob = null;
+            return;
+        }
+
+        if (this.lockedTargetIdx === undefined) this.lockedTargetIdx = -1;
+        this.lockedTargetIdx = (this.lockedTargetIdx + 1) % monsters.length;
+        this.lockedTargetMob = monsters[this.lockedTargetIdx];
+
+        const dist = this.player ? Math.round(this.player.position.distanceTo(this.lockedTargetMob.position)) : 0;
+        let enemyName = this.lockedTargetMob.type;
+        if (this.lockedTargetMob.type === 'boss_robot') enemyName = '👑 Mega Boss Robot (4 ramiona)';
+        else if (this.lockedTargetMob.type === 'robot') enemyName = '🤖 Robot Transformer';
+        else if (this.lockedTargetMob.type === 'zombie') enemyName = '🧟 Zombie';
+        else if (this.lockedTargetMob.type === 'skeleton') enemyName = '🏹 Szkielet';
+        else if (this.lockedTargetMob.type === 'creeper') enemyName = '💥 Creeper';
+        else if (this.lockedTargetMob.type === 'dirtik') enemyName = '🐗 Dirtik';
+
+        playRainbowChimeSound();
+        const msg = `🎯 NAMIERZONO [${this.lockedTargetIdx + 1}/${monsters.length}]: ${enemyName} | HP: ${this.lockedTargetMob.health}/${this.lockedTargetMob.maxHealth} | ${dist}m [Naciśnij T by zmienić cel]`;
+        eventBus.emit('ui:popup', msg);
+        if (this.ui) this.ui.showPopup(msg);
     }
 
     openMysteryBox() {
@@ -594,6 +666,8 @@ export class Interaction {
         if (this.animals && typeof this.animals.shootMagicStoneSpell === 'function') {
             this.animals.shootMagicStoneSpell(origin, dir, currentSpell.id);
         }
+
+        eventBus.emit('wand:spell_cast', { type: currentSpell.id });
 
         const msg = `🪄 Rzucono czar: ${currentSpell.name}!`;
         eventBus.emit('ui:popup', msg);
@@ -1005,8 +1079,10 @@ export class Interaction {
 
         if (isHoldingBow) {
             if (this.isDrawingBow) {
+                const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+                const chargeDuration = (activeItemId === 55) ? 0.35 : 0.70;
                 this.bowDrawTime += dt;
-                this.bowCharge = Math.min(1.0, this.bowDrawTime / 0.70);
+                this.bowCharge = Math.min(1.0, this.bowDrawTime / chargeDuration);
 
                 // Dynamic FOV zoom when aiming (Minecraft style)
                 const targetFov = 75 - 12 * this.bowCharge;

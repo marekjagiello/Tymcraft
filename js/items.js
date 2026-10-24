@@ -66,7 +66,10 @@ export const ITEMS = {
     MAGIC_WAND: { id: 50, name: 'Magiczna Różdżka', type: ITEM_TYPES.TOOL, damage: 8.0, efficiency: 1.0, icon: 'magic_wand' },
     COLOR_BLOCK_626: { id: 51, name: 'Kolorowy Blok 626', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'color_block_626' },
     FLINT_AND_STEEL: { id: 52, name: 'Krzesiwo', type: ITEM_TYPES.TOOL, damage: 2.0, efficiency: 1.0, icon: 'flint_and_steel' },
-    CHARGED_BLOCK_626: { id: 53, name: 'Napiorunowany Kolorowy Blok', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'charged_block_626' }
+    CHARGED_BLOCK_626: { id: 53, name: 'Napiorunowany Kolorowy Blok', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'charged_block_626' },
+    COLOR_SWORD: { id: 54, name: 'Kolorowy Miecz', type: ITEM_TYPES.WEAPON, damage: 25.0, efficiency: 1.0, icon: 'color_sword' },
+    COLOR_BOW: { id: 55, name: 'Kolorowy Łuk', type: ITEM_TYPES.WEAPON, damage: 16.0, efficiency: 1.0, icon: 'color_bow' },
+    COLOR_ARROW: { id: 56, name: 'Magiczna Kolorowa Strzała', type: ITEM_TYPES.MATERIAL, icon: 'color_arrow' }
 };
 
 
@@ -119,11 +122,11 @@ export function isArmor(id) {
 }
 
 export function isBow(id) {
-    return id === 29;
+    return id === 29 || id === 55;
 }
 
 export function isArrow(id) {
-    return id === 28;
+    return id === 28 || id === 56;
 }
 
 export function isMagicWand(id) {

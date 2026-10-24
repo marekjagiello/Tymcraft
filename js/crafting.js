@@ -143,6 +143,24 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 20. Kolorowy Miecz (54): Napiorunowany Kolorowy Blok (53) + Laserowy Miecz (47) lub Rubinowy Miecz (35)
+        if (nonNulls.includes(53) && (nonNulls.includes(47) || nonNulls.includes(35) || nonNulls.includes(31))) {
+            this.output = { item: ITEMS.COLOR_SWORD, count: 1 };
+            return this.output;
+        }
+
+        // 21. Kolorowy Łuk (55): Napiorunowany Kolorowy Blok (53) + Łuk (29)
+        if (nonNulls.includes(53) && nonNulls.includes(29)) {
+            this.output = { item: ITEMS.COLOR_BOW, count: 1 };
+            return this.output;
+        }
+
+        // 22. Magiczna Kolorowa Strzała (56): Napiorunowany Kolorowy Blok (53) + Strzała (28)
+        if (nonNulls.includes(53) && nonNulls.includes(28)) {
+            this.output = { item: ITEMS.COLOR_ARROW, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

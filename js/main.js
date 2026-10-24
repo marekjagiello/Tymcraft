@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=spells_6261_1';
-import { Player } from './player.js?v=spells_6261_1';
-import { Interaction } from './interaction.js?v=spells_6261_1';
-import { AnimalManager } from './animals.js?v=spells_6261_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=spells_6261_1';
-import { StorageManager } from './storage.js?v=spells_6261_1';
-import { SurvivalManager } from './survival.js?v=spells_6261_1';
-import { CraftingManager } from './crafting.js?v=spells_6261_1';
-import { DropsManager } from './drops.js?v=spells_6261_1';
-import { eventBus } from './events.js?v=spells_6261_1';
-import { updateWaterAnimation } from './textures.js?v=spells_6261_1';
-import { QuestManager } from './quests.js?v=spells_6261_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=epic_rainbow_1';
+import { Player } from './player.js?v=epic_rainbow_1';
+import { Interaction } from './interaction.js?v=epic_rainbow_1';
+import { AnimalManager } from './animals.js?v=epic_rainbow_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=epic_rainbow_1';
+import { StorageManager } from './storage.js?v=epic_rainbow_1';
+import { SurvivalManager } from './survival.js?v=epic_rainbow_1';
+import { CraftingManager } from './crafting.js?v=epic_rainbow_1';
+import { DropsManager } from './drops.js?v=epic_rainbow_1';
+import { eventBus } from './events.js?v=epic_rainbow_1';
+import { updateWaterAnimation } from './textures.js?v=epic_rainbow_1';
+import { QuestManager } from './quests.js?v=epic_rainbow_1';
 
 
 

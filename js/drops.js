@@ -542,6 +542,65 @@ function createChargedBlockDropMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Kolorowy Miecz drop mesh (ID 54)
+function createRainbowSwordMesh() {
+    const group = new THREE.Group();
+    const hiltMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
+    const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.04), hiltMat);
+    hilt.position.y = -0.12;
+    group.add(hilt);
+
+    const guardMat = new THREE.MeshLambertMaterial({ color: 0xec4899 });
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.06), guardMat);
+    guard.position.y = -0.05;
+    group.add(guard);
+
+    // Multi-color rainbow blade
+    const colors = [0xef4444, 0xf97316, 0xeab308, 0x22c55e, 0x06b6d4, 0x8b5cf6];
+    const segH = 0.32 / colors.length;
+    colors.forEach((col, idx) => {
+        const segMat = new THREE.MeshBasicMaterial({ color: col });
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(0.06, segH, 0.02), segMat);
+        seg.position.y = -0.03 + idx * segH;
+        group.add(seg);
+    });
+
+    group.rotation.z = Math.PI / 4;
+    return group;
+}
+
+// Helper to create a miniature 3D Kolorowy Łuk drop mesh (ID 55)
+function createRainbowBowMesh() {
+    const group = new THREE.Group();
+    const bowMat = new THREE.MeshLambertMaterial({ color: 0x06b6d4, emissive: 0x8b5cf6, emissiveIntensity: 0.5 });
+    const bow = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.02, 6, 12, Math.PI), bowMat);
+    bow.rotation.z = Math.PI / 2;
+    group.add(bow);
+
+    const stringMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    const string = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.28, 0.01), stringMat);
+    string.position.x = 0;
+    group.add(string);
+
+    return group;
+}
+
+// Helper to create a miniature 3D Kolorowa Strzała drop mesh (ID 56)
+function createRainbowArrowMesh() {
+    const group = new THREE.Group();
+    const shaftMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.03), shaftMat);
+    group.add(shaft);
+
+    const tipMat = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+    const tip = new THREE.Mesh(new THREE.OctahedronGeometry(0.05, 0), tipMat);
+    tip.position.y = 0.16;
+    group.add(tip);
+
+    group.rotation.z = Math.PI / 3;
+    return group;
+}
+
 export class DroppedItem {
 
 
@@ -633,6 +692,12 @@ export class DroppedItem {
             this.mesh = createFlintAndSteelMesh();
         } else if (this.id === 53) {
             this.mesh = createChargedBlockDropMesh();
+        } else if (this.id === 54) {
+            this.mesh = createRainbowSwordMesh();
+        } else if (this.id === 55) {
+            this.mesh = createRainbowBowMesh();
+        } else if (this.id === 56) {
+            this.mesh = createRainbowArrowMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
 import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot } from './mobs/hostile.js?v=boss_1';
 
-import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './projectile.js?v=wand_1';
+import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=epic_rainbow_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -381,6 +381,12 @@ export class EntityManager {
 
     spawnArrow(origin, direction, shooter = 'skeleton', damage = 5) {
         const arrow = new FlyingArrow(this.scene, this.world, origin, direction, shooter, damage);
+        this.arrows.push(arrow);
+        return arrow;
+    }
+
+    spawnHomingRainbowArrow(origin, direction, targetMob = null) {
+        const arrow = new HomingRainbowArrow(this.scene, this.world, origin, direction, targetMob, this);
         this.arrows.push(arrow);
         return arrow;
     }

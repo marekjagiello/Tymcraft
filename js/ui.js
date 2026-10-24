@@ -161,6 +161,18 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '⚡🌈'; // Napiorunowany Kolorowy Blok
             itemSpan.style.filter = 'drop-shadow(0 0 11px #38bdf8)';
         }
+        else if (itemId === 54) {
+            itemSpan.innerText = '🌈🗡️'; // Kolorowy Miecz
+            itemSpan.style.filter = 'drop-shadow(0 0 10px #f43f5e)';
+        }
+        else if (itemId === 55) {
+            itemSpan.innerText = '🌈🏹'; // Kolorowy Łuk
+            itemSpan.style.filter = 'drop-shadow(0 0 10px #06b6d4)';
+        }
+        else if (itemId === 56) {
+            itemSpan.innerText = '🌈🎯'; // Magiczna Kolorowa Strzała
+            itemSpan.style.filter = 'drop-shadow(0 0 10px #eab308)';
+        }
         return itemSpan;
     }
 
@@ -834,6 +846,7 @@ export class UI {
                     this.updateCraftingDisplay();
                     this.updateCursorItemDisplay();
                     console.log(`[Crafting] Stworzono: ${result.item.name} x${result.count}`);
+                    eventBus.emit('craft:item', { id: result.item.id });
                 }
             });
         }
@@ -1210,6 +1223,19 @@ export class UI {
             this.addItem(49, 'Niebieski Pierwiastek', 2);
             this.addChatMessage('Serwer', '✨ Tajne hasło magii odkryte! Otrzymałeś 2x Niebieski Pierwiastek 💠! Połącz go w craftingu [R/E] z Bedrockiem (kod "1234"), aby stworzyć Magiczną Różdżkę! 🪄', 'chat-success');
             this.showPopup('✨ +2 Niebieski Pierwiastek 💠');
+            return;
+        }
+
+        // Secret code 5: "tecza" / "rainbow" / "kolor" gives full Rainbow Armory!
+        if (lower === 'tecza' || lower === 'tęcza' || lower === 'rainbow' || lower === 'kolor' || lower === 'epickie') {
+            this.addItem(54, 'Kolorowy Miecz', 1);
+            this.addItem(55, 'Kolorowy Łuk', 1);
+            this.addItem(56, 'Magiczna Kolorowa Strzała', 1);
+            this.addItem(52, 'Krzesiwo', 1);
+            this.addItem(2, 'Ziemia', 2);
+            this.addItem(3, 'Kamień', 2);
+            this.addChatMessage('Serwer', '🌈👑 Odkryłeś tajne hasło TĘCZY! Otrzymałeś Kolorowy Miecz 🌈🗡️, Kolorowy Łuk 🌈🏹 i Magiczną Samonaprowadzającą Strzałę 🌈🎯! Naciśnij [T] z łukiem, aby namierzać potwory!', 'chat-success');
+            this.showPopup('🌈👑 Legendarne Kolorowe Uzbrojenie dodane!');
             return;
         }
 
