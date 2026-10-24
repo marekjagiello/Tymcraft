@@ -1218,9 +1218,8 @@ export class UI {
             }
         });
 
-        // Announce Translator guide at startup so everyone can read it!
+        // Dyskretna wiadomość powitalna o czacie (bez narzucania tłumacznika i 5 zasad!)
         setTimeout(() => {
-            this.printTranslatorGuide(false);
             this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Wpisz /pomoc lub odkrywaj tajne hasła... 🤫✨', 'chat-server');
         }, 1500);
     }

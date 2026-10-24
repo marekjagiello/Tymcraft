@@ -171,41 +171,30 @@ def run_test():
         assert robot_test and robot_test.get('darkTeleportTriggered') is False, f"Robot triggered dark teleport! {robot_test}"
         print("✓ Small robot (Robot) no longer kidnaps or teleports player to boss dimension!")
 
-        # TEST 2: Translator Guide Box in DOM
-        print("\n--- TEST 2: Translator Guide Box in DOM ---")
+        # TEST 2: Translator Removed from Crafting, Start Menu and Startup Chat (Tymek's request)
+        print("\n--- TEST 2: Translator Absence from Crafting and Start Menu ---")
         dom_test = eval_js(201, """
         (function() {
             const guideBox = document.getElementById('translator-guide-box');
-            if (!guideBox) return { found: false };
+            const craftHint = document.querySelector('.crafting-recipe-hint');
+            const craftHasTranslator = craftHint ? (craftHint.innerText || craftHint.textContent).includes('Tłumacznik') : false;
 
-            const text = guideBox.innerText || guideBox.textContent;
-            const hasKrzesiwo = text.includes('Krzesiwo') && text.includes('na skos');
-            const hasPortal = text.includes('Portal z Kamienia');
-            const hasNoRobots = text.includes('Małe ludki NIE teleportują');
-            const hasTotem = text.includes('Totem') && text.includes('Ziem') && text.includes('Kamień');
-            const hasBossBar = text.includes('Pasek BOSS');
-            const hasOncePerMap = text.includes('Tylko raz na mapę');
+            const messagesEl = document.getElementById('chat-messages');
+            const initialChatText = messagesEl ? (messagesEl.innerText || messagesEl.textContent) : '';
+            const initialChatHasTranslator = initialChatText.includes('Tłumacznik') || initialChatText.includes('ROZPISKA');
 
             return {
-                found: true,
-                hasKrzesiwo,
-                hasPortal,
-                hasNoRobots,
-                hasTotem,
-                hasBossBar,
-                hasOncePerMap
+                guideBoxInMenu: Boolean(guideBox),
+                craftHasTranslator,
+                initialChatHasTranslator
             };
         })()
         """)
-        print("DOM Guide Test Result:", dom_test)
-        assert dom_test and dom_test.get('found') is True, "Translator guide box not found in DOM"
-        assert dom_test.get('hasKrzesiwo') is True, "Missing Krzesiwo instruction"
-        assert dom_test.get('hasPortal') is True, "Missing Stone Portal instruction"
-        assert dom_test.get('hasNoRobots') is True, "Missing 'Małe ludki NIE teleportują' rule"
-        assert dom_test.get('hasTotem') is True, "Missing Totem summon rule"
-        assert dom_test.get('hasBossBar') is True, "Missing Boss Bar rule"
-        assert dom_test.get('hasOncePerMap') is True, "Missing Once-per-map rule"
-        print("✓ Full written guide is prominently displayed in start menu overlay!")
+        print("DOM Absence Test Result:", dom_test)
+        assert dom_test and dom_test.get('guideBoxInMenu') is False, f"Translator guide box still in menu: {dom_test}"
+        assert dom_test.get('craftHasTranslator') is False, f"Crafting hint still contains translator: {dom_test}"
+        assert dom_test.get('initialChatHasTranslator') is False, f"Startup chat still contains translator auto-announcement: {dom_test}"
+        print("✓ Tłumacznik oraz 5 zasad zostały całkowicie usunięte z craftingu, menu startowego i startowego czatu!")
 
         # TEST 3: Translator Guide Commands & TTS
         print("\n--- TEST 3: Translator Guide Chat Command & TTS ---")

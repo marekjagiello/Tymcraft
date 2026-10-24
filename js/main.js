@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=arena_wall_torches_portal_v8';
-import { Player } from './player.js?v=arena_wall_torches_portal_v8';
-import { Interaction } from './interaction.js?v=arena_wall_torches_portal_v8';
-import { AnimalManager } from './animals.js?v=arena_wall_torches_portal_v8';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=arena_wall_torches_portal_v8';
-import { StorageManager } from './storage.js?v=arena_wall_torches_portal_v8';
-import { SurvivalManager } from './survival.js?v=arena_wall_torches_portal_v8';
-import { CraftingManager } from './crafting.js?v=arena_wall_torches_portal_v8';
-import { DropsManager } from './drops.js?v=arena_wall_torches_portal_v8';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { Player } from './player.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { Interaction } from './interaction.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { AnimalManager } from './animals.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { StorageManager } from './storage.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { SurvivalManager } from './survival.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { CraftingManager } from './crafting.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { DropsManager } from './drops.js?v=clean_crafting_no_intro_tlumacz_v9';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=arena_wall_torches_portal_v8';
-import { QuestManager } from './quests.js?v=arena_wall_torches_portal_v8';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=arena_wall_torches_portal_v8';
+import { updateWaterAnimation } from './textures.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { QuestManager } from './quests.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=clean_crafting_no_intro_tlumacz_v9';
 
 
 
