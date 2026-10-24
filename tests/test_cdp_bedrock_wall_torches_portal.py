@@ -181,11 +181,17 @@ def run_test():
                     }
                 }
 
-                // Sprawdź czy nad ścianą (y=20) jest pusto / powietrze (0)
-                const aboveWall = world.getBlock(wx, floorY + 9, wz);
-                if (aboveWall !== 0) {
+                // Nad ścianą na poziomie y=20 (floorY + 9) znajduje się dach z Bedrocka (14) lub bloków piorunowych (53)
+                const roofBlock = world.getBlock(wx, floorY + 9, wz);
+                if (roofBlock !== 14 && roofBlock !== 53) {
                     allBedrock = false;
-                    heightChecks.push({ wx, y: floorY + 9, wz, expected: 0, got: aboveWall });
+                    heightChecks.push({ wx, y: floorY + 9, wz, expected: '14 or 53 (roof)', got: roofBlock });
+                }
+                // Ponad dachem (floorY + 10) jest otwarte powietrze (0)
+                const aboveRoof = world.getBlock(wx, floorY + 10, wz);
+                if (aboveRoof !== 0) {
+                    allBedrock = false;
+                    heightChecks.push({ wx, y: floorY + 10, wz, expected: 0, got: aboveRoof });
                 }
             }
 

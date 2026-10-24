@@ -256,6 +256,16 @@ export class World {
                             chunk.voxels[this.localIndex(lx, wy, lz)] = 14; // Bedrock
                         }
                     }
+
+                    // Dach nad całą areną u Bossa (y=20, 9 bloków nad podłogą) na życzenie Tymka:
+                    // "I ma być u bossa dach."
+                    let roofBlock = 14; // Lity Bedrock
+                    if ((Math.abs(dx) <= 1 || Math.abs(dz) <= 1) && dist <= 12) {
+                        roofBlock = 53; // Piorunowe linie cyber-energii na suficie
+                    } else if (dist <= 2.2) {
+                        roofBlock = 53; // Piorunowy rdzeń sufitu
+                    }
+                    chunk.voxels[this.localIndex(lx, arenaFloorY + 9, lz)] = roofBlock;
                 }
             }
         }

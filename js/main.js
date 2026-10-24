@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=empty_start_bow_string_v10';
-import { Player } from './player.js?v=empty_start_bow_string_v10';
-import { Interaction } from './interaction.js?v=empty_start_bow_string_v10';
-import { AnimalManager } from './animals.js?v=empty_start_bow_string_v10';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=empty_start_bow_string_v10';
-import { StorageManager } from './storage.js?v=empty_start_bow_string_v10';
-import { SurvivalManager } from './survival.js?v=empty_start_bow_string_v10';
-import { CraftingManager } from './crafting.js?v=empty_start_bow_string_v10';
-import { DropsManager } from './drops.js?v=empty_start_bow_string_v10';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_roof_unbreakable_v11';
+import { Player } from './player.js?v=boss_roof_unbreakable_v11';
+import { Interaction } from './interaction.js?v=boss_roof_unbreakable_v11';
+import { AnimalManager } from './animals.js?v=boss_roof_unbreakable_v11';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_roof_unbreakable_v11';
+import { StorageManager } from './storage.js?v=boss_roof_unbreakable_v11';
+import { SurvivalManager } from './survival.js?v=boss_roof_unbreakable_v11';
+import { CraftingManager } from './crafting.js?v=boss_roof_unbreakable_v11';
+import { DropsManager } from './drops.js?v=boss_roof_unbreakable_v11';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=empty_start_bow_string_v10';
-import { QuestManager } from './quests.js?v=empty_start_bow_string_v10';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=empty_start_bow_string_v10';
+import { updateWaterAnimation } from './textures.js?v=boss_roof_unbreakable_v11';
+import { QuestManager } from './quests.js?v=boss_roof_unbreakable_v11';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_roof_unbreakable_v11';
 
 
 

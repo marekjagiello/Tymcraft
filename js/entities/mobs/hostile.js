@@ -619,8 +619,9 @@ export class Creeper extends Mob {
                         }
 
                         const blockId = this.world.getBlock(bx, by, bz);
-                        // Cannot destroy air (0) or Bedrock (14)
-                        if (blockId > 0 && blockId !== 14) {
+                        // Cannot destroy Bedrock (14), Piorunowe Bloki (53) ani Arena Bossa
+                        const isBossArena = (bx >= 980 && bx <= 1020 && bz >= 980 && bz <= 1020);
+                        if (blockId > 0 && blockId !== 14 && blockId !== 53 && !isBossArena) {
                             this.world.setBlock(bx, by, bz, 0);
                             destroyedBlocksCount++;
 

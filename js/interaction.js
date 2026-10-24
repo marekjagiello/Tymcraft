@@ -804,7 +804,16 @@ export class Interaction {
         }
 
         const { x, y, z, blockId } = this.currentTarget;
-        if (blockId === 14) return; // Cannot break bedrock
+        // Piorunowe bloki (53), Bedrock (14) oraz cała arena Bossa są niezniszczalne na życzenie Tymka!
+        const isArenaBlock = (x >= 980 && x <= 1020 && z >= 980 && z <= 1020);
+        const isArenaStructure = isArenaBlock && (blockId === 14 || blockId === 53 || blockId === 51 || blockId === 12 || y <= 11 || y >= 20 || Math.hypot(x - 1000, z - 1000) >= 13.5);
+        if (blockId === 14 || blockId === 53 || isArenaStructure) {
+            playHitSound();
+            const msg = '🛡️ Bloki u Bossa oraz bloki piorunowe są niezniszczalne!';
+            eventBus.emit('ui:popup', msg);
+            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+            return;
+        }
 
         // Check if breaking near/under disguised Dirtik
         if (this.animals && this.animals.animals) {
