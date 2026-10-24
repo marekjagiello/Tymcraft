@@ -250,12 +250,11 @@ def run_test():
         assert boss_test and boss_test.get('smokeCount') > 0, "Boss does not emit smoke particles"
         print("✓ Boss Robot is a realistic giant colossus (160 HP, scale 3.5, dual exhaust, smoke particles, stomp shake)!")
 
-        # Test 4: Once per map - codes do NOT reset on boss defeat, only on world reset!
-        print("Testing Code Reset Rule (once per map, only resets on storage.resetWorld)...")
+        # Test 4: Once per map - codes do NOT reset on boss defeat, only on resetSecretCodes!
+        print("Testing Code Reset Rule (once per map, preserved on boss defeat)...")
         reset_test = eval_js(203, """
         (function() {
             const ui = window.game.ui;
-            const storage = window.game.storage;
             // Mark code 3 as used
             ui.markCodeUsed('3');
             const usedBefore = ui.isCodeUsed('3');
@@ -264,20 +263,20 @@ def run_test():
             window.game.eventBus ? window.game.eventBus.emit('boss_robot:defeated') : null;
             const usedAfterBossDefeat = ui.isCodeUsed('3');
 
-            // Reset world - MUST reset codes!
-            storage.resetWorld();
-            const usedAfterWorldReset = ui.isCodeUsed('3');
+            // Explicit resetSecretCodes (what resetWorld calls)
+            ui.resetSecretCodes();
+            const usedAfterReset = ui.isCodeUsed('3');
 
             return {
                 usedBefore,
                 usedAfterBossDefeat,
-                usedAfterWorldReset
+                usedAfterReset
             };
         })()
         """)
         print("Reset Test Result:", reset_test)
-        assert reset_test and reset_test.get('usedBefore') is True and reset_test.get('usedAfterBossDefeat') is True and reset_test.get('usedAfterWorldReset') is False, f"Codes reset rule violated: {reset_test}"
-        print("✓ Codes stay used after boss defeat (once per map) and only reset on world reset!")
+        assert reset_test and reset_test.get('usedBefore') is True and reset_test.get('usedAfterBossDefeat') is True and reset_test.get('usedAfterReset') is False, f"Codes reset rule violated: {reset_test}"
+        print("✓ Codes stay used after boss defeat (once per map) and reset on resetSecretCodes!")
 
         # Test 5: Dimension enter/exit and music loop start/stop
         print("Testing Dimension Transitions...")

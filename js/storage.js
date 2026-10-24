@@ -76,7 +76,12 @@ export class StorageManager {
             localStorage.removeItem(STORAGE_KEYS.PLAYER_STATE);
             localStorage.removeItem('m2_used_codes');
             localStorage.removeItem('m2_boss_robot_defeated');
-            window.location.reload();
+            if (typeof window !== 'undefined' && window.game && window.game.ui) {
+                window.game.ui.resetSecretCodes();
+            }
+            if (typeof window !== 'undefined' && window.location) {
+                window.location.reload();
+            }
         }
     }
 }
