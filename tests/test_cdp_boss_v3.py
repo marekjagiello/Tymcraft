@@ -6,11 +6,23 @@ import base64
 import os
 import subprocess
 import urllib.request
+import glob
+import shutil
+
+def get_chrome_binary():
+    for cmd in ['google-chrome', 'chromium', 'chromium-browser']:
+        if shutil.which(cmd):
+            return cmd
+    matches = glob.glob('/home/marek/.cache/ms-playwright/chromium-*/chrome-linux64/chrome')
+    if matches:
+        return matches[0]
+    return 'google-chrome'
 
 def run_test():
     # 1. Start headless Chrome with remote debugging on port 9223 (avoid conflict with 9222 if any)
+    chrome_bin = get_chrome_binary()
     chrome_proc = subprocess.Popen([
-        'google-chrome',
+        chrome_bin,
         '--headless=new',
         '--remote-debugging-port=9223',
         '--disable-gpu',

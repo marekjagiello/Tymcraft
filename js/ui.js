@@ -1180,6 +1180,31 @@ export class UI {
         }
     }
 
+    speakTranslator(text) {
+        try {
+            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'pl-PL';
+                utter.rate = 1.05;
+                window.speechSynthesis.speak(utter);
+            }
+        } catch (_) {}
+    }
+
+    printTranslatorGuide(speak = false) {
+        this.addChatMessage('🎙️ Tłumacznik', '📜 ROZPISKA: JAK DOTRZEĆ DO BOSSA ROBOTA 👑', 'chat-server');
+        this.addChatMessage('🎙️ Tłumacznik', '1️⃣ ZRÓB KRZESIWO: 1x Patyk + 1x Kamień (na skos w craftingu [E/R]) 🔥', 'chat-server');
+        this.addChatMessage('🎙️ Tłumacznik', '2️⃣ ZBUDUJ PORTAL: Brama z Kamienia lub Bruku 🪨', 'chat-server');
+        this.addChatMessage('🎙️ Tłumacznik', '3️⃣ PODPAL PORTAL KRZESIWO: Teleport do Mrocznego Wymiaru! (Małe roboty NIE teleportują!) 🌌', 'chat-server');
+        this.addChatMessage('🎙️ Tłumacznik', '4️⃣ NA ARENIE ZBUDUJ TOTEM: Ziemia na dole, Kamień na górze i podpal krzesiwem! 🗿💥', 'chat-server');
+        this.addChatMessage('🎙️ Tłumacznik', '5️⃣ ZASADA: Boss i kody są TYLKO 1 RAZ NA MAPĘ! Odnawiają się po resecie gry w menu! 🔄', 'chat-server');
+
+        if (speak) {
+            this.speakTranslator('Rozpiska tłumacznika! Zrób krzesiwo z patyka i kamienia na skos w craftingu. Zbuduj bramę z kamienia i podpal ją krzesiwem, aby wejść do portalu. Pamiętaj, małe roboty nie teleportują! Na arenie postaw totem z ziemi i kamienia i podpal go krzesiwem, aby obudzić kolosa bossa!');
+        }
+    }
+
     initChat() {
         if (!this.chatInputEl) return;
 
@@ -1193,10 +1218,11 @@ export class UI {
             }
         });
 
-        // Initial welcome tip in chat (secret codes NOT spoiled!)
+        // Announce Translator guide at startup so everyone can read it!
         setTimeout(() => {
-            this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Odkrywaj tajne hasła... 🤫✨', 'chat-server');
-        }, 3000);
+            this.printTranslatorGuide(false);
+            this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Wpisz /pomoc lub odkrywaj tajne hasła... 🤫✨', 'chat-server');
+        }, 1500);
     }
 
     openChat(initialChar = '') {
@@ -1246,10 +1272,16 @@ export class UI {
         const stripped = raw.replace(/^[/=\-]/, '').trim();
         const lower = stripped.toLowerCase();
 
+        // Tłumacznik / Rozpiska / Pomoc command: prints complete guide and speaks via TTS!
+        if (lower === 'pomoc' || lower === 'help' || lower === 'boss' || lower === 'portal' || lower === 'tlumacz' || lower === 'tłumacz' || lower === 'rozpiska' || lower === 'zasady' || lower === 'krzesiwo') {
+            this.printTranslatorGuide(true);
+            return;
+        }
+
         // Secret code 1: "miał" or "mial" gives Mystery Box!
         if (lower === 'miał' || lower === 'mial' || lower === 'miau' || lower === 'kot') {
             if (this.isCodeUsed('mial')) {
-                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany na tej mapie! Kody są tylko raz na mapę – zresetuj świat w menu, aby zacząć od nowa! 🔄', 'chat-server');
                 this.showPopup('🔒 Kod "miał" już wykorzystany!');
                 return;
             }
@@ -1269,9 +1301,9 @@ export class UI {
         }
 
         // Secret code: "6261" / "626" gives Kolorowy Blok 626, Pioruny (Laserowe Miecze), Patyki & Totem!
-        if (lower === '6261' || lower === '6 2 6 1' || lower === '6-2-6-1' || lower === '626' || lower === '6 2 6' || lower === '6-2-6' || lower === 'boss' || lower === 'krzesiwo') {
+        if (lower === '6261' || lower === '6 2 6 1' || lower === '6-2-6-1' || lower === '626' || lower === '6 2 6' || lower === '6-2-6') {
             if (this.isCodeUsed('6261')) {
-                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany na tej mapie! Kody są tylko raz na mapę – zresetuj świat w menu, aby zacząć od nowa! 🔄', 'chat-server');
                 this.showPopup('🔒 Kod 6261 już wykorzystany!');
                 return;
             }
@@ -1290,7 +1322,7 @@ export class UI {
         // Secret code 4: "czar" / "wand" gives Niebieski Pierwiastek!
         if (lower === 'czar' || lower === 'wand' || lower === 'magia' || lower === 'rozdzka' || lower === 'różdżka') {
             if (this.isCodeUsed('czar')) {
-                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany na tej mapie! Kody są tylko raz na mapę – zresetuj świat w menu, aby zacząć od nowa! 🔄', 'chat-server');
                 this.showPopup('🔒 Kod "czar" już wykorzystany!');
                 return;
             }
@@ -1304,7 +1336,7 @@ export class UI {
         // Secret code 5: "tecza" / "rainbow" / "kolor" gives full Rainbow Armory!
         if (lower === 'tecza' || lower === 'tęcza' || lower === 'rainbow' || lower === 'kolor' || lower === 'epickie') {
             if (this.isCodeUsed('tecza')) {
-                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany na tej mapie! Kody są tylko raz na mapę – zresetuj świat w menu, aby zacząć od nowa! 🔄', 'chat-server');
                 this.showPopup('🔒 Kod "tęcza" już wykorzystany!');
                 return;
             }
@@ -1323,7 +1355,7 @@ export class UI {
         // Secret code: "da da" / "dada" / "da" (wymóg odblokowania Etapu 2)
         if (lower === 'da da' || lower === 'dada' || lower === 'da') {
             if (this.isCodeUsed('dada')) {
-                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany na tej mapie! Kody są tylko raz na mapę – zresetuj świat w menu, aby zacząć od nowa! 🔄', 'chat-server');
                 this.showPopup('🔒 Kod "da da" już wykorzystany!');
                 return;
             }
@@ -1342,23 +1374,23 @@ export class UI {
             return;
         }
 
-        // Secret code: "3" / "trzy" gives Warm Jacket (Ciepła Kurtka) and reveals Robot Dimension hint!
+        // Secret code: "3" / "trzy" gives Warm Jacket (Ciepła Kurtka) and reveals Stone Portal hint!
         if (lower === '3' || lower === 'trzy' || lower === 'kurtka') {
             if (this.isCodeUsed('3')) {
-                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany na tej mapie! Kody są tylko raz na mapę – zresetuj świat w menu, aby zacząć od nowa! 🔄', 'chat-server');
                 this.showPopup('🔒 Kod "3" już wykorzystany!');
                 return;
             }
             this.markCodeUsed('3');
             this.addItem(46, 'Ciepła Kurtka', 1);
-            this.addChatMessage('Serwer', '🧥 Odkryłeś tajne hasło 3! Otrzymałeś Ciepłą Kurtkę 🧥! Chroni ona przed mrozem na ośnieżonych szczytach gór! Odszukaj Robota 🤖 na mapie – gdy do niego podejdziesz, zabierze Cię w niezwykłą podróż do Mrocznego Wymiaru! 🌌⚡', 'chat-success');
+            this.addChatMessage('Serwer', '🧥 Odkryłeś tajne hasło 3! Otrzymałeś Ciepłą Kurtkę 🧥! Chroni ona przed mrozem na ośnieżonych szczytach gór! Zbuduj Portal z Kamienia i podpal go Krzesiwem, aby wkroczyć do Mrocznego Wymiaru Bossa! 🌌🪨', 'chat-success');
             this.showPopup('🧥 Tajne hasło 3 odkryte! +1 Ciepła Kurtka 🧥');
             return;
         }
 
         if (lower === 'tymek' || lower === 'startpack' || lower === 'starter' || lower === 'kit') {
             if (this.isCodeUsed('tymek')) {
-                this.addChatMessage('Serwer', '🔒 Zestaw Startowy Tymka został już odebrany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby go odnowić!', 'chat-server');
+                this.addChatMessage('Serwer', '🔒 Zestaw Startowy Tymka został już odebrany! Kody są tylko raz na mapę – zresetuj świat w menu, aby zacząć od nowa! 🔄', 'chat-server');
                 this.showPopup('🔒 Zestaw Startowy już odebrany!');
                 return;
             }

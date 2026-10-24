@@ -1307,41 +1307,6 @@ export class Robot extends Mob {
         }
     }
 
-    triggerKidnap() {
-        const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
-        if (isDefeated) {
-            if (this.manager?.ui) {
-                this.manager.ui.showPopup('🤖 Robot: Bip-bip! Boss Robot został zniszczony, jesteś bohaterem! 🏆');
-            }
-            return;
-        }
-
-        if (this.isKidnapping) return;
-        this.isKidnapping = true;
-        if (!this.isAwakened) {
-            this.awaken();
-        }
-
-        playReactorChargeSound();
-        playCyberTeleportSound();
-        eventBus.emit('boss:attack_flash', {
-            color: 0x38bdf8,
-            intensity: 4.5,
-            x: this.position.x,
-            y: this.position.y + 1,
-            z: this.position.z
-        });
-        eventBus.emit('ui:popup', '🌌⚡ Cyber-promień Robota wciąga Cię do Mrocznego Wymiaru Bossa!');
-        if (this.manager?.ui) {
-            this.manager.ui.addChatMessage('Robot', 'Bip-bip! Aktywacja hiper-skoku do wymiaru Bossa Robota! ⚡🌌', 'chat-server');
-        }
-
-        setTimeout(() => {
-            this.isKidnapping = false;
-            eventBus.emit('dimension:enter_dark');
-        }, 550);
-    }
-
     update(dt, playerPosition) {
         if (this.isDead || !playerPosition) return;
 
@@ -1361,18 +1326,6 @@ export class Robot extends Mob {
         const dist = Math.hypot(dx, dz);
 
         this.targetRotationY = Math.atan2(dx, dz);
-
-        // Porywanie gracza cyber-promieniem do Mrocznego Wymiaru Bossa Robota
-        if (dist <= 3.8 && !this.isKidnapping && (!this.lastKidnapAttempt || Date.now() - this.lastKidnapAttempt > 10000)) {
-            const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
-            if (!isDefeated) {
-                this.lastKidnapAttempt = Date.now();
-                this.triggerKidnap();
-                return;
-            }
-        }
-
-        if (this.isKidnapping) return;
 
         // Move towards player if not in melee range
         if (dist > 1.8 && dist < 35.0) {
