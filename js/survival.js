@@ -170,6 +170,7 @@ export class SurvivalManager {
         this.drownDamageTimer = 0;
         if (this.onOxygenChange) this.onOxygenChange(this.oxygen, this.maxOxygen, false);
         this.onStatsChange(this.health, this.hunger);
+        eventBus.emit('player:respawn');
     }
 
     handleFallLanding(downwardVelocity) {

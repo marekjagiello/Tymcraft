@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_roof_unbreakable_v11';
-import { Player } from './player.js?v=boss_roof_unbreakable_v11';
-import { Interaction } from './interaction.js?v=boss_roof_unbreakable_v11';
-import { AnimalManager } from './animals.js?v=boss_roof_unbreakable_v11';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_roof_unbreakable_v11';
-import { StorageManager } from './storage.js?v=boss_roof_unbreakable_v11';
-import { SurvivalManager } from './survival.js?v=boss_roof_unbreakable_v11';
-import { CraftingManager } from './crafting.js?v=boss_roof_unbreakable_v11';
-import { DropsManager } from './drops.js?v=boss_roof_unbreakable_v11';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_reentry_no_kick_v12';
+import { Player } from './player.js?v=boss_reentry_no_kick_v12';
+import { Interaction } from './interaction.js?v=boss_reentry_no_kick_v12';
+import { AnimalManager } from './animals.js?v=boss_reentry_no_kick_v12';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_reentry_no_kick_v12';
+import { StorageManager } from './storage.js?v=boss_reentry_no_kick_v12';
+import { SurvivalManager } from './survival.js?v=boss_reentry_no_kick_v12';
+import { CraftingManager } from './crafting.js?v=boss_reentry_no_kick_v12';
+import { DropsManager } from './drops.js?v=boss_reentry_no_kick_v12';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=boss_roof_unbreakable_v11';
-import { QuestManager } from './quests.js?v=boss_roof_unbreakable_v11';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_roof_unbreakable_v11';
+import { updateWaterAnimation } from './textures.js?v=boss_reentry_no_kick_v12';
+import { QuestManager } from './quests.js?v=boss_reentry_no_kick_v12';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_reentry_no_kick_v12';
 
 
 
@@ -225,9 +225,22 @@ class Game {
             stopBossRobotMusic();
         });
 
-        eventBus.on('player:death', () => {
+        const handleExitArena = () => {
             stopBossRobotMusic();
-        });
+            this.isInDarkDimension = false;
+            this.clearArenaTorches();
+            if (this.ui) this.ui.hideBossBar();
+            const existingPortal = this.scene.getObjectByName('victoryPortal');
+            if (existingPortal) {
+                this.scene.remove(existingPortal);
+            }
+            if (this.animals) {
+                this.animals.activeVictoryPortal = null;
+            }
+        };
+
+        eventBus.on('player:death', handleExitArena);
+        eventBus.on('player:respawn', handleExitArena);
 
         this.clock = new THREE.Clock();
         this.dayTime = 0.2; // 0 to 1 cycle
@@ -293,11 +306,20 @@ class Game {
     }
 
     enterDarkDimension() {
-        if (this.isInDarkDimension) return;
+        if (this.isInDarkDimension && this.player && this.player.position.x > 800) return;
         this.isInDarkDimension = true;
 
         if (this.player && this.player.position.x < 800) {
             this.savedOverworldPos.copy(this.player.position);
+        }
+
+        // Zawsze usuń stary portal powrotu z poprzedniej walki, żeby nie wywalił gracza
+        const existingPortal = this.scene.getObjectByName('victoryPortal');
+        if (existingPortal) {
+            this.scene.remove(existingPortal);
+        }
+        if (this.animals) {
+            this.animals.activeVictoryPortal = null;
         }
 
         // Natychmiastowe pre-generowanie i zbudowanie chunków areny wokół gracza (x=1000, z=1000)
@@ -317,10 +339,16 @@ class Game {
         this.player.position.set(1000, 12.5, 992);
         this.player.velocity.set(0, 0, 0);
 
-        // ZAWSZE upewnij się, że Boss Robot pojawia się na arenie (na życzenie Tymka: "jak wejdziesz to ma być boss, taki koks!")
+        // ZAWSZE upewnij się, że Boss Robot pojawia się na arenie gotowy do walki (reset do 100% HP przy rewanżu!)
         let activeBoss = this.animals.animals.find(a => a.type === 'boss_robot' && !a.isDead);
         if (!activeBoss) {
             activeBoss = this.animals.spawnBossRobot(1000, 1000);
+        } else {
+            activeBoss.health = activeBoss.maxHealth;
+            activeBoss.position.set(1000, 12, 1000);
+            activeBoss.isAwakened = true;
+            activeBoss.unfoldedArms = 4;
+            activeBoss.isAttacking = false;
         }
 
         startBossRobotMusic();
@@ -366,8 +394,9 @@ class Game {
     }
 
     updateDayNight(dt) {
-        // --- Specjalna atmosfera Mrocznego Wymiaru (Czarne niebo, lekka poświata, błyski laserów) ---
-        if (this.isInDarkDimension || (this.player && this.player.position.x > 800)) {
+        // --- Specjalna atmosfera Mrocznego Wymiaru (tylko gdy gracz faktycznie jest na arenie x > 800) ---
+        const inArena = Boolean(this.player && this.player.position && this.player.position.x > 800);
+        if (inArena) {
             this.isInDarkDimension = true;
             const darkSky = new THREE.Color(0x06060c);
             this.scene.background = darkSky;
@@ -388,6 +417,9 @@ class Game {
             }
             return;
         }
+
+        // Gdy gracz jest w normalnym świecie (x <= 800), flaga isInDarkDimension musi być false!
+        this.isInDarkDimension = false;
 
         // Standardowy cykl dnia i nocy w normalnym świecie
         this.ambientLight.color.setHex(0xffffff);

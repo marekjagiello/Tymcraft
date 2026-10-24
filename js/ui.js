@@ -1281,6 +1281,13 @@ export class UI {
             return;
         }
 
+        // Komenda powrotu z areny do normalnego świata (brak przymusowego wywalania przez portal):
+        if (lower === 'wroc' || lower === 'wróć' || lower === 'powrot' || lower === 'powrót' || lower === 'spawn' || lower === 'dom') {
+            eventBus.emit('dimension:return_to_overworld');
+            this.addChatMessage('Serwer', '🌟 Powracasz do bezpiecznego świata!', 'chat-success');
+            return;
+        }
+
         // Secret code 1: "miał" or "mial" gives Mystery Box!
         if (lower === 'miał' || lower === 'mial' || lower === 'miau' || lower === 'kot') {
             if (this.isCodeUsed('mial')) {
