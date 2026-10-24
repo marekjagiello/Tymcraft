@@ -73,6 +73,62 @@ body, html {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+/* Boss Health Bar HUD (Top Center - 'pokazuje ci na górze BOSS') */
+#boss-hud {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none;
+    user-select: none;
+}
+
+#boss-title {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 2.5px;
+    color: #f8fafc;
+    text-shadow: 2px 2px 0 #000, 0 0 12px rgba(239, 68, 68, 0.9);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+#boss-bar-bg {
+    width: 380px;
+    max-width: 80vw;
+    height: 18px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 2px solid #64748b;
+    border-radius: 4px;
+    padding: 2px;
+    box-shadow: 0 0 16px rgba(220, 38, 38, 0.7), inset 0 0 8px rgba(0, 0, 0, 0.9);
+    position: relative;
+    overflow: hidden;
+}
+
+#boss-bar-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #b91c1c 0%, #ef4444 45%, #f59e0b 80%, #fbbf24 100%);
+    border-radius: 2px;
+    transition: width 0.15s ease-out;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
+}
+
+#boss-hp-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e2e8f0;
+    text-shadow: 1px 1px 0 #000;
+    margin-top: 3px;
+    letter-spacing: 1px;
+}
+
 /* Quest Tracker HUD in Top-Left Corner (as requested by Tymek) */
 #quest-hud {
     position: absolute;

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
-import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound, playRainbowChimeSound } from './audio.js';
+import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound, playRainbowChimeSound, playCyberTeleportSound, startBossRobotMusic } from './audio.js';
 import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=epic_rainbow_1';
 
 import { eventBus } from './events.js';
@@ -353,7 +353,7 @@ export class Interaction {
                     return;
                 }
 
-                // Check if using Krzesiwo (Flint & Steel - ID 52) on Totem: Dirt (2) on bottom, Stone (3) on top!
+                // Check if using Krzesiwo (Flint & Steel - ID 52) on Totem or Stone Portal
                 if (activeItemId === 52) {
                     if (this.currentTarget && this.currentTarget.hit) {
                         const cx = this.currentTarget.x;
@@ -379,6 +379,14 @@ export class Interaction {
                         }
 
                         if (isTotem) {
+                            const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
+                            if (isDefeated) {
+                                const msg = '🏆 Boss Robot został już pokonany na tej mapie! Zresetuj świat w menu, aby zmierzyć się z nim ponownie!';
+                                eventBus.emit('ui:popup', msg);
+                                if (this.ui) this.ui.showPopup(msg);
+                                return;
+                            }
+
                             // Break both totem blocks
                             this.world.setBlock(cx, dirtY, cz, 0);
                             this.world.setBlock(cx, stoneY, cz, 0);
@@ -390,17 +398,52 @@ export class Interaction {
                                 this.animals.spawnBossRobot(cx + 0.5, cz + 0.5);
                             }
 
+                            startBossRobotMusic();
+                            if (this.ui) {
+                                this.ui.showBossBar('👑 BOSS ROBOT', 160, 160);
+                            }
+
                             const msg = '🔥🤖 TOTEM ZAPŁONĄŁ! BUDZI SIĘ POTĘŻNY BOSS ROBOT! 🤖🔥';
                             eventBus.emit('ui:popup', msg);
                             if (this.ui) this.ui.showPopup(msg);
                             return;
-                        } else {
-                            playHitSound();
-                            const msg = '🔥 Trzask krzesiwa! Zbuduj totem: Ziemia (Dirt) na dole, Kamień na górze!';
-                            eventBus.emit('ui:popup', msg);
-                            if (this.ui) this.ui.showPopup(msg);
-                            return;
                         }
+
+                        // Check if activating Stone Portal (Portal z kamienia)
+                        if (clickedId === 3 || clickedId === 11) {
+                            if (this.checkStonePortal(cx, cy, cz)) {
+                                playCyberTeleportSound();
+                                eventBus.emit('boss:attack_flash', {
+                                    color: 0x38bdf8,
+                                    intensity: 4.8,
+                                    x: cx,
+                                    y: cy + 1,
+                                    z: cz
+                                });
+                                const msg = '🌌 Brama z kamienia zapłonęła cyber-energią! Wkraczasz do Mrocznego Wymiaru Bossa!';
+                                eventBus.emit('ui:popup', msg);
+                                if (this.ui) {
+                                    this.ui.addChatMessage('Portal', '🌌 Brama z kamienia otworzyła przejście do Mrocznego Wymiaru! Zbuduj Totem (Ziemia + Kamień) na arenie, by wezwać Bossa! 🤖⚡', 'chat-server');
+                                    this.ui.showPopup(msg);
+                                }
+                                setTimeout(() => {
+                                    eventBus.emit('dimension:enter_dark');
+                                }, 350);
+                                return;
+                            } else {
+                                playHitSound();
+                                const msg = '🔥 Trzask krzesiwa! Zbuduj ramę portalu z kamienia (np. bramę 3x3 lub 4x5) albo Totem (Ziemia na dole, Kamień na górze)!';
+                                eventBus.emit('ui:popup', msg);
+                                if (this.ui) this.ui.showPopup(msg);
+                                return;
+                            }
+                        }
+
+                        playHitSound();
+                        const msg = '🔥 Trzask krzesiwa! Podpal portal z kamienia lub totem (Ziemia na dole, Kamień na górze)!';
+                        eventBus.emit('ui:popup', msg);
+                        if (this.ui) this.ui.showPopup(msg);
+                        return;
                     }
                 }
 
@@ -900,6 +943,27 @@ export class Interaction {
 
         this.currentTarget = this.raycastVoxels();
         this.updateHighlight();
+    }
+
+    checkStonePortal(cx, cy, cz) {
+        if (!this.world) return false;
+        const isStone = (id) => id === 3 || id === 11;
+        const centerId = this.world.getBlock(cx, cy, cz);
+        if (!isStone(centerId)) return false;
+
+        // Count stone/cobblestone blocks in 5x5x5 neighborhood around clicked position
+        let stoneCount = 0;
+        for (let ox = -2; ox <= 2; ox++) {
+            for (let oy = -2; oy <= 3; oy++) {
+                for (let oz = -2; oz <= 2; oz++) {
+                    if (isStone(this.world.getBlock(cx + ox, cy + oy, cz + oz))) {
+                        stoneCount++;
+                    }
+                }
+            }
+        }
+        // A doorway / frame of stone needs at least 4 stone blocks
+        return stoneCount >= 4;
     }
 
     spawnBreakParticles(x, y, z, blockId) {

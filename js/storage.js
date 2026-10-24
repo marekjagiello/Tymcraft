@@ -74,6 +74,8 @@ export class StorageManager {
         if (skipPrompt || confirm("Czy na pewno chcesz zresetować świat i zrestartować grę od nowa?")) {
             localStorage.removeItem(STORAGE_KEYS.WORLD_DELTA);
             localStorage.removeItem(STORAGE_KEYS.PLAYER_STATE);
+            localStorage.removeItem('m2_used_codes');
+            localStorage.removeItem('m2_boss_robot_defeated');
             window.location.reload();
         }
     }

@@ -68,7 +68,18 @@ export class CraftingManager {
             return this.output;
         }
 
-        // 8. Arrows (4 Strzały): 1 Stick + 1 Stone/Cobblestone/Bone
+        // 7b. Flint & Steel (Krzesiwo): Patyk (20) + Kamień/Bruk (3/11) DOKŁADNIE NA SKOS! (Na życzenie Tymka)
+        const isStone = (id) => id === 3 || id === 11;
+        const isDiagonalStickStone =
+            (((s0 === 20 && isStone(s3)) || (isStone(s0) && s3 === 20)) && !s1 && !s2) ||
+            (((s1 === 20 && isStone(s2)) || (isStone(s1) && s2 === 20)) && !s0 && !s3);
+
+        if (isDiagonalStickStone) {
+            this.output = { item: ITEMS.FLINT_AND_STEEL, count: 1 };
+            return this.output;
+        }
+
+        // 8. Arrows (4 Strzały): 1 Stick + 1 Stone/Cobblestone/Bone (pionowo lub poziomo)
         if (nonNulls.length === 2 && nonNulls.includes(20) && (nonNulls.includes(3) || nonNulls.includes(11) || nonNulls.includes(27))) {
             this.output = { item: ITEMS.ARROW, count: 4 };
             return this.output;
@@ -125,11 +136,7 @@ export class CraftingManager {
             return this.output;
         }
 
-        // 17. Flint & Steel (Krzesiwo): 2 Patyki (20) obok siebie w craftingu
-        if (nonNulls.length === 2 && nonNulls[0] === 20 && nonNulls[1] === 20) {
-            this.output = { item: ITEMS.FLINT_AND_STEEL, count: 1 };
-            return this.output;
-        }
+
 
         // 18. Napiorunowany Kolorowy Blok (53): Kolorowy Blok 626 (51) + Miecz Piorunowy/Laserowy (47)
         if (nonNulls.includes(51) && nonNulls.includes(47)) {

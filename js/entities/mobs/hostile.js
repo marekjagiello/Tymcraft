@@ -1474,6 +1474,10 @@ export class BossRobot extends Mob {
         this.group.rotation.set(0, 0, 0);
         this.scene.add(this.group);
 
+        if (this.manager?.ui) {
+            this.manager.ui.showBossBar('👑 BOSS ROBOT', this.health, this.maxHealth);
+        }
+
         playRobotWakeSound();
     }
 
@@ -1811,6 +1815,7 @@ export class BossRobot extends Mob {
         if (this.manager?.ui) {
             this.manager.ui.addChatMessage('Serwer', '👑 Zwycięstwo! Pokonałeś potężnego 4-ramiennego Bossa Robota! Zgarnij Niebieskie Pierwiastki 💠, Diamenty 💎, Rubiny 🔴 i Laserowy Miecz ⚡!', 'chat-success');
             this.manager.ui.showPopup('👑 BOSS ROBOT POKONANY NA ZAWSZE! Gratulacje! 🏆');
+            this.manager.ui.hideBossBar();
         }
 
         // Złoty portal powrotny do normalnego świata
@@ -1818,6 +1823,9 @@ export class BossRobot extends Mob {
     }
 
     destroy() {
+        if (this.manager?.ui) {
+            this.manager.ui.hideBossBar();
+        }
         if (this.smokeParticles) {
             for (const p of this.smokeParticles) {
                 if (p.mesh && p.mesh.parent) this.scene.remove(p.mesh);
@@ -1936,6 +1944,10 @@ export class BossRobot extends Mob {
 
     update(dt, playerPosition) {
         if (this.isDead || !playerPosition) return;
+
+        if (this.manager?.ui) {
+            this.manager.ui.updateBossBar(this.health, this.maxHealth);
+        }
 
         // Smoke emission from dual exhaust pipes
         this.smokeTimer += dt;

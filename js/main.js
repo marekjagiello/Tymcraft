@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=realistic_boss_v3';
-import { Player } from './player.js?v=realistic_boss_v3';
-import { Interaction } from './interaction.js?v=realistic_boss_v3';
-import { AnimalManager } from './animals.js?v=realistic_boss_v3';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=realistic_boss_v3';
-import { StorageManager } from './storage.js?v=realistic_boss_v3';
-import { SurvivalManager } from './survival.js?v=realistic_boss_v3';
-import { CraftingManager } from './crafting.js?v=realistic_boss_v3';
-import { DropsManager } from './drops.js?v=realistic_boss_v3';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=portal_boss_v4';
+import { Player } from './player.js?v=portal_boss_v4';
+import { Interaction } from './interaction.js?v=portal_boss_v4';
+import { AnimalManager } from './animals.js?v=portal_boss_v4';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=portal_boss_v4';
+import { StorageManager } from './storage.js?v=portal_boss_v4';
+import { SurvivalManager } from './survival.js?v=portal_boss_v4';
+import { CraftingManager } from './crafting.js?v=portal_boss_v4';
+import { DropsManager } from './drops.js?v=portal_boss_v4';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=realistic_boss_v3';
-import { QuestManager } from './quests.js?v=realistic_boss_v3';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=realistic_boss_v3';
+import { updateWaterAnimation } from './textures.js?v=portal_boss_v4';
+import { QuestManager } from './quests.js?v=portal_boss_v4';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=portal_boss_v4';
 
 
 
@@ -275,29 +275,31 @@ class Game {
         this.player.position.set(1000, 12.5, 992);
         this.player.velocity.set(0, 0, 0);
 
-        // Przywołanie Bossa Robota w Mrocznym Wymiarze, jeśli nie został jeszcze pokonany
+        // Sprawdź czy Boss Robot już żyje na arenie
         const isDefeated = (typeof localStorage !== 'undefined' && localStorage.getItem('m2_boss_robot_defeated') === 'true');
-        if (!isDefeated) {
-            let boss = this.animals.animals.find(a => a.type === 'boss_robot' && !a.isDead);
-            if (!boss) {
-                boss = this.animals.spawnBossRobot(1000, 1008);
-            } else {
-                boss.position.set(1000, 12, 1008);
-                boss.group.position.copy(boss.position);
-            }
+        const activeBoss = this.animals.animals.find(a => a.type === 'boss_robot' && !a.isDead);
+        if (activeBoss) {
+            startBossRobotMusic();
+            if (this.ui) this.ui.showBossBar('👑 BOSS ROBOT', activeBoss.health, activeBoss.maxHealth);
         }
 
         if (this.ui) {
-            this.ui.addChatMessage('Serwer', '🌌 Wkroczyłeś do Mrocznego Wymiaru Bossa Robota! Ciemność rozświetlają tylko błyski energii mecha! ⚡🤖', 'chat-server');
-            this.ui.showPopup('🌌 MROCZNY WYMIAR ROBOTA! ⚡🤖');
+            if (isDefeated) {
+                this.ui.addChatMessage('Serwer', '🏆 Wkroczyłeś do Mrocznego Wymiaru! Boss Robot został już pokonany na tej mapie! Zresetuj świat w menu, aby zmierzyć się z nim ponownie! 🌟', 'chat-server');
+                this.ui.showPopup('🏆 BOSS ROBOT POKONANY NA TEJ MAPIE!');
+            } else if (!activeBoss) {
+                this.ui.addChatMessage('Serwer', '🌌 Wkroczyłeś do Mrocznego Wymiaru! Zbuduj Totem: Ziemia (Dirt) na dole, Kamień (Stone) na górze i podpal Krzesiwem, aby obudzić Bossa! ⚡🤖', 'chat-server');
+                this.ui.showPopup('🌌 Zbuduj Totem: Ziemia na dole, Kamień na górze i podpal Krzesiwem! 🤖');
+            } else {
+                this.ui.showPopup('🌌 MROCZNY WYMIAR ROBOTA! ⚡🤖');
+            }
         }
-
-        startBossRobotMusic();
     }
 
     exitDarkDimension() {
         this.isInDarkDimension = false;
         stopBossRobotMusic();
+        if (this.ui) this.ui.hideBossBar();
         const target = (this.savedOverworldPos && this.savedOverworldPos.x < 800) ? this.savedOverworldPos : new THREE.Vector3(32, 10, 32);
         this.player.position.copy(target);
         this.player.velocity.set(0, 0, 0);

@@ -290,15 +290,40 @@ export class UI {
         try {
             localStorage.removeItem('m2_used_codes');
         } catch (_) {}
-        this.addChatMessage('Serwer', '🔄 Tajne kody zostały odnowione po pokonaniu Bossa Robota! Możesz ich użyć ponownie w nowej przygodzie! 🏆', 'chat-success');
-        this.showPopup('🔄 Kody odnowione po pokonaniu Bossa Robota! 🏆');
+    }
+
+    showBossBar(title = '👑 BOSS ROBOT', hp = 160, maxHp = 160) {
+        if (!this.bossHudEl) this.bossHudEl = document.getElementById('boss-hud');
+        if (!this.bossTitleEl) this.bossTitleEl = document.getElementById('boss-title');
+        if (!this.bossBarFillEl) this.bossBarFillEl = document.getElementById('boss-bar-fill');
+        if (!this.bossHpTextEl) this.bossHpTextEl = document.getElementById('boss-hp-text');
+
+        if (this.bossTitleEl) this.bossTitleEl.textContent = title;
+        this.updateBossBar(hp, maxHp);
+        if (this.bossHudEl) this.bossHudEl.style.display = 'flex';
+    }
+
+    updateBossBar(hp, maxHp = 160) {
+        if (!this.bossHudEl) this.bossHudEl = document.getElementById('boss-hud');
+        if (!this.bossBarFillEl) this.bossBarFillEl = document.getElementById('boss-bar-fill');
+        if (!this.bossHpTextEl) this.bossHpTextEl = document.getElementById('boss-hp-text');
+
+        const ratio = Math.max(0, Math.min(1.0, hp / maxHp));
+        if (this.bossBarFillEl) {
+            this.bossBarFillEl.style.width = `${(ratio * 100).toFixed(1)}%`;
+        }
+        if (this.bossHpTextEl) {
+            this.bossHpTextEl.textContent = `${Math.ceil(Math.max(0, hp))} / ${maxHp}`;
+        }
+    }
+
+    hideBossBar() {
+        if (!this.bossHudEl) this.bossHudEl = document.getElementById('boss-hud');
+        if (this.bossHudEl) this.bossHudEl.style.display = 'none';
     }
 
     initBusEvents() {
         this._handledByEvent = true;
-        eventBus.on('boss_robot:defeated', () => {
-            this.resetSecretCodes();
-        });
         eventBus.on('ui:popup', (text) => {
             if (typeof text === 'string') this.showPopup(text);
             else if (text?.message) this.showPopup(text.message);
