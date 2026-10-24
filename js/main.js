@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=code_cz_1';
-import { Player } from './player.js?v=code_cz_1';
-import { Interaction } from './interaction.js?v=code_cz_1';
-import { AnimalManager } from './animals.js?v=code_cz_1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=code_cz_1';
-import { StorageManager } from './storage.js?v=code_cz_1';
-import { SurvivalManager } from './survival.js?v=code_cz_1';
-import { CraftingManager } from './crafting.js?v=code_cz_1';
-import { DropsManager } from './drops.js?v=code_cz_1';
-import { eventBus } from './events.js?v=code_cz_1';
-import { updateWaterAnimation } from './textures.js?v=code_cz_1';
-import { QuestManager } from './quests.js?v=code_cz_1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=robot_dim_1';
+import { Player } from './player.js?v=robot_dim_1';
+import { Interaction } from './interaction.js?v=robot_dim_1';
+import { AnimalManager } from './animals.js?v=robot_dim_1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=robot_dim_1';
+import { StorageManager } from './storage.js?v=robot_dim_1';
+import { SurvivalManager } from './survival.js?v=robot_dim_1';
+import { CraftingManager } from './crafting.js?v=robot_dim_1';
+import { DropsManager } from './drops.js?v=robot_dim_1';
+import { eventBus } from './events.js?v=robot_dim_1';
+import { updateWaterAnimation } from './textures.js?v=robot_dim_1';
+import { QuestManager } from './quests.js?v=robot_dim_1';
 
 
 
@@ -145,6 +145,7 @@ class Game {
         // 6b. Quest Manager (Top-Left HUD and 5 Quests as requested by Tymek)
         this.questManager = new QuestManager(this.ui, this.player, this.world);
         this.player.questManager = this.questManager;
+        this.ui.questManager = this.questManager;
         this.player.ui = this.ui;
 
         // 7. Drops System (floating mini-blocks and apples)

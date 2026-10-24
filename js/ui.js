@@ -1245,9 +1245,14 @@ export class UI {
             return;
         }
 
+        // Secret code: "3" / "trzy" gives Warm Jacket (Ciepła Kurtka) and reveals Robot Dimension hint!
+        if (lower === '3' || lower === 'trzy' || lower === 'kurtka') {
+            this.addItem(46, 'Ciepła Kurtka', 1);
+            this.addChatMessage('Serwer', '🧥 Odkryłeś tajne hasło 3! Otrzymałeś Ciepłą Kurtkę 🧥! Chroni ona przed mrozem na ośnieżonych szczytach gór! Odszukaj Robota 🤖 na mapie – gdy do niego podejdziesz, zabierze Cię w niezwykłą podróż do Mrocznego Wymiaru! 🌌⚡', 'chat-success');
+            this.showPopup('🧥 Tajne hasło 3 odkryte! +1 Ciepła Kurtka 🧥');
+            return;
+        }
 
-
-        // Secret code 2: Tymek Starter Pack!
         if (lower === 'tymek' || lower === 'startpack' || lower === 'starter' || lower === 'kit') {
             this.playerName = 'Tymek';
             
