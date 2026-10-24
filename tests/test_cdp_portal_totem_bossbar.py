@@ -239,7 +239,7 @@ def run_test():
         print("Boss Bar HUD Result:", hud_test)
         assert hud_test and hud_test.get('isVisible') is True, "Boss HUD not visible when shown"
         assert hud_test and hud_test.get('title') == '👑 BOSS ROBOT', f"Unexpected title: {hud_test}"
-        assert hud_test and hud_test.get('widthHalf') == '50.0%', f"Half HP width not 50.0%: {hud_test}"
+        assert hud_test and (hud_test.get('widthHalf') == '50%' or hud_test.get('widthHalf') == '50.0%'), f"Half HP width not 50%: {hud_test}"
         assert hud_test and hud_test.get('isHidden') is True, "Boss HUD not hidden when hideBossBar called"
         print("✓ Boss Bar displays '👑 BOSS ROBOT' on top of screen with animated HP fill!")
 
