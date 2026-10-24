@@ -293,4 +293,33 @@ export class Mob extends Entity {
             this.manager.removeAnimal(this);
         }
     }
+
+    despawn() {
+        if (this.isDead) return;
+        this.isDead = true;
+
+        if (this._stoneOriginalColors) {
+            for (const [mat, origColor] of this._stoneOriginalColors.entries()) {
+                mat.color.copy(origColor);
+            }
+            this._stoneOriginalColors = null;
+        }
+
+        if (this.activeHearts) {
+            for (const h of this.activeHearts) {
+                if (h.mesh && h.mesh.parent) {
+                    this.scene.remove(h.mesh);
+                }
+            }
+            this.activeHearts = [];
+        }
+
+        if (this.group && this.group.parent) {
+            this.scene.remove(this.group);
+        }
+
+        if (this.manager) {
+            this.manager.removeAnimal(this);
+        }
+    }
 }

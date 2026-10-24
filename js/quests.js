@@ -2,10 +2,11 @@ import { eventBus } from './events.js';
 import { playQuestCompleteSound } from './audio.js';
 
 export class QuestManager {
-    constructor(ui, player, world) {
+    constructor(ui, player, world, survival = null) {
         this.ui = ui;
         this.player = player;
         this.world = world;
+        this.survival = survival || ui?.survival;
         this.stage2Unlocked = false;
 
         this.quests = [
@@ -138,14 +139,23 @@ export class QuestManager {
             }
         });
 
+        eventBus.on('player:death', () => {
+            const q = this.quests.find(item => item.id === 'dirtik_hunt');
+            if (q && !q.completed && q.current > 0) {
+                q.current = 0;
+                if (this.ui) this.ui.showPopup('⚠️ Zginąłeś! Licznik Dirtików zresetowany do 0/2!');
+                this.render();
+            }
+        });
+
         eventBus.on('player:damage', (data) => {
             // Check if player died
-            if (this.ui?.survival?.isDead && !this.quests[0].completed) {
-                if (this.quests[0].current > 0) {
-                    this.quests[0].current = 0;
-                    if (this.ui) this.ui.showPopup('⚠️ Zginąłeś! Licznik Dirtików zresetowany do 0/2!');
-                    this.render();
-                }
+            const isDead = this.survival?.isDead || this.ui?.survival?.isDead;
+            const q = this.quests.find(item => item.id === 'dirtik_hunt');
+            if (isDead && q && !q.completed && q.current > 0) {
+                q.current = 0;
+                if (this.ui) this.ui.showPopup('⚠️ Zginąłeś! Licznik Dirtików zresetowany do 0/2!');
+                this.render();
             }
         });
 
@@ -182,6 +192,10 @@ export class QuestManager {
 
         if (q.current >= q.target) {
             this.completeQuest(q);
+        } else {
+            if (this.ui) {
+                this.ui.showPopup(`🎯 Postęp zadania: ${q.name} (${q.current}/${q.target})`);
+            }
         }
     }
 

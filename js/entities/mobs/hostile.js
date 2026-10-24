@@ -125,6 +125,7 @@ export class Zombie extends Mob {
         }
 
         super.die();
+        eventBus.emit('mob:killed', { type: 'zombie', entity: this });
     }
 
     update(dt, playerPosition = null, isDay = true) {
@@ -391,6 +392,7 @@ export class Skeleton extends Mob {
         }
 
         super.die();
+        eventBus.emit('mob:killed', { type: 'skeleton', entity: this });
     }
 
     update(dt, playerPosition = null, isDay = true) {
@@ -696,6 +698,7 @@ export class Creeper extends Mob {
         }
 
         super.die();
+        eventBus.emit('mob:killed', { type: 'creeper', entity: this });
     }
 
     update(dt, playerPosition = null, isDay = true) {
@@ -1017,6 +1020,7 @@ export class Dirtik extends Mob {
         }
 
         super.die();
+        eventBus.emit('mob:killed', { type: 'dirtik', entity: this });
     }
 
     update(dt, playerPosition = null, isDay = true) {

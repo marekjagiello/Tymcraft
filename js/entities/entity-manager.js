@@ -71,8 +71,9 @@ export class EntityManager {
         // 4. Początkowe ukryte Dirtiki (więcej Dirtików na prośbę gracza!)
         const startX = (this.player && this.player.position) ? this.player.position.x : 32;
         const startZ = (this.player && this.player.position) ? this.player.position.z : 32;
-        this.spawnDirtikNear(startX, startZ, 18, 32);
-        this.spawnDirtikNear(startX, startZ, 25, 42);
+        this.spawnDirtikNear(startX, startZ, 10, 20);
+        this.spawnDirtikNear(startX, startZ, 16, 28);
+        this.spawnDirtikNear(startX, startZ, 24, 38);
 
         // 4b. Początkowe ukryte Roboty Transformery (więcej Robotów na prośbę gracza!)
         this.spawnRobotNear(startX, startZ, 16, 26);
@@ -520,7 +521,8 @@ export class EntityManager {
             // Usuń Dirtiki, które są za daleko od gracza (> 50m), żeby nie blokowały limitu
             for (const d of dirtiks) {
                 if (d.position.distanceTo(playerPosition) > 50) {
-                    d.die();
+                    if (typeof d.despawn === 'function') d.despawn();
+                    else d.die();
                 }
             }
 
