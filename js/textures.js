@@ -34,7 +34,8 @@ export const TILES = {
     DANDELION: 19,
     LILY_PAD: 20,
     COLOR_BLOCK_626: 21,
-    CHARGED_BLOCK_626: 22
+    CHARGED_BLOCK_626: 22,
+    PIG_BLOCK: 23
 };
 
 // Map block types to tile faces: [Top, Bottom, Front, Back, Left, Right]
@@ -59,7 +60,8 @@ export const BLOCK_DEF = {
     18: { name: 'Żółty Mlecz (Dandelion)', tiles: [TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION, TILES.DANDELION], solid: false, transparent: true, isPlant: true },
     19: { name: 'Lilia Wodna (Lily Pad)', tiles: [TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD], solid: false, transparent: true, isLilyPad: true },
     51: { name: 'Kolorowy Blok 626', tiles: [TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626], solid: true },
-    53: { name: 'Napiorunowany Kolorowy Blok', tiles: [TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626], solid: true }
+    53: { name: 'Napiorunowany Kolorowy Blok', tiles: [TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626], solid: true },
+    59: { name: 'Świniowy Blok', tiles: [TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK], solid: true }
 };
 
 export function renderWaterTile(c, time, offsetX = 0, offsetY = 0) {
@@ -759,6 +761,41 @@ function createAtlas() {
         c.fillRect(7, 9, 3, 2);
         c.fillRect(6, 11, 3, 2);
         c.fillRect(5, 13, 2, 2);
+    });
+
+    // 23: PIG_BLOCK (Świniowy Blok - różowy blok mięsny ze świńskim ryjkiem na życzenie Tymka!)
+    drawTile(TILES.PIG_BLOCK, (c) => {
+        // Base pink/flesh marble
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                const n = (hash(x * 17 + 3, y * 23 + 7) - 0.5) * 22;
+                const r = Math.max(0, Math.min(255, Math.round(244 + n)));
+                const g = Math.max(0, Math.min(255, Math.round(146 + n * 0.8)));
+                const b = Math.max(0, Math.min(255, Math.round(142 + n * 0.8)));
+                c.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                c.fillRect(x, y, 1, 1);
+            }
+        }
+        // Darker pork contour border
+        c.strokeStyle = '#db6864';
+        c.lineWidth = 1;
+        c.strokeRect(0.5, 0.5, 15, 15);
+
+        // Pig Snout in center
+        c.fillStyle = '#db6864';
+        c.fillRect(4, 5, 8, 6);
+        c.strokeStyle = '#b84d49';
+        c.strokeRect(4.5, 5.5, 7, 5);
+
+        // Nostrils
+        c.fillStyle = '#7a2825';
+        c.fillRect(6, 7, 1, 2);
+        c.fillRect(9, 7, 1, 2);
+
+        // Cute eyes on sides
+        c.fillStyle = '#1e1b4b';
+        c.fillRect(2, 4, 1, 2);
+        c.fillRect(13, 4, 1, 2);
     });
 
     const texture = new THREE.CanvasTexture(canvas);

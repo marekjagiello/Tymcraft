@@ -171,6 +171,13 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 23. Świniowy Blok (59): Zgniłe Mięso (26) w craftingu 2x2 (na życzenie Tymka!)
+        if (nonNulls.length >= 2 && nonNulls.every(id => id === 26)) {
+            const count = nonNulls.length >= 4 ? 2 : 1;
+            this.output = { item: ITEMS.PIG_BLOCK, count };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }

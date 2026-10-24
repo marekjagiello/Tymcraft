@@ -225,8 +225,8 @@ export class ThrownGunpowder extends Entity {
 
                         const blockId = this.world.getBlock(bx, by, bz);
                         if (blockId > 0) {
-                            // PROTECTED FROM EXPLOSION: Bedrock (14), Diamond Ore (15), Ruby Ore (16), Piorunowe Bloki (53), Arena Bossa!
-                            if (blockId === 14 || blockId === 15 || blockId === 16 || blockId === 53 || (bx >= 980 && bx <= 1020 && bz >= 980 && bz <= 1020)) {
+                            // PROTECTED FROM EXPLOSION: Bedrock (14), Diamond Ore (15), Ruby Ore (16), Piorunowe Bloki (53), Areny Bossów!
+                            if (blockId === 14 || blockId === 15 || blockId === 16 || blockId === 53 || blockId === 59 || (bx >= 980 && bx <= 1020 && bz >= 980 && bz <= 1020) || (bx >= 1980 && bx <= 2020 && bz >= 1980 && bz <= 2020)) {
                                 continue;
                             }
 

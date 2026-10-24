@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playLaserPistolSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playLaserPistolSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound, playPigGruntSound } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=water_2';
 
 
@@ -2525,6 +2525,513 @@ export class MiniRobot extends Mob {
         }
 
         this.updateFooting(dt);
+    }
+}
+
+// -------------------------------------------------------------
+// RedEyedPig Mob (Świnia z czerwonymi oczami - Minion Króla Świń na życzenie Tymka!)
+// -------------------------------------------------------------
+export class RedEyedPig extends Mob {
+    constructor(scene, world, x = 32, z = 32, manager = null) {
+        super(scene, world, 'red_eyed_pig', x, z, manager);
+        this.maxHealth = 14;
+        this.health = 14;
+        this.walkSpeed = 2.8;
+        this.attackDamage = 2;
+        this.attackCooldown = 0;
+
+        this.buildModel();
+        this.snapToGround();
+        this.scene.add(this.group);
+        playPigGruntSound(false);
+    }
+
+    buildModel() {
+        const pinkMat = new THREE.MeshLambertMaterial({ color: 0xdb6864 });
+        const darkPinkMat = new THREE.MeshLambertMaterial({ color: 0x9f1239 });
+        // Jaskrawe, świecące CZERWONE oczy na życzenie Tymka: "świnie z czerwonymi oczami"!
+        const redEyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        this.redEyeMat = redEyeMat;
+
+        const bodyGeo = new THREE.BoxGeometry(0.85, 0.65, 1.15);
+        const body = new THREE.Mesh(bodyGeo, pinkMat);
+        body.position.set(0, 0.6, 0);
+        this.group.add(body);
+
+        const headGeo = new THREE.BoxGeometry(0.58, 0.58, 0.58);
+        this.head = new THREE.Mesh(headGeo, pinkMat);
+        this.head.position.set(0, 0.85, 0.78);
+
+        const snoutGeo = new THREE.BoxGeometry(0.32, 0.22, 0.16);
+        const snout = new THREE.Mesh(snoutGeo, darkPinkMat);
+        snout.position.set(0, -0.08, 0.34);
+        this.head.add(snout);
+
+        const eyeGeo = new THREE.BoxGeometry(0.10, 0.10, 0.06);
+        const leftEye = new THREE.Mesh(eyeGeo, redEyeMat);
+        leftEye.position.set(-0.20, 0.10, 0.30);
+        const rightEye = new THREE.Mesh(eyeGeo, redEyeMat);
+        rightEye.position.set(0.20, 0.10, 0.30);
+        this.head.add(leftEye, rightEye);
+
+        this.group.add(this.head);
+
+        const legGeo = new THREE.BoxGeometry(0.24, 0.45, 0.24);
+        const legOffsets = [
+            [-0.26, 0.225, 0.36],
+            [0.26, 0.225, 0.36],
+            [-0.26, 0.225, -0.36],
+            [0.26, 0.225, -0.36]
+        ];
+
+        for (let i = 0; i < 4; i++) {
+            const pivot = new THREE.Group();
+            pivot.position.set(legOffsets[i][0], 0.45, legOffsets[i][2]);
+            const legMesh = new THREE.Mesh(legGeo, pinkMat);
+            legMesh.position.set(0, -0.225, 0);
+            pivot.add(legMesh);
+            this.group.add(pivot);
+            this.legs.push(pivot);
+        }
+    }
+
+    update(dt) {
+        if (this.isDead) return;
+
+        this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+
+        if (this.manager?.player && this.manager.player.position) {
+            const playerPos = this.manager.player.position;
+            const dx = playerPos.x - this.position.x;
+            const dz = playerPos.z - this.position.z;
+            const dist = Math.hypot(dx, dz);
+
+            if (dist < 32.0) {
+                this.targetRotationY = Math.atan2(dx, dz);
+                if (dist > 1.3) {
+                    const moveStep = this.walkSpeed * dt;
+                    this.position.x += Math.sin(this.targetRotationY) * moveStep;
+                    this.position.z += Math.cos(this.targetRotationY) * moveStep;
+
+                    const legAngle = Math.sin(Date.now() * 0.012) * 0.55;
+                    if (this.legs[0]) this.legs[0].rotation.x = legAngle;
+                    if (this.legs[1]) this.legs[1].rotation.x = -legAngle;
+                    if (this.legs[2]) this.legs[2].rotation.x = -legAngle;
+                    if (this.legs[3]) this.legs[3].rotation.x = legAngle;
+                } else if (this.attackCooldown <= 0) {
+                    this.attackCooldown = 1.2;
+                    eventBus.emit('player:damage', {
+                        amount: this.attackDamage,
+                        reason: 'red_eyed_pig'
+                    });
+                    eventBus.emit('ui:popup', '🔴 Świnia z czerwonymi oczami Cię ugryzła! (-1 serce)');
+                    playHitSound();
+                }
+            }
+        }
+
+        let diff = this.targetRotationY - this.rotationY;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.rotationY += diff * 6 * dt;
+        this.group.rotation.y = this.rotationY;
+
+        this.group.position.copy(this.position);
+    }
+
+    die() {
+        if (this.isDead) return;
+        super.die();
+        if (this.manager?.drops) {
+            const drop = new DroppedItem(this.scene, this.world, 38, 'Surowy Schab', this.position.x, this.position.y + 0.5, this.position.z);
+            this.manager.drops.add(drop);
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// PigKing Mob (Nowy Boss: Król Świnia na życzenie Tymka!)
+// Posiada królewską koronę 👑, 150 HP, szarżuje, tupie i przywołuje świnie z czerwonymi oczami!
+// -------------------------------------------------------------
+export class PigKing extends Mob {
+    constructor(scene, world, x = 2000, z = 2000, manager = null) {
+        const blockX = Math.floor(x) + 0.5;
+        const blockZ = Math.floor(z) + 0.5;
+        super(scene, world, 'boss_pig_king', blockX, blockZ, manager);
+        this.maxHealth = 150;
+        this.health = 150;
+        this.walkSpeed = 2.4;
+        this.attackDamage = 6;
+        this.attackCooldown = 0;
+        this.stompCooldown = 4.0;
+        this.summonCooldown = 8.0;
+        this.targetScale = 3.2;
+
+        this.buildModel();
+        this.buildHealthBar(4.0);
+        this.group.scale.set(this.targetScale, this.targetScale, this.targetScale);
+
+        this.snapToGround();
+        this.scene.add(this.group);
+
+        if (this.manager?.ui) {
+            this.manager.ui.showBossBar('👑 KRÓL ŚWINIA', this.health, this.maxHealth);
+        }
+
+        playPigGruntSound(true);
+    }
+
+    buildModel() {
+        this.modelGroup = new THREE.Group();
+
+        const royalPinkMat = new THREE.MeshLambertMaterial({ color: 0xf472b6 });
+        const darkPinkMat = new THREE.MeshLambertMaterial({ color: 0xbe185d });
+        const goldMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b, emissive: 0x78350f });
+        const rubyMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e1b4b });
+
+        // 1. Potężne ciało Króla Świń
+        const bodyGeo = new THREE.BoxGeometry(1.2, 0.9, 1.6);
+        const body = new THREE.Mesh(bodyGeo, royalPinkMat);
+        body.position.set(0, 0.85, 0);
+        this.modelGroup.add(body);
+
+        // Królewski złoty pas
+        const beltGeo = new THREE.BoxGeometry(1.26, 0.22, 1.66);
+        const belt = new THREE.Mesh(beltGeo, goldMat);
+        belt.position.set(0, 0.85, 0);
+        this.modelGroup.add(belt);
+
+        // 2. Głowa
+        const headGeo = new THREE.BoxGeometry(0.85, 0.85, 0.85);
+        this.head = new THREE.Mesh(headGeo, royalPinkMat);
+        this.head.position.set(0, 1.25, 1.05);
+
+        // Ryjek ze złotymi kłami
+        const snoutGeo = new THREE.BoxGeometry(0.48, 0.32, 0.24);
+        const snout = new THREE.Mesh(snoutGeo, darkPinkMat);
+        snout.position.set(0, -0.12, 0.50);
+        this.head.add(snout);
+
+        // Złote kły
+        const tuskGeo = new THREE.BoxGeometry(0.08, 0.20, 0.08);
+        const leftTusk = new THREE.Mesh(tuskGeo, goldMat);
+        leftTusk.position.set(-0.24, 0.02, 0.50);
+        const rightTusk = new THREE.Mesh(tuskGeo, goldMat);
+        rightTusk.position.set(0.24, 0.02, 0.50);
+        this.head.add(leftTusk, rightTusk);
+
+        // Oczy
+        const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.06);
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        leftEye.position.set(-0.30, 0.14, 0.44);
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rightEye.position.set(0.30, 0.14, 0.44);
+        this.head.add(leftEye, rightEye);
+
+        // 3. Królewska Złota Korona 👑 z rubinami na głowie Króla Świń!
+        const crownBaseGeo = new THREE.BoxGeometry(0.75, 0.18, 0.75);
+        const crownBase = new THREE.Mesh(crownBaseGeo, goldMat);
+        crownBase.position.set(0, 0.52, 0);
+        this.crownMesh = crownBase;
+        this.head.add(crownBase);
+
+        // 4 kolce korony
+        const spikeGeo = new THREE.ConeGeometry(0.10, 0.30, 4);
+        const spikeOffsets = [
+            [-0.28, 0.72, 0.28],
+            [0.28, 0.72, 0.28],
+            [-0.28, 0.72, -0.28],
+            [0.28, 0.72, -0.28]
+        ];
+        for (const [sx, sy, sz] of spikeOffsets) {
+            const spike = new THREE.Mesh(spikeGeo, goldMat);
+            spike.position.set(sx, sy, sz);
+            this.head.add(spike);
+
+            const ruby = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), rubyMat);
+            ruby.position.set(sx, sy + 0.16, sz);
+            this.head.add(ruby);
+        }
+
+        this.modelGroup.add(this.head);
+
+        // 4. Cztery potężne nogi ze złotymi bransoletami na kopytach
+        const legGeo = new THREE.BoxGeometry(0.34, 0.65, 0.34);
+        const cuffGeo = new THREE.BoxGeometry(0.38, 0.16, 0.38);
+        const legOffsets = [
+            [-0.38, 0.325, 0.52],
+            [0.38, 0.325, 0.52],
+            [-0.38, 0.325, -0.52],
+            [0.38, 0.325, -0.52]
+        ];
+
+        for (let i = 0; i < 4; i++) {
+            const pivot = new THREE.Group();
+            pivot.position.set(legOffsets[i][0], 0.65, legOffsets[i][2]);
+            const legMesh = new THREE.Mesh(legGeo, royalPinkMat);
+            legMesh.position.set(0, -0.325, 0);
+            pivot.add(legMesh);
+
+            const cuff = new THREE.Mesh(cuffGeo, goldMat);
+            cuff.position.set(0, -0.52, 0);
+            pivot.add(cuff);
+
+            this.modelGroup.add(pivot);
+            this.legs.push(pivot);
+        }
+
+        this.group.add(this.modelGroup);
+    }
+
+    summonMinions() {
+        return this.summonRedEyedPigs();
+    }
+
+    summonRedEyedPigs() {
+        if (!this.manager || this.isDead) return;
+        eventBus.emit('boss:attack_flash', {
+            color: 0xf43f5e,
+            intensity: 4.5,
+            x: this.position.x,
+            y: this.position.y + 2,
+            z: this.position.z
+        });
+
+        playPigGruntSound(true);
+        const msg = '👑🐖 KRÓL ŚWINIA PRZYWOŁUJE SWOJE ŚWINIE Z CZERWONYMI OCZAMI! 🔴👀';
+        eventBus.emit('ui:popup', msg);
+        if (this.manager.ui) {
+            this.manager.ui.addChatMessage('Król Świnia', '👑🐖 CHRRRR! Moje świnie z czerwonymi oczami, zniszczcie intruza! 🔴🔴', 'chat-warning');
+            this.manager.ui.showPopup(msg);
+        }
+
+        // Przywołaj 2 świnie z czerwonymi oczami w pobliżu
+        for (let i = 0; i < 2; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 3.0 + Math.random() * 2.5;
+            const px = this.position.x + Math.cos(angle) * dist;
+            const pz = this.position.z + Math.sin(angle) * dist;
+            if (this.manager.spawnRedEyedPig) {
+                this.manager.spawnRedEyedPig(px, pz);
+            }
+        }
+    }
+
+    stompGround() {
+        playBossStompSound();
+        eventBus.emit('boss:attack_flash', {
+            color: 0xef4444,
+            intensity: 3.5,
+            x: this.position.x,
+            y: this.position.y + 1,
+            z: this.position.z
+        });
+
+        if (this.manager?.player && this.manager.player.position) {
+            const dist = this.position.distanceTo(this.manager.player.position);
+            if (dist < 5.0) {
+                eventBus.emit('player:damage', {
+                    amount: 4,
+                    reason: 'pig_king_stomp'
+                });
+                eventBus.emit('ui:popup', '💥 Król Świnia tąpnął w ziemię wywołując falę uderzeniową!');
+            }
+        }
+    }
+
+    update(dt) {
+        if (this.isDead) return;
+
+        this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+        this.stompCooldown = Math.max(0, this.stompCooldown - dt);
+        this.summonCooldown = Math.max(0, this.summonCooldown - dt);
+
+        // Co ~10 sekund Król Świnia przywołuje świnie z czerwonymi oczami!
+        if (this.summonCooldown <= 0) {
+            this.summonCooldown = 11.0;
+            this.summonRedEyedPigs();
+        }
+
+        // Tąpnięcie co ~6 sekund
+        if (this.stompCooldown <= 0) {
+            this.stompCooldown = 6.5;
+            this.stompGround();
+        }
+
+        // Szarża i atak na gracza
+        if (this.manager?.player && this.manager.player.position) {
+            const playerPos = this.manager.player.position;
+            const dx = playerPos.x - this.position.x;
+            const dz = playerPos.z - this.position.z;
+            const dist = Math.hypot(dx, dz);
+
+            if (dist < 35.0) {
+                this.targetRotationY = Math.atan2(dx, dz);
+                if (dist > 2.5) {
+                    const step = this.walkSpeed * dt;
+                    this.position.x += Math.sin(this.targetRotationY) * step;
+                    this.position.z += Math.cos(this.targetRotationY) * step;
+
+                    const legAngle = Math.sin(Date.now() * 0.008) * 0.45;
+                    if (this.legs[0]) this.legs[0].rotation.x = legAngle;
+                    if (this.legs[1]) this.legs[1].rotation.x = -legAngle;
+                    if (this.legs[2]) this.legs[2].rotation.x = -legAngle;
+                    if (this.legs[3]) this.legs[3].rotation.x = legAngle;
+                } else if (this.attackCooldown <= 0) {
+                    this.attackCooldown = 1.4;
+                    eventBus.emit('player:damage', {
+                        amount: this.attackDamage,
+                        reason: 'boss_pig_king'
+                    });
+                    eventBus.emit('ui:popup', '👑💥 Potężny cios Króla Świń! (-3 serca)');
+                    playHitSound();
+                }
+            }
+        }
+
+        let diff = this.targetRotationY - this.rotationY;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.rotationY += diff * 4 * dt;
+        this.group.rotation.y = this.rotationY;
+
+        this.group.position.copy(this.position);
+    }
+
+    takeDamage(amount, source = '') {
+        if (this.isDead) return;
+        this.health -= amount;
+        this.flashRed();
+        if (this.manager?.ui) {
+            this.manager.ui.updateBossBar(this.health, this.maxHealth);
+        }
+        if (this.health <= 0 && !this.isDead) {
+            this.die();
+        }
+    }
+
+    onAttacked(damage = 2, attackerPos = null) {
+        if (this.isDead) return;
+        this.takeDamage(damage, 'player');
+        if (attackerPos) {
+            const kb = this.position.clone().sub(attackerPos).setY(0);
+            if (kb.lengthSq() > 0.001) {
+                kb.normalize();
+                this.position.addScaledVector(kb, 0.4);
+            }
+        }
+    }
+
+    die() {
+        if (this.isDead) return;
+        super.die();
+
+        if (this.manager?.ui) {
+            this.manager.ui.hideBossBar();
+            this.manager.ui.addChatMessage('Serwer', '👑🎉 KRÓL ŚWINIA POKONANY! Zdobyłeś królewski schab i skarby! Pod ścianą pojawiła się ozdobna brama powrotu (kliknij PPM)! 🏰✨', 'chat-success');
+            this.manager.ui.showPopup('👑🎉 KRÓL ŚWINIA POKONANY! 💎🥩');
+        }
+
+        // Upuszcza mnóstwo schabu (Porkchop 38), rubiny (34), żelazo (58)
+        if (this.manager?.drops) {
+            for (let i = 0; i < 6; i++) {
+                const drop = new DroppedItem(this.scene, this.world, 38, 'Surowy Schab', this.position.x + (Math.random() - 0.5) * 2, this.position.y + 0.5, this.position.z + (Math.random() - 0.5) * 2);
+                this.manager.drops.add(drop);
+            }
+            const rubyDrop1 = new DroppedItem(this.scene, this.world, 34, 'Rubin', this.position.x + 0.5, this.position.y + 0.5, this.position.z);
+            const rubyDrop2 = new DroppedItem(this.scene, this.world, 34, 'Rubin', this.position.x + 0.7, this.position.y + 0.5, this.position.z);
+            const ironDrop1 = new DroppedItem(this.scene, this.world, 58, 'Żelazo', this.position.x - 0.5, this.position.y + 0.5, this.position.z);
+            const ironDrop2 = new DroppedItem(this.scene, this.world, 58, 'Żelazo', this.position.x - 0.7, this.position.y + 0.5, this.position.z);
+            this.manager.drops.add(rubyDrop1);
+            this.manager.drops.add(rubyDrop2);
+            this.manager.drops.add(ironDrop1);
+            this.manager.drops.add(ironDrop2);
+        }
+
+        // Spawnuje bramę powrotu pod ścianą (x=2012, z=2000)
+        this.spawnPigVictoryPortal();
+    }
+
+    spawnPigVictoryPortal() {
+        if (!this.scene) return;
+        const portalGroup = new THREE.Group();
+        portalGroup.name = 'victoryPortal';
+        portalGroup.position.set(2012, 11, 2000);
+        portalGroup.rotation.y = -Math.PI / 2;
+
+        const bedrockMat = new THREE.MeshLambertMaterial({ color: 0x222226 });
+        const goldMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b, emissive: 0x78350f });
+
+        const baseGeo = new THREE.BoxGeometry(3.6, 0.4, 1.4);
+        const baseMesh = new THREE.Mesh(baseGeo, bedrockMat);
+        baseMesh.position.set(0, 0.2, 0);
+        portalGroup.add(baseMesh);
+
+        const pillarGeo = new THREE.BoxGeometry(0.6, 3.6, 0.6);
+        const leftPillar = new THREE.Mesh(pillarGeo, bedrockMat);
+        leftPillar.position.set(-1.4, 2.0, 0);
+        const rightPillar = new THREE.Mesh(pillarGeo, bedrockMat);
+        rightPillar.position.set(1.4, 2.0, 0);
+        portalGroup.add(leftPillar, rightPillar);
+
+        const topBarGeo = new THREE.BoxGeometry(3.4, 0.6, 0.6);
+        const topBar = new THREE.Mesh(topBarGeo, bedrockMat);
+        topBar.position.set(0, 3.8, 0);
+        portalGroup.add(topBar);
+
+        const cornerGeo = new THREE.BoxGeometry(0.65, 0.65, 0.65);
+        for (const [cx, cy, cz] of [[-1.4, 0.4, 0], [1.4, 0.4, 0], [-1.4, 3.8, 0], [1.4, 3.8, 0]]) {
+            const corner = new THREE.Mesh(cornerGeo, goldMat);
+            corner.position.set(cx, cy, cz);
+            portalGroup.add(corner);
+        }
+
+        const vortexGeo = new THREE.BoxGeometry(2.2, 3.2, 0.25);
+        const vortexMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+        const vortexMesh = new THREE.Mesh(vortexGeo, vortexMat);
+        vortexMesh.position.set(0, 2.0, 0);
+        portalGroup.add(vortexMesh);
+
+        const skyBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 40.0, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.45, side: THREE.DoubleSide }));
+        skyBeam.position.set(0, 20.0, 0);
+        portalGroup.add(skyBeam);
+
+        const portalLight = new THREE.PointLight(0xf43f5e, 2.8, 18);
+        portalLight.position.set(0, 2.2, 0);
+        portalGroup.add(portalLight);
+
+        this.scene.add(portalGroup);
+        if (this.manager) this.manager.activeVictoryPortal = portalGroup;
+
+        let animAngle = 0;
+        const animInterval = setInterval(() => {
+            if (!portalGroup.parent) {
+                clearInterval(animInterval);
+                return;
+            }
+            animAngle += 0.05;
+            skyBeam.rotation.y = animAngle * 0.5;
+            vortexMat.opacity = 0.7 + Math.sin(animAngle * 2) * 0.15;
+        }, 33);
+
+        const checkReturnInterval = setInterval(() => {
+            if (!portalGroup.parent) {
+                clearInterval(checkReturnInterval);
+                clearInterval(animInterval);
+                return;
+            }
+            if (this.manager?.player && this.manager.player.position) {
+                const distToPortal = Math.hypot(this.manager.player.position.x - 2012, this.manager.player.position.z - 2000);
+                if (distToPortal <= 1.4) {
+                    clearInterval(checkReturnInterval);
+                    clearInterval(animInterval);
+                    if (portalGroup.parent) this.scene.remove(portalGroup);
+                    if (this.manager) this.manager.activeVictoryPortal = null;
+                    eventBus.emit('dimension:return_to_overworld');
+                }
+            }
+        }, 150);
     }
 }
 

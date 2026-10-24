@@ -1,7 +1,7 @@
 import { Pig, Sheep, Snake, Bear, Cow, createPixelHeartMesh } from './entities/mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot } from './entities/mobs/hostile.js?v=empty_start_bow_string_v10';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './entities/mobs/hostile.js?v=pig_king_boss_v14';
 import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './entities/projectile.js?v=wand_1';
-import { EntityManager } from './entities/entity-manager.js?v=empty_start_bow_string_v10';
+import { EntityManager } from './entities/entity-manager.js?v=pig_king_boss_v14';
 
 export {
     createPixelHeartMesh,
@@ -20,6 +20,8 @@ export {
     Robot,
     BossRobot,
     MiniRobot,
+    PigKing,
+    RedEyedPig,
     EntityManager
 };
 
@@ -27,6 +29,10 @@ export {
 export class Animal {
     constructor(scene, world, type = 'pig', x = 32, z = 32, manager = null, isBaby = false, hasHelmet = false) {
         switch (type) {
+            case 'boss_pig_king':
+                return new PigKing(scene, world, x, z, manager);
+            case 'red_eyed_pig':
+                return new RedEyedPig(scene, world, x, z, manager);
             case 'boss_robot':
                 return new BossRobot(scene, world, x, z, manager);
             case 'mini_robot':

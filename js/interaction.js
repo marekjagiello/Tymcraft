@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
-import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound, playRainbowChimeSound, playCyberTeleportSound, startBossRobotMusic } from './audio.js';
+import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound, playRainbowChimeSound, playCyberTeleportSound, playPigGruntSound, startBossRobotMusic } from './audio.js';
 import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=epic_rainbow_1';
 
 import { eventBus } from './events.js';
@@ -424,6 +424,37 @@ export class Interaction {
                             return;
                         }
 
+                        // Check if activating Pig Portal (Mięsny Portal ze Świniowego Bloku)
+                        if (clickedId === 59) {
+                            if (this.checkPigPortal(cx, cy, cz)) {
+                                playCyberTeleportSound?.();
+                                playPigGruntSound?.(true);
+                                eventBus.emit('boss:attack_flash', {
+                                    color: 0xff3388,
+                                    intensity: 4.8,
+                                    x: cx,
+                                    y: cy + 1,
+                                    z: cz
+                                });
+                                const msg = '🐷🥩 Mięsny portal zapłonął różową energią! Wkraczasz do Królestwa Króla Świń!';
+                                eventBus.emit('ui:popup', msg);
+                                if (this.ui) {
+                                    this.ui.addChatMessage('Portal', '🐷🥩 Mięsny portal otworzył przejście do Królestwa Świń! Strzeż się Króla Świń i jego świty z czerwonymi oczami! 👑🐷', 'chat-server');
+                                    this.ui.showPopup(msg);
+                                }
+                                setTimeout(() => {
+                                    eventBus.emit('dimension:enter_pig_kingdom');
+                                }, 350);
+                                return;
+                            } else {
+                                playHitSound();
+                                const msg = '🔥 Trzask krzesiwa! Zbuduj ramę portalu ze Świniowych Bloków (co najmniej 4 bloki)! 🐷🧱';
+                                eventBus.emit('ui:popup', msg);
+                                if (this.ui) this.ui.showPopup(msg);
+                                return;
+                            }
+                        }
+
                         // Check if activating Stone Portal (Portal z kamienia)
                         if (clickedId === 3 || clickedId === 11) {
                             if (this.checkStonePortal(cx, cy, cz)) {
@@ -455,7 +486,7 @@ export class Interaction {
                         }
 
                         playHitSound();
-                        const msg = '🔥 Trzask krzesiwa! Podpal portal z kamienia lub totem (Ziemia na dole, Kamień na górze)!';
+                        const msg = '🔥 Trzask krzesiwa! Podpal portal ze świniowych bloków, portal z kamienia lub totem!';
                         eventBus.emit('ui:popup', msg);
                         if (this.ui) this.ui.showPopup(msg);
                         return;
@@ -819,12 +850,14 @@ export class Interaction {
         }
 
         const { x, y, z, blockId } = this.currentTarget;
-        // Piorunowe bloki (53), Bedrock (14) oraz cała arena Bossa są niezniszczalne na życzenie Tymka!
+        // Piorunowe bloki (53), Bedrock (14) oraz całe areny Bossów są niezniszczalne na życzenie Tymka!
         const isArenaBlock = (x >= 980 && x <= 1020 && z >= 980 && z <= 1020);
         const isArenaStructure = isArenaBlock && (blockId === 14 || blockId === 53 || blockId === 51 || blockId === 12 || y <= 11 || y >= 20 || Math.hypot(x - 1000, z - 1000) >= 13.5);
-        if (blockId === 14 || blockId === 53 || isArenaStructure) {
+        const isPigArenaBlock = (x >= 1980 && x <= 2020 && z >= 1980 && z <= 2020);
+        const isPigArenaStructure = isPigArenaBlock && (blockId === 14 || blockId === 59 || y <= 11 || y >= 20 || Math.hypot(x - 2000, z - 2000) >= 13.5);
+        if (blockId === 14 || blockId === 53 || isArenaStructure || isPigArenaStructure) {
             playHitSound();
-            const msg = '🛡️ Bloki u Bossa oraz bloki piorunowe są niezniszczalne!';
+            const msg = '🛡️ Bloki w królestwach bossów oraz bloki piorunowe są niezniszczalne!';
             eventBus.emit('ui:popup', msg);
             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
             return;
@@ -990,6 +1023,27 @@ export class Interaction {
         return stoneCount >= 4;
     }
 
+    checkPigPortal(cx, cy, cz) {
+        if (!this.world) return false;
+        const isPigBlock = (id) => id === 59;
+        const centerId = this.world.getBlock(cx, cy, cz);
+        if (!isPigBlock(centerId)) return false;
+
+        // Count pig blocks in 5x5x5 neighborhood around clicked position
+        let pigCount = 0;
+        for (let ox = -2; ox <= 2; ox++) {
+            for (let oy = -2; oy <= 3; oy++) {
+                for (let oz = -2; oz <= 2; oz++) {
+                    if (isPigBlock(this.world.getBlock(cx + ox, cy + oy, cz + oz))) {
+                        pigCount++;
+                    }
+                }
+            }
+        }
+        // A doorway / frame needs at least 4 pig blocks
+        return pigCount >= 4;
+    }
+
     spawnBreakParticles(x, y, z, blockId) {
         let pColor = 0x866043;
         if (blockId === 1) pColor = 0x588c34;
@@ -998,6 +1052,7 @@ export class Interaction {
         if (blockId === 5) pColor = 0x365e1d;
         if (blockId === 6) pColor = 0xdbcd98;
         if (blockId === 7) pColor = 0xf0f5f5;
+        if (blockId === 59) pColor = 0xf0809b;
 
         const pMat = new THREE.MeshLambertMaterial({ color: pColor });
 

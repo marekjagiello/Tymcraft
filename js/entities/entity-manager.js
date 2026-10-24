@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot } from './mobs/hostile.js?v=empty_start_bow_string_v10';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './mobs/hostile.js?v=pig_king_boss_v14';
 
 import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=epic_rainbow_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
@@ -182,6 +182,20 @@ export class EntityManager {
         this.animals.push(mini);
         console.log(`[EntityManager] Zespawnowano Małego Robocika na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
         return mini;
+    }
+
+    spawnPigKing(x = 2000, z = 2000) {
+        const king = new PigKing(this.scene, this.world, x, z, this);
+        this.animals.push(king);
+        console.log(`[EntityManager] Zespawnowano Króla Świń na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
+        return king;
+    }
+
+    spawnRedEyedPig(x, z) {
+        const minion = new RedEyedPig(this.scene, this.world, x, z, this);
+        this.animals.push(minion);
+        console.log(`[EntityManager] Zespawnowano Świnię z czerwonymi oczami na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
+        return minion;
     }
 
 

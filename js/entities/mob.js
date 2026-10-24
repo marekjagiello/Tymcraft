@@ -185,6 +185,10 @@ export class Mob extends Entity {
         this.updateHealthBar(playerPosition);
     }
 
+    takeDamage(amount = 2, source = '') {
+        return this.onAttacked(amount);
+    }
+
     onAttacked(damage = 2, attackerPos = null) {
         if (this.isDead) return;
         this.health -= damage;

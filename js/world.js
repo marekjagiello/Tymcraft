@@ -213,6 +213,11 @@ export class World {
             return 'DarkDimension';
         }
 
+        // Królestwo Króla Świń (Pig Kingdom) - sektor (1960..2040, 1960..2040)
+        if (x >= 1960 && x <= 2040 && z >= 1960 && z <= 2040) {
+            return 'PigKingdom';
+        }
+
         const scale = 0.025;
         const moisture = this.biomeNoise.noise2D((x + 200) * scale, (z + 200) * scale);
         if (moisture > 0.08) return 'Forest';
@@ -271,6 +276,55 @@ export class World {
         }
     }
 
+    // Generuje królewską arenę Króla Świń (Świniowe Bloki 59 i Bedrock 14) na życzenie Tymka!
+    generatePigKingdomChunk(chunk, startX, startZ) {
+        const centerX = 2000;
+        const centerZ = 2000;
+        const arenaFloorY = 11;
+        const arenaRadius = 15;
+
+        for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+            for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+                const x = startX + lx;
+                const z = startZ + lz;
+                const dx = x - centerX;
+                const dz = z - centerZ;
+                const dist = Math.hypot(dx, dz);
+
+                if (dist <= arenaRadius) {
+                    // Bedrockowa podstawa podłogi (y=10)
+                    chunk.voxels[this.localIndex(lx, arenaFloorY - 1, lz)] = 14;
+
+                    // Główna posadzka areny (y=11) ze Świniowych Bloków (59)
+                    let floorBlock = 59; // Świniowy Blok
+                    if (Math.abs(dist - 7) < 0.8) {
+                        floorBlock = 14; // Bedrockowy okrąg
+                    } else if ((Math.abs(dx) <= 1 || Math.abs(dz) <= 1) && dist <= 12) {
+                        floorBlock = 59; // Królewskie ścieżki
+                    } else if (dist <= 2.2) {
+                        floorBlock = 14; // Centralny piedestał
+                    }
+                    chunk.voxels[this.localIndex(lx, arenaFloorY, lz)] = floorBlock;
+
+                    // Wysoka ściana z Bedrocka i Świniowych Bloków (y=12..19, 8 bloków wysokości!)
+                    if (dist >= arenaRadius - 1.5) {
+                        for (let wy = arenaFloorY + 1; wy <= arenaFloorY + 8; wy++) {
+                            chunk.voxels[this.localIndex(lx, wy, lz)] = (wy === arenaFloorY + 4) ? 59 : 14;
+                        }
+                    }
+
+                    // Dach nad całą areną u Króla Świń (y=20, 9 bloków nad podłogą)
+                    let roofBlock = 14; // Lity Bedrock
+                    if ((Math.abs(dx) <= 1 || Math.abs(dz) <= 1) && dist <= 12) {
+                        roofBlock = 59; // Świńskie linie energii na suficie
+                    } else if (dist <= 2.2) {
+                        roofBlock = 59;
+                    }
+                    chunk.voxels[this.localIndex(lx, arenaFloorY + 9, lz)] = roofBlock;
+                }
+            }
+        }
+    }
 
     // Procedural generation of a single chunk (Terrain, Biomes, Underground Caves, Trees)
     generateChunk(chunk) {
@@ -283,6 +337,13 @@ export class World {
         // Mroczny Wymiar Bossa Robota - Unikalna latająca cyber-arena w sektorze (cx 60..64, cz 60..64)
         if (chunk.cx >= 60 && chunk.cx <= 64 && chunk.cz >= 60 && chunk.cz <= 64) {
             this.generateDarkArenaChunk(chunk, startX, startZ);
+            this.applyChunkStorageDelta(chunk);
+            return;
+        }
+
+        // Królestwo Króla Świń - Unikalna arena w sektorze (cx 123..127, cz 123..127) na życzenie Tymka!
+        if (chunk.cx >= 123 && chunk.cx <= 127 && chunk.cz >= 123 && chunk.cz <= 127) {
+            this.generatePigKingdomChunk(chunk, startX, startZ);
             this.applyChunkStorageDelta(chunk);
             return;
         }

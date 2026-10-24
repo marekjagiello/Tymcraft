@@ -554,3 +554,29 @@ export function playLaserPistolSound() {
     } catch (_) {}
 }
 
+// Chrumknięcie / ryk Króla Świń oraz świń z czerwonymi oczami (na życzenie Tymka!)
+export function playPigGruntSound(isKing = false) {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sawtooth';
+        const startFreq = isKing ? 140 : 280;
+        const endFreq = isKing ? 75 : 170;
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.linearRampToValueAtTime(endFreq, now + 0.22);
+
+        gain.gain.setValueAtTime(isKing ? 0.45 : 0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.25);
+    } catch (_) {}
+}
+

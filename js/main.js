@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_reentry_gate_v13';
-import { Player } from './player.js?v=boss_reentry_gate_v13';
-import { Interaction } from './interaction.js?v=boss_reentry_gate_v13';
-import { AnimalManager } from './animals.js?v=boss_reentry_gate_v13';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_reentry_gate_v13';
-import { StorageManager } from './storage.js?v=boss_reentry_gate_v13';
-import { SurvivalManager } from './survival.js?v=boss_reentry_gate_v13';
-import { CraftingManager } from './crafting.js?v=boss_reentry_gate_v13';
-import { DropsManager } from './drops.js?v=boss_reentry_gate_v13';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pig_king_boss_v14';
+import { Player } from './player.js?v=pig_king_boss_v14';
+import { Interaction } from './interaction.js?v=pig_king_boss_v14';
+import { AnimalManager } from './animals.js?v=pig_king_boss_v14';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pig_king_boss_v14';
+import { StorageManager } from './storage.js?v=pig_king_boss_v14';
+import { SurvivalManager } from './survival.js?v=pig_king_boss_v14';
+import { CraftingManager } from './crafting.js?v=pig_king_boss_v14';
+import { DropsManager } from './drops.js?v=pig_king_boss_v14';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=boss_reentry_gate_v13';
-import { QuestManager } from './quests.js?v=boss_reentry_gate_v13';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_reentry_gate_v13';
+import { updateWaterAnimation } from './textures.js?v=pig_king_boss_v14';
+import { QuestManager } from './quests.js?v=pig_king_boss_v14';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pig_king_boss_v14';
 
 
 
@@ -217,6 +217,10 @@ class Game {
             this.enterDarkDimension();
         });
 
+        eventBus.on('dimension:enter_pig_kingdom', () => {
+            this.enterPigKingdom();
+        });
+
         eventBus.on('dimension:return_to_overworld', () => {
             this.exitDarkDimension();
         });
@@ -228,6 +232,7 @@ class Game {
         const handleExitArena = () => {
             stopBossRobotMusic();
             this.isInDarkDimension = false;
+            this.isInPigKingdom = false;
             this.clearArenaTorches();
             if (this.ui) this.ui.hideBossBar();
             const existingPortal = this.scene.getObjectByName('victoryPortal');
@@ -359,8 +364,58 @@ class Game {
         }
     }
 
+    enterPigKingdom() {
+        if (!this.player) return;
+        this.isInPigKingdom = true;
+        this.isInDarkDimension = false;
+
+        // Zapamiętaj pozycję gracza w normalnym świecie
+        if (this.player.position && this.player.position.x < 800) {
+            this.savedOverworldPos = this.player.position.clone();
+        }
+
+        // Usuń ewentualną poprzednią bramę powrotną
+        const existingPortal = this.scene.getObjectByName('victoryPortal');
+        if (existingPortal) {
+            this.scene.remove(existingPortal);
+        }
+        if (this.animals) {
+            this.animals.activeVictoryPortal = null;
+        }
+
+        // Natychmiastowe pre-generowanie i zbudowanie chunków Królestwa Świń wokół gracza (x=2000, z=2000)
+        const pcx = Math.floor(2000 / 16);
+        const pcz = Math.floor(2000 / 16);
+        for (let dx = -2; dx <= 2; dx++) {
+            for (let dz = -2; dz <= 2; dz++) {
+                this.world.getOrCreateChunk(pcx + dx, pcz + dz);
+                this.world.buildChunk(pcx + dx, pcz + dz);
+            }
+        }
+
+        // Teleportacja gracza na arenę (y=12.5)
+        this.player.position.set(2000, 12.5, 1992);
+        this.player.velocity.set(0, 0, 0);
+
+        // ZAWSZE upewnij się, że Król Świnia pojawia się na arenie gotowy do walki
+        let activeKing = this.animals.animals.find(a => a.type === 'boss_pig_king' && !a.isDead);
+        if (!activeKing) {
+            activeKing = this.animals.spawnPigKing(2000, 2000);
+        } else {
+            activeKing.health = activeKing.maxHealth;
+            activeKing.position.set(2000, 12, 2000);
+        }
+
+        if (this.ui) {
+            this.ui.showBossBar('👑 KRÓL ŚWINIA', activeKing.health, activeKing.maxHealth);
+            this.ui.addChatMessage('Serwer', '🐷👑 Wkroczyłeś do Królestwa Świń! Władca Świń w złotej koronie z rubinami wzywa swoją gwardię z czerwonymi oczami! 🥩👑', 'chat-warning');
+            this.ui.showPopup('👑 KRÓL ŚWINIA POWITAŁ CIĘ W SWOIM KRÓLESTWIE! 🐷');
+        }
+    }
+
     exitDarkDimension() {
         this.isInDarkDimension = false;
+        this.isInPigKingdom = false;
         stopBossRobotMusic();
         this.clearArenaTorches();
         const existingPortal = this.scene.getObjectByName('victoryPortal');
@@ -394,10 +449,34 @@ class Game {
     }
 
     updateDayNight(dt) {
-        // --- Specjalna atmosfera Mrocznego Wymiaru (tylko gdy gracz faktycznie jest na arenie x > 800) ---
-        const inArena = Boolean(this.player && this.player.position && this.player.position.x > 800);
+        // --- Specjalna atmosfera Królestwa Świń (x >= 1800) ---
+        const inPigKingdom = Boolean(this.player && this.player.position && this.player.position.x >= 1800);
+        if (inPigKingdom) {
+            this.isInPigKingdom = true;
+            this.isInDarkDimension = false;
+            const pigSky = new THREE.Color(0x350818);
+            this.scene.background = pigSky;
+            this.scene.fog.color = pigSky;
+            this.scene.fog.density = 0.020;
+
+            this.ambientLight.color.setHex(0xff88a8);
+            this.ambientLight.intensity = 0.52;
+            this.dirLight.intensity = 0.12;
+
+            if (this.bossFlashIntensity > 0) {
+                this.bossFlashIntensity = Math.max(0, this.bossFlashIntensity - dt * 3.8);
+                this.bossFlashLight.intensity = this.bossFlashIntensity;
+            } else {
+                this.bossFlashLight.intensity = 0;
+            }
+            return;
+        }
+
+        // --- Specjalna atmosfera Mrocznego Wymiaru (800 < x < 1800) ---
+        const inArena = Boolean(this.player && this.player.position && this.player.position.x > 800 && this.player.position.x < 1800);
         if (inArena) {
             this.isInDarkDimension = true;
+            this.isInPigKingdom = false;
             const darkSky = new THREE.Color(0x06060c);
             this.scene.background = darkSky;
             this.scene.fog.color = darkSky;
@@ -418,8 +497,9 @@ class Game {
             return;
         }
 
-        // Gdy gracz jest w normalnym świecie (x <= 800), flaga isInDarkDimension musi być false!
+        // Gdy gracz jest w normalnym świecie (x <= 800), flagi wymiarów muszą być false!
         this.isInDarkDimension = false;
+        this.isInPigKingdom = false;
 
         // Standardowy cykl dnia i nocy w normalnym świecie
         this.ambientLight.color.setHex(0xffffff);

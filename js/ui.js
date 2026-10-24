@@ -177,6 +177,10 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🔩'; // Żelazo
             itemSpan.style.filter = 'drop-shadow(0 0 5px #cbd5e1)';
         }
+        else if (itemId === 59) {
+            itemSpan.innerText = '🐷🧱'; // Świniowy Blok
+            itemSpan.style.filter = 'drop-shadow(0 0 8px #f472b6)';
+        }
         return itemSpan;
     }
 
