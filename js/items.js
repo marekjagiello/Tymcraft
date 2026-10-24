@@ -69,7 +69,9 @@ export const ITEMS = {
     CHARGED_BLOCK_626: { id: 53, name: 'Napiorunowany Kolorowy Blok', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'charged_block_626' },
     COLOR_SWORD: { id: 54, name: 'Kolorowy Miecz', type: ITEM_TYPES.WEAPON, damage: 25.0, efficiency: 1.0, icon: 'color_sword' },
     COLOR_BOW: { id: 55, name: 'Kolorowy Łuk', type: ITEM_TYPES.WEAPON, damage: 16.0, efficiency: 1.0, icon: 'color_bow' },
-    COLOR_ARROW: { id: 56, name: 'Magiczna Kolorowa Strzała', type: ITEM_TYPES.MATERIAL, icon: 'color_arrow' }
+    COLOR_ARROW: { id: 56, name: 'Magiczna Kolorowa Strzała', type: ITEM_TYPES.MATERIAL, icon: 'color_arrow' },
+    STRING: { id: 57, name: 'Linka', type: ITEM_TYPES.MATERIAL, icon: 'string' },
+    IRON_INGOT: { id: 58, name: 'Żelazo', type: ITEM_TYPES.MATERIAL, icon: 'iron_ingot' }
 };
 
 

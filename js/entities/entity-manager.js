@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot } from './mobs/hostile.js?v=arena_wall_torches_portal_v8';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot } from './mobs/hostile.js?v=empty_start_bow_string_v10';
 
 import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=epic_rainbow_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
@@ -160,6 +160,13 @@ export class EntityManager {
         const robot = new Robot(this.scene, this.world, px, pz, this);
         this.animals.push(robot);
         console.log(`[EntityManager] Zespawnowano ukrytego Robota na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
+        return robot;
+    }
+
+    spawnRobot(x = 32, z = 32) {
+        const robot = new Robot(this.scene, this.world, x, z, this);
+        this.animals.push(robot);
+        console.log(`[EntityManager] Zespawnowano Robota na (${x.toFixed(1)}, ${z.toFixed(1)})`);
         return robot;
     }
 

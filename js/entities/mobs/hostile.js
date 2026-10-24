@@ -1285,25 +1285,53 @@ export class Robot extends Mob {
         super.die();
         eventBus.emit('mob:killed', { type: 'robot' });
 
-        // Drops: Only Niebieski Pierwiastek (ID 49) as requested by player!
+        // Dropy z Robota na życzenie Tymka: "Dostaje się żelazo i linkę"
         if (this.manager && this.manager.drops) {
-            const blueCount = 1 + Math.floor(Math.random() * 2);
-            for (let i = 0; i < blueCount; i++) {
-                const blueDrop = new DroppedItem(
+            // 1. Linka (ID 57) do stworzenia Łuku!
+            const stringCount = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < stringCount; i++) {
+                const stringDrop = new DroppedItem(
                     this.scene,
                     this.world,
-                    49,
-                    'Niebieski Pierwiastek',
-                    this.position.x + (Math.random() - 0.5) * 0.6,
+                    57,
+                    'Linka',
+                    this.position.x + (Math.random() - 0.5) * 0.5,
                     this.position.y + 0.6,
-                    this.position.z + (Math.random() - 0.5) * 0.6
+                    this.position.z + (Math.random() - 0.5) * 0.5
                 );
-                this.manager.drops.add(blueDrop);
+                this.manager.drops.add(stringDrop);
             }
+
+            // 2. Żelazo (ID 58)
+            const ironCount = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < ironCount; i++) {
+                const ironDrop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    58,
+                    'Żelazo',
+                    this.position.x + (Math.random() - 0.5) * 0.5,
+                    this.position.y + 0.6,
+                    this.position.z + (Math.random() - 0.5) * 0.5
+                );
+                this.manager.drops.add(ironDrop);
+            }
+
+            // 3. Dodatkowy Niebieski Pierwiastek (ID 49)
+            const blueDrop = new DroppedItem(
+                this.scene,
+                this.world,
+                49,
+                'Niebieski Pierwiastek',
+                this.position.x,
+                this.position.y + 0.6,
+                this.position.z
+            );
+            this.manager.drops.add(blueDrop);
         }
 
         if (this.manager?.ui) {
-            this.manager.ui.addChatMessage('Serwer', '🏆 Zwycięstwo! Pokonałeś Robota Transformera! Zdobyłeś Niebieski Pierwiastek 💠!', 'chat-success');
+            this.manager.ui.addChatMessage('Serwer', '🏆 Zwycięstwo! Pokonałeś Robota! Zdobyłeś Żelazo 🔩 i Linkę 🧵 do stworzenia Łuku!', 'chat-success');
         }
     }
 
@@ -2415,9 +2443,20 @@ export class MiniRobot extends Mob {
         eventBus.emit('mob:killed', { type: 'mini_robot' });
 
         if (this.manager && this.manager.drops) {
-            // Drop Niebieskiego Pierwiastka lub Jabłka
-            const dropId = Math.random() < 0.6 ? 49 : 23;
-            const dropName = dropId === 49 ? 'Niebieski Pierwiastek' : 'Jabłko';
+            // Szansa na Linkę (57), Żelazo (58) lub Niebieski Pierwiastek (49)
+            const roll = Math.random();
+            let dropId = 57;
+            let dropName = 'Linka';
+            if (roll < 0.4) {
+                dropId = 57;
+                dropName = 'Linka';
+            } else if (roll < 0.75) {
+                dropId = 58;
+                dropName = 'Żelazo';
+            } else {
+                dropId = 49;
+                dropName = 'Niebieski Pierwiastek';
+            }
             const drop = new DroppedItem(
                 this.scene,
                 this.world,

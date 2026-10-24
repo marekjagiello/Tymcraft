@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { Player } from './player.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { Interaction } from './interaction.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { AnimalManager } from './animals.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { StorageManager } from './storage.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { SurvivalManager } from './survival.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { CraftingManager } from './crafting.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { DropsManager } from './drops.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=empty_start_bow_string_v10';
+import { Player } from './player.js?v=empty_start_bow_string_v10';
+import { Interaction } from './interaction.js?v=empty_start_bow_string_v10';
+import { AnimalManager } from './animals.js?v=empty_start_bow_string_v10';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=empty_start_bow_string_v10';
+import { StorageManager } from './storage.js?v=empty_start_bow_string_v10';
+import { SurvivalManager } from './survival.js?v=empty_start_bow_string_v10';
+import { CraftingManager } from './crafting.js?v=empty_start_bow_string_v10';
+import { DropsManager } from './drops.js?v=empty_start_bow_string_v10';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { QuestManager } from './quests.js?v=clean_crafting_no_intro_tlumacz_v9';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=clean_crafting_no_intro_tlumacz_v9';
+import { updateWaterAnimation } from './textures.js?v=empty_start_bow_string_v10';
+import { QuestManager } from './quests.js?v=empty_start_bow_string_v10';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=empty_start_bow_string_v10';
 
 
 
@@ -96,25 +96,7 @@ class Game {
             }
         }
 
-        // Guarantee that player has access to Bow (29) and Arrows (28)
-        const hasBow = HOTBAR_BLOCKS.some(s => s.id === 29) || BACKPACK_SLOTS.some(s => s.id === 29);
-        if (!hasBow) {
-            const freeSlot = HOTBAR_BLOCKS.find(s => s.id === 0 || !s.count) || BACKPACK_SLOTS.find(s => s.id === 0 || !s.count);
-            if (freeSlot) {
-                freeSlot.id = 29;
-                freeSlot.name = 'Łuk';
-                freeSlot.count = 1;
-            }
-        }
-        const hasArrows = HOTBAR_BLOCKS.some(s => s.id === 28) || BACKPACK_SLOTS.some(s => s.id === 28);
-        if (!hasArrows) {
-            const freeSlot = HOTBAR_BLOCKS.find(s => s.id === 0 || !s.count) || BACKPACK_SLOTS.find(s => s.id === 0 || !s.count);
-            if (freeSlot) {
-                freeSlot.id = 28;
-                freeSlot.name = 'Strzała';
-                freeSlot.count = 64;
-            }
-        }
+        // Gracz zaczyna grę całkowicie bez rzeczy na życzenie Tymka (czysty start survivalu!)
 
         // 2. World System (persists placed/broken blocks)
         this.world = new World(this.scene, 4242, this.storage);

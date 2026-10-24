@@ -601,6 +601,56 @@ function createRainbowArrowMesh() {
     return group;
 }
 
+function createStringMesh() {
+    const group = new THREE.Group();
+    const stringMat = new THREE.MeshLambertMaterial({ color: 0xf1f5f9 });
+    const darkStringMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
+
+    // Main string loop / spool
+    const spoolGeo = new THREE.BoxGeometry(0.18, 0.08, 0.18);
+    const spool = new THREE.Mesh(spoolGeo, stringMat);
+    spool.castShadow = true;
+    group.add(spool);
+
+    // Knot & loose thread ends
+    const knotGeo = new THREE.BoxGeometry(0.06, 0.12, 0.06);
+    const knot = new THREE.Mesh(knotGeo, darkStringMat);
+    knot.position.set(0.04, 0.03, 0.04);
+    group.add(knot);
+
+    const threadGeo = new THREE.BoxGeometry(0.24, 0.03, 0.03);
+    const thread = new THREE.Mesh(threadGeo, stringMat);
+    thread.rotation.y = 0.4;
+    group.add(thread);
+
+    return group;
+}
+
+function createIronIngotMesh() {
+    const group = new THREE.Group();
+    const ironMat = new THREE.MeshLambertMaterial({ color: 0xd1d5db });
+    const darkIronMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af });
+    const shineMat = new THREE.MeshLambertMaterial({ color: 0xf3f4f6 });
+
+    // Minecraft-style iron ingot trapezoid/stepped bar
+    const baseGeo = new THREE.BoxGeometry(0.26, 0.06, 0.14);
+    const base = new THREE.Mesh(baseGeo, darkIronMat);
+    base.castShadow = true;
+    group.add(base);
+
+    const midGeo = new THREE.BoxGeometry(0.22, 0.04, 0.11);
+    const mid = new THREE.Mesh(midGeo, ironMat);
+    mid.position.y = 0.04;
+    group.add(mid);
+
+    const topGeo = new THREE.BoxGeometry(0.18, 0.02, 0.08);
+    const top = new THREE.Mesh(topGeo, shineMat);
+    top.position.y = 0.07;
+    group.add(top);
+
+    return group;
+}
+
 export class DroppedItem {
 
 
@@ -698,6 +748,10 @@ export class DroppedItem {
             this.mesh = createRainbowBowMesh();
         } else if (this.id === 56) {
             this.mesh = createRainbowArrowMesh();
+        } else if (this.id === 57) {
+            this.mesh = createStringMesh();
+        } else if (this.id === 58) {
+            this.mesh = createIronIngotMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }

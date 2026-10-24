@@ -1,5 +1,4 @@
-// 2x2 Crafting system using centralized Item Registry
-import { ITEMS } from './items.js?v=wand_1';
+import { ITEMS } from './items.js?v=empty_start_bow_string_v10';
 
 export { ITEMS };
 
@@ -62,8 +61,12 @@ export class CraftingManager {
             return this.output;
         }
 
-        // 7. Bow (Łuk): Any 3 Sticks in 2x2 grid
-        if (nonNulls.length === 3 && nonNulls.every(id => id === 20)) {
+        // 7. Bow (Łuk): Linka (57) nad Patykiem (20) - na życzenie Tymka!
+        const isStringOverStick =
+            ((s0 === 57 && s2 === 20 && !s1 && !s3) || (s1 === 57 && s3 === 20 && !s0 && !s2)) ||
+            (nonNulls.length === 2 && nonNulls.includes(57) && nonNulls.includes(20));
+
+        if (isStringOverStick) {
             this.output = { item: ITEMS.BOW, count: 1 };
             return this.output;
         }

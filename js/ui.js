@@ -1,19 +1,15 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
 import { ITEMS } from './crafting.js';
-import { getItem } from './items.js?v=bedrock_1';
+import { getItem } from './items.js?v=empty_start_bow_string_v10';
 import { eventBus } from './events.js';
 
-export const HOTBAR_BLOCKS = [
-    { slot: 1, id: 1, name: 'Trawa', count: 64 },
-    { slot: 2, id: 2, name: 'Ziemia', count: 64 },
-    { slot: 3, id: 3, name: 'Kamień', count: 64 },
-    { slot: 4, id: 4, name: 'Drewno', count: 32 },
-    { slot: 5, id: 5, name: 'Liście', count: 64 },
-    { slot: 6, id: 6, name: 'Piasek', count: 64 },
-    { slot: 7, id: 29, name: 'Łuk', count: 1 },
-    { slot: 8, id: 28, name: 'Strzała', count: 64 },
-    { slot: 9, id: 24, name: 'Drewniany Miecz', count: 1 }
-];
+// 9 Pustych Slotów Paska Podręcznego (gracz zaczyna bez żadnych rzeczy na życzenie Tymka!)
+export const HOTBAR_BLOCKS = Array.from({ length: 9 }, (_, i) => ({
+    slot: i + 1,
+    id: 0,
+    name: 'Puste',
+    count: 0
+}));
 
 // 27 Backpack Slots (3 rows of 9 slots)
 export const BACKPACK_SLOTS = Array.from({ length: 27 }, (_, i) => ({
@@ -172,6 +168,14 @@ export function createSlotItemIcon(itemId) {
         else if (itemId === 56) {
             itemSpan.innerText = '🌈🎯'; // Magiczna Kolorowa Strzała
             itemSpan.style.filter = 'drop-shadow(0 0 10px #eab308)';
+        }
+        else if (itemId === 57) {
+            itemSpan.innerText = '🧵'; // Linka
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #e2e8f0)';
+        }
+        else if (itemId === 58) {
+            itemSpan.innerText = '🔩'; // Żelazo
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #cbd5e1)';
         }
         return itemSpan;
     }
