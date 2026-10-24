@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=portal_boss_v6';
-import { Player } from './player.js?v=portal_boss_v6';
-import { Interaction } from './interaction.js?v=portal_boss_v6';
-import { AnimalManager } from './animals.js?v=portal_boss_v6';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=portal_boss_v6';
-import { StorageManager } from './storage.js?v=portal_boss_v6';
-import { SurvivalManager } from './survival.js?v=portal_boss_v6';
-import { CraftingManager } from './crafting.js?v=portal_boss_v6';
-import { DropsManager } from './drops.js?v=portal_boss_v6';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=arena_wall_torches_portal_v8';
+import { Player } from './player.js?v=arena_wall_torches_portal_v8';
+import { Interaction } from './interaction.js?v=arena_wall_torches_portal_v8';
+import { AnimalManager } from './animals.js?v=arena_wall_torches_portal_v8';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=arena_wall_torches_portal_v8';
+import { StorageManager } from './storage.js?v=arena_wall_torches_portal_v8';
+import { SurvivalManager } from './survival.js?v=arena_wall_torches_portal_v8';
+import { CraftingManager } from './crafting.js?v=arena_wall_torches_portal_v8';
+import { DropsManager } from './drops.js?v=arena_wall_torches_portal_v8';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=portal_boss_v6';
-import { QuestManager } from './quests.js?v=portal_boss_v6';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=portal_boss_v6';
+import { updateWaterAnimation } from './textures.js?v=arena_wall_torches_portal_v8';
+import { QuestManager } from './quests.js?v=arena_wall_torches_portal_v8';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=arena_wall_torches_portal_v8';
 
 
 
@@ -55,6 +55,9 @@ class Game {
         this.bossFlashLight = new THREE.PointLight(0x38bdf8, 0, 45);
         this.bossFlashLight.position.set(1000, 14, 1000);
         this.scene.add(this.bossFlashLight);
+
+        // Pochodnie na ścianie z Bedrocka w Mrocznym Wymiarze
+        this.arenaTorches = [];
 
         // Sun & Moon Visual Meshes
         const sunGeo = new THREE.BoxGeometry(6, 6, 6);
@@ -253,6 +256,60 @@ class Game {
         this.animate();
     }
 
+    createArenaTorches() {
+        this.clearArenaTorches();
+        this.arenaTorches = [];
+
+        const centerX = 1000;
+        const centerZ = 1000;
+        const torchRadius = 13.6; // na wewnętrznej stronie ściany z Bedrocka (promień 14..15)
+        const torchY = 14.5;      // 3.5 bloku nad posadzką (y=11)
+        const torchCount = 16;    // 16 małych pochodni na życzenie Tymka: "połóż jakieś małe pochodnie"
+
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x5c4033 });
+        const flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+        const stickGeo = new THREE.BoxGeometry(0.10, 0.45, 0.10);
+        const flameGeo = new THREE.BoxGeometry(0.12, 0.14, 0.12);
+
+        for (let i = 0; i < torchCount; i++) {
+            const angle = (i * 2 * Math.PI) / torchCount;
+            const tx = centerX + Math.cos(angle) * torchRadius;
+            const tz = centerZ + Math.sin(angle) * torchRadius;
+
+            const torchGroup = new THREE.Group();
+            torchGroup.position.set(tx, torchY, tz);
+
+            // Pochodnia skierowana lekko do wnętrza areny od ściany z bedrocka
+            torchGroup.rotation.y = -angle + Math.PI / 2;
+            torchGroup.rotation.z = 0.22;
+
+            const stick = new THREE.Mesh(stickGeo, woodMat);
+            torchGroup.add(stick);
+
+            const flame = new THREE.Mesh(flameGeo, flameMat);
+            flame.position.y = 0.24;
+            torchGroup.add(flame);
+
+            // Ciepłe światło punktowe oświetlające ścianę z bedrocka
+            const light = new THREE.PointLight(0xffa500, 1.4, 12);
+            light.position.y = 0.28;
+            torchGroup.add(light);
+
+            this.scene.add(torchGroup);
+            this.arenaTorches.push({ group: torchGroup, flame, light, baseIntensity: 1.4 });
+        }
+    }
+
+    clearArenaTorches() {
+        if (!this.arenaTorches) return;
+        for (const t of this.arenaTorches) {
+            if (t.group && t.group.parent) {
+                this.scene.remove(t.group);
+            }
+        }
+        this.arenaTorches = [];
+    }
+
     enterDarkDimension() {
         if (this.isInDarkDimension) return;
         this.isInDarkDimension = true;
@@ -270,6 +327,9 @@ class Game {
                 this.world.buildChunk(pcx + dx, pcz + dz);
             }
         }
+
+        // Stworzenie małych pochodni na wysokiej ścianie z Bedrocka (na życzenie Tymka!)
+        this.createArenaTorches();
 
         // Teleportacja gracza na arenę (y=12.5)
         this.player.position.set(1000, 12.5, 992);
@@ -292,6 +352,11 @@ class Game {
     exitDarkDimension() {
         this.isInDarkDimension = false;
         stopBossRobotMusic();
+        this.clearArenaTorches();
+        const existingPortal = this.scene.getObjectByName('victoryPortal');
+        if (existingPortal) {
+            this.scene.remove(existingPortal);
+        }
         if (this.ui) this.ui.hideBossBar();
         const target = (this.savedOverworldPos && this.savedOverworldPos.x < 800) ? this.savedOverworldPos : new THREE.Vector3(32, 10, 32);
         this.player.position.copy(target);
@@ -394,6 +459,21 @@ class Game {
         this.survival.update(dt);
         this.ui.update();
         this.updateDayNight(dt);
+
+        // Delikatne migotanie pochodni na ścianie areny
+        if (this.arenaTorches && this.arenaTorches.length > 0) {
+            const time = performance.now() * 0.005;
+            for (let i = 0; i < this.arenaTorches.length; i++) {
+                const t = this.arenaTorches[i];
+                if (t.light) {
+                    t.light.intensity = t.baseIntensity + Math.sin(time + i * 1.3) * 0.25 + Math.cos(time * 2.1 + i) * 0.15;
+                }
+                if (t.flame) {
+                    const s = 1.0 + Math.sin(time * 1.5 + i) * 0.08;
+                    t.flame.scale.set(s, s * 1.1, s);
+                }
+            }
+        }
 
         // Dynamic water ripple animation (~12 FPS update for authentic animated water look)
         this.waterAnimTimer = (this.waterAnimTimer || 0) + dt;

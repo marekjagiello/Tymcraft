@@ -249,13 +249,11 @@ export class World {
                     }
                     chunk.voxels[this.localIndex(lx, arenaFloorY, lz)] = floorBlock;
 
-                    // Ochronne bariery na krawędziach areny (y=12, 13), by nie wypaść w próżnię
-                    if (dist >= arenaRadius - 1.2) {
-                        chunk.voxels[this.localIndex(lx, arenaFloorY + 1, lz)] = 14;
-                        chunk.voxels[this.localIndex(lx, arenaFloorY + 2, lz)] = 14;
-                        // Słupy energetyczne na 4 kierunkach
-                        if ((Math.abs(dx) <= 1 || Math.abs(dz) <= 1) && dist >= arenaRadius - 1.2) {
-                            chunk.voxels[this.localIndex(lx, arenaFloorY + 3, lz)] = 53;
+                    // Cała wysoka ściana z Bedrocka (y=12..19, 8 bloków wysokości!) na życzenie Tymka:
+                    // "Podwyższ tą ścianę z bedrocka... ale ma być cała ściana z bedrocka"
+                    if (dist >= arenaRadius - 1.5) {
+                        for (let wy = arenaFloorY + 1; wy <= arenaFloorY + 8; wy++) {
+                            chunk.voxels[this.localIndex(lx, wy, lz)] = 14; // Bedrock
                         }
                     }
                 }

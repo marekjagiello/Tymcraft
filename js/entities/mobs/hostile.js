@@ -1883,51 +1883,160 @@ export class BossRobot extends Mob {
     spawnVictoryPortal() {
         if (!this.scene) return;
         const portalGroup = new THREE.Group();
+        portalGroup.name = 'victoryPortal';
         portalGroup.position.set(1000, 11, 1000);
 
-        // Złoty promienisty cylinder portalu
-        const portalGeo = new THREE.CylinderGeometry(1.6, 1.6, 6.0, 16, 1, true);
-        const portalMat = new THREE.MeshBasicMaterial({
-            color: 0xfbbf24,
+        // 1. Podstawa i brama z Bedrocka i Złota (styl klasycznego portalu Minecraft)
+        const bedrockMat = new THREE.MeshLambertMaterial({ color: 0x222226 });
+        const goldMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b, emissive: 0x78350f });
+
+        // Podstawa
+        const baseGeo = new THREE.BoxGeometry(3.6, 0.4, 1.4);
+        const baseMesh = new THREE.Mesh(baseGeo, bedrockMat);
+        baseMesh.position.set(0, 0.2, 0);
+        portalGroup.add(baseMesh);
+
+        // Dwa pionowe filary z bedrocka
+        const pillarGeo = new THREE.BoxGeometry(0.6, 3.6, 0.6);
+        const leftPillar = new THREE.Mesh(pillarGeo, bedrockMat);
+        leftPillar.position.set(-1.4, 2.0, 0);
+        portalGroup.add(leftPillar);
+
+        const rightPillar = new THREE.Mesh(pillarGeo, bedrockMat);
+        rightPillar.position.set(1.4, 2.0, 0);
+        portalGroup.add(rightPillar);
+
+        // Górna belka
+        const topBarGeo = new THREE.BoxGeometry(3.4, 0.6, 0.6);
+        const topBar = new THREE.Mesh(topBarGeo, bedrockMat);
+        topBar.position.set(0, 3.8, 0);
+        portalGroup.add(topBar);
+
+        // Złote narożniki (ozdobne bloki złota na rogach portalu)
+        const cornerGeo = new THREE.BoxGeometry(0.65, 0.65, 0.65);
+        const corners = [
+            [-1.4, 0.4, 0],
+            [1.4, 0.4, 0],
+            [-1.4, 3.8, 0],
+            [1.4, 3.8, 0]
+        ];
+        for (const [cx, cy, cz] of corners) {
+            const corner = new THREE.Mesh(cornerGeo, goldMat);
+            corner.position.set(cx, cy, cz);
+            portalGroup.add(corner);
+        }
+
+        // 2. Wnętrze portalu: wirująca fioletowo-złota tafla energii (vortex)
+        const vortexGeo = new THREE.BoxGeometry(2.2, 3.2, 0.25);
+        const vortexMat = new THREE.MeshBasicMaterial({
+            color: 0x9333ea,
+            transparent: true,
+            opacity: 0.85,
+            side: THREE.DoubleSide
+        });
+        const vortexMesh = new THREE.Mesh(vortexGeo, vortexMat);
+        vortexMesh.position.set(0, 2.0, 0);
+        portalGroup.add(vortexMesh);
+
+        // Wewnętrzny złoty rdzeń
+        const innerGeo = new THREE.BoxGeometry(1.6, 2.6, 0.15);
+        const innerMat = new THREE.MeshBasicMaterial({
+            color: 0xfde047,
             transparent: true,
             opacity: 0.7,
             side: THREE.DoubleSide
         });
-        const beamMesh = new THREE.Mesh(portalGeo, portalMat);
-        beamMesh.position.y = 3.0;
-        portalGroup.add(beamMesh);
+        const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+        innerMesh.position.set(0, 2.0, 0);
+        portalGroup.add(innerMesh);
 
-        // Górna korona portalu
-        const ringGeo = new THREE.TorusGeometry(1.6, 0.15, 8, 24);
+        // 3. Pionowy złoty promień w niebo (Beacon Beam, wysokość 40m - widoczny z każdego miejsca areny!)
+        const beamGeo = new THREE.CylinderGeometry(0.55, 0.55, 40.0, 16, 1, true);
+        const beamMat = new THREE.MeshBasicMaterial({
+            color: 0xfbbf24,
+            transparent: true,
+            opacity: 0.45,
+            side: THREE.DoubleSide
+        });
+        const skyBeam = new THREE.Mesh(beamGeo, beamMat);
+        skyBeam.position.set(0, 20.0, 0);
+        portalGroup.add(skyBeam);
+
+        // Wirujący pierścień nad portalem
+        const ringGeo = new THREE.TorusGeometry(1.6, 0.12, 8, 24);
         const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
         const ringMesh = new THREE.Mesh(ringGeo, ringMat);
         ringMesh.rotation.x = Math.PI / 2;
-        ringMesh.position.y = 5.8;
+        ringMesh.position.y = 4.3;
         portalGroup.add(ringMesh);
+
+        // Ciepłe złote światło portalu
+        const portalLight = new THREE.PointLight(0xfbbf24, 2.8, 18);
+        portalLight.position.set(0, 2.2, 0);
+        portalGroup.add(portalLight);
 
         this.scene.add(portalGroup);
 
-        if (this.manager?.ui) {
-            this.manager.ui.addChatMessage('Serwer', '🌟 Złoty Portal otwarty! Wejdź do niego w centrum areny, aby bezpiecznie powrócić do swojego świata ze skarbami!', 'chat-server');
+        if (this.manager) {
+            this.manager.activeVictoryPortal = portalGroup;
         }
 
+        if (this.manager?.ui) {
+            this.manager.ui.addChatMessage('Serwer', '🌟 Portal powrotu do gry otwarty! Wejdź w złoto-fioletowe przejście w centrum areny, aby wrócić ze swoimi skarbami!', 'chat-server');
+            this.manager.ui.showPopup('🌟 PORTAL POWROTU DO GRY OTWARTY! 🚪✨');
+        }
+
+        // Rotacja i pulsowanie energii portalu
+        let animAngle = 0;
+        const animInterval = setInterval(() => {
+            if (!portalGroup.parent) {
+                clearInterval(animInterval);
+                return;
+            }
+            animAngle += 0.05;
+            ringMesh.rotation.z = animAngle;
+            skyBeam.rotation.y = animAngle * 0.5;
+            const pulse = 0.7 + Math.sin(animAngle * 2) * 0.15;
+            vortexMat.opacity = pulse;
+            innerMat.opacity = 0.5 + Math.cos(animAngle * 3) * 0.2;
+        }, 33);
+
+        // Portal nie znika z czasem! Czeka aż gracz sam do niego podejdzie i wejdzie.
         const checkReturnInterval = setInterval(() => {
+            if (!portalGroup.parent) {
+                clearInterval(checkReturnInterval);
+                clearInterval(animInterval);
+                return;
+            }
             if (this.manager?.player && this.manager.player.position) {
                 const distToPortal = Math.hypot(this.manager.player.position.x - 1000, this.manager.player.position.z - 1000);
                 if (distToPortal <= 2.2) {
                     clearInterval(checkReturnInterval);
-                    clearTimeout(autoReturnTimeout);
-                    this.scene.remove(portalGroup);
+                    clearInterval(animInterval);
+                    if (portalGroup.parent) {
+                        this.scene.remove(portalGroup);
+                    }
+                    if (this.manager) {
+                        this.manager.activeVictoryPortal = null;
+                    }
                     eventBus.emit('dimension:return_to_overworld');
                 }
             }
-        }, 200);
+        }, 150);
 
-        const autoReturnTimeout = setTimeout(() => {
+        // Bezpieczne posprzątanie w razie powrotu inną drogą
+        const cleanupListener = () => {
             clearInterval(checkReturnInterval);
-            this.scene.remove(portalGroup);
-            eventBus.emit('dimension:return_to_overworld');
-        }, 12000);
+            clearInterval(animInterval);
+            if (portalGroup.parent) {
+                this.scene.remove(portalGroup);
+            }
+            if (this.manager) {
+                this.manager.activeVictoryPortal = null;
+            }
+            eventBus.off('dimension:return_to_overworld', cleanupListener);
+        };
+        eventBus.on('dimension:return_to_overworld', cleanupListener);
     }
 
     summonMiniRobots() {
