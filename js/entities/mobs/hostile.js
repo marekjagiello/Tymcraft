@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playCyberTeleportSound, playMiniRobotZapSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=water_2';
 
 
@@ -1322,6 +1322,7 @@ export class Robot extends Mob {
             this.awaken();
         }
 
+        playReactorChargeSound();
         playCyberTeleportSound();
         eventBus.emit('boss:attack_flash', {
             color: 0x38bdf8,
@@ -1440,26 +1441,31 @@ export class Robot extends Mob {
 
 // -------------------------------------------------------------
 // Boss Robot Mob (Spawned via Totem: Dirt + Stone + Krzesiwo!)
-// Has 4 arms, starts small and grows GIANT, smashes trees, 100 HP!
+// Has 4 arms, starts small and grows GIANT (scale 3.5), smashes trees, 160 HP!
+// Dual industrial exhaust smokestacks emitting smoke particles, hydraulic pistons,
+// heavy stomping footsteps and camera shake!
 // -------------------------------------------------------------
 export class BossRobot extends Mob {
     constructor(scene, world, x = 32, z = 32, manager = null) {
         const blockX = Math.floor(x) + 0.5;
         const blockZ = Math.floor(z) + 0.5;
         super(scene, world, 'boss_robot', blockX, blockZ, manager);
-        this.maxHealth = 100;
-        this.health = 100;
-        this.walkSpeed = 1.8;
-        this.attackDamage = 4; // 2 hearts without armor, 1 heart with armor!
+        this.maxHealth = 160;
+        this.health = 160;
+        this.walkSpeed = 1.9;
+        this.attackDamage = 5; // Potężny atak 4-ramiennego kolosa!
         this.isAwakening = true;
         this.awakenTimer = 0;
-        this.targetScale = 2.2;
+        this.targetScale = 3.5;
         this.attackCooldown = 0;
         this.swingTime = 0;
         this.treeSmashCooldown = 0;
+        this.smokeParticles = [];
+        this.smokeTimer = 0;
+        this.stompTimer = 0;
 
         this.buildModel();
-        this.buildHealthBar(3.4);
+        this.buildHealthBar(3.5);
         this.group.scale.set(0.35, 0.35, 0.35); // Starts small, then grows!
 
         this.snapToGround();
@@ -1489,118 +1495,205 @@ export class BossRobot extends Mob {
         });
 
         // Massive Torso / Chest
-        const chestGeo = new THREE.BoxGeometry(0.85, 0.95, 0.55);
+        const chestGeo = new THREE.BoxGeometry(0.95, 1.05, 0.65);
         this.body = new THREE.Mesh(chestGeo, darkSteelMat);
         this.body.position.set(0, 1.35, 0);
         this.body.castShadow = true;
         this.modelGroup.add(this.body);
 
         // Gold Shoulder Plates
-        const leftPauldrons = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.30, 0.65), armorGoldMat);
-        leftPauldrons.position.set(-0.55, 0.40, 0);
+        const leftPauldrons = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.35, 0.75), armorGoldMat);
+        leftPauldrons.position.set(-0.62, 0.45, 0);
         this.body.add(leftPauldrons);
 
-        const rightPauldrons = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.30, 0.65), armorGoldMat);
-        rightPauldrons.position.set(0.55, 0.40, 0);
+        const rightPauldrons = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.35, 0.75), armorGoldMat);
+        rightPauldrons.position.set(0.62, 0.45, 0);
         this.body.add(rightPauldrons);
 
         // Giant Reactor Core in center
-        const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), redCoreMat);
-        core.position.set(0, 0.12, 0.30);
+        const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 0), redCoreMat);
+        core.position.set(0, 0.12, 0.35);
         this.body.add(core);
 
+        // Dual industrial exhaust chimneys on back
+        const pipeGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.85, 8);
+        const pipeTipGeo = new THREE.CylinderGeometry(0.13, 0.12, 0.10, 8);
+        const pipeMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+        const tipMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+
+        this.leftExhaust = new THREE.Group();
+        this.leftExhaust.position.set(-0.30, 0.50, -0.38);
+        this.leftExhaust.rotation.x = -0.25;
+        this.leftExhaust.rotation.z = -0.12;
+        const lPipe = new THREE.Mesh(pipeGeo, pipeMat);
+        this.leftExhaust.add(lPipe);
+        const lTip = new THREE.Mesh(pipeTipGeo, tipMat);
+        lTip.position.y = 0.42;
+        this.leftExhaust.add(lTip);
+        this.body.add(this.leftExhaust);
+
+        this.rightExhaust = new THREE.Group();
+        this.rightExhaust.position.set(0.30, 0.50, -0.38);
+        this.rightExhaust.rotation.x = -0.25;
+        this.rightExhaust.rotation.z = 0.12;
+        const rPipe = new THREE.Mesh(pipeGeo, pipeMat);
+        this.rightExhaust.add(rPipe);
+        const rTip = new THREE.Mesh(pipeTipGeo, tipMat);
+        rTip.position.y = 0.42;
+        this.rightExhaust.add(rTip);
+        this.body.add(this.rightExhaust);
+
         // Head with dual horns
-        const headGeo = new THREE.BoxGeometry(0.55, 0.48, 0.50);
+        const headGeo = new THREE.BoxGeometry(0.58, 0.50, 0.52);
         this.head = new THREE.Mesh(headGeo, armorGoldMat);
-        this.head.position.set(0, 2.15, 0);
+        this.head.position.set(0, 2.20, 0);
         this.head.castShadow = true;
         this.modelGroup.add(this.head);
 
         // Glowing red visor
-        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.05), redCoreMat);
-        visor.position.set(0, 0.04, 0.26);
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.15, 0.05), redCoreMat);
+        visor.position.set(0, 0.04, 0.28);
         this.head.add(visor);
 
         // Mecha Horns
-        const hornGeo = new THREE.BoxGeometry(0.08, 0.32, 0.08);
+        const hornGeo = new THREE.BoxGeometry(0.08, 0.35, 0.08);
         const lHorn = new THREE.Mesh(hornGeo, darkSteelMat);
-        lHorn.position.set(-0.25, 0.32, 0);
+        lHorn.position.set(-0.26, 0.35, 0);
         lHorn.rotation.z = 0.3;
         this.head.add(lHorn);
 
         const rHorn = new THREE.Mesh(hornGeo, darkSteelMat);
-        rHorn.position.set(0.25, 0.32, 0);
+        rHorn.position.set(0.26, 0.35, 0);
         rHorn.rotation.z = -0.3;
         this.head.add(rHorn);
 
         // --- 4 MECHANICZNE RĘCE (4 ARMS) ---
-        const armGeo = new THREE.BoxGeometry(0.18, 0.70, 0.18);
+        const armGeo = new THREE.BoxGeometry(0.20, 0.75, 0.20);
 
         // 1. Upper Left Arm (holds Red Laser Blade)
         this.upperLArm = new THREE.Group();
-        this.upperLArm.position.set(-0.58, 1.70, 0);
+        this.upperLArm.position.set(-0.64, 1.75, 0);
         const uLMesh = new THREE.Mesh(armGeo, darkSteelMat);
-        uLMesh.position.set(0, -0.32, 0);
+        uLMesh.position.set(0, -0.34, 0);
         this.upperLArm.add(uLMesh);
-        const blade1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.90, 0.05), redLaserMat);
-        blade1.position.set(0, -0.65, 0.20);
+        const blade1 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.05, 0.06), redLaserMat);
+        blade1.position.set(0, -0.72, 0.22);
         this.upperLArm.add(blade1);
         this.modelGroup.add(this.upperLArm);
 
         // 2. Upper Right Arm (holds Red Laser Blade)
         this.upperRArm = new THREE.Group();
-        this.upperRArm.position.set(0.58, 1.70, 0);
+        this.upperRArm.position.set(0.64, 1.75, 0);
         const uRMesh = new THREE.Mesh(armGeo, darkSteelMat);
-        uRMesh.position.set(0, -0.32, 0);
+        uRMesh.position.set(0, -0.34, 0);
         this.upperRArm.add(uRMesh);
-        const blade2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.90, 0.05), redLaserMat);
-        blade2.position.set(0, -0.65, 0.20);
+        const blade2 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.05, 0.06), redLaserMat);
+        blade2.position.set(0, -0.72, 0.22);
         this.upperRArm.add(blade2);
         this.modelGroup.add(this.upperRArm);
 
         // 3. Lower Left Arm (holds Cyan Laser Blade)
         this.lowerLArm = new THREE.Group();
-        this.lowerLArm.position.set(-0.52, 1.20, 0);
+        this.lowerLArm.position.set(-0.56, 1.20, 0);
         const lLMesh = new THREE.Mesh(armGeo, armorGoldMat);
-        lLMesh.position.set(0, -0.32, 0);
+        lLMesh.position.set(0, -0.34, 0);
         this.lowerLArm.add(lLMesh);
-        const blade3 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.85, 0.05), cyanLaserMat);
-        blade3.position.set(0, -0.65, 0.20);
+        const blade3 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.95, 0.06), cyanLaserMat);
+        blade3.position.set(0, -0.72, 0.22);
         this.lowerLArm.add(blade3);
         this.modelGroup.add(this.lowerLArm);
 
         // 4. Lower Right Arm (holds Cyan Laser Blade)
         this.lowerRArm = new THREE.Group();
-        this.lowerRArm.position.set(0.52, 1.20, 0);
+        this.lowerRArm.position.set(0.56, 1.20, 0);
         const lRMesh = new THREE.Mesh(armGeo, armorGoldMat);
-        lRMesh.position.set(0, -0.32, 0);
+        lRMesh.position.set(0, -0.34, 0);
         this.lowerRArm.add(lRMesh);
-        const blade4 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.85, 0.05), cyanLaserMat);
-        blade4.position.set(0, -0.65, 0.20);
+        const blade4 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.95, 0.06), cyanLaserMat);
+        blade4.position.set(0, -0.72, 0.22);
         this.lowerRArm.add(blade4);
         this.modelGroup.add(this.lowerRArm);
 
-        // 2 Heavy Mecha Legs
-        const legGeo = new THREE.BoxGeometry(0.28, 0.85, 0.28);
+        // 2 Heavy Mecha Legs with hydraulic pistons
+        const legGeo = new THREE.BoxGeometry(0.32, 0.90, 0.32);
+        const pistonGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.55, 8);
+        const chromeMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
         this.legs = [];
 
         const lLegPivot = new THREE.Group();
-        lLegPivot.position.set(-0.25, 0.85, 0);
+        lLegPivot.position.set(-0.28, 0.85, 0);
         const lLegMesh = new THREE.Mesh(legGeo, darkSteelMat);
-        lLegMesh.position.set(0, -0.42, 0);
+        lLegMesh.position.set(0, -0.45, 0);
         lLegPivot.add(lLegMesh);
+        const lPiston = new THREE.Mesh(pistonGeo, chromeMat);
+        lPiston.position.set(0.14, -0.40, 0.14);
+        lLegPivot.add(lPiston);
         this.modelGroup.add(lLegPivot);
         this.legs.push(lLegPivot);
 
         const rLegPivot = new THREE.Group();
-        rLegPivot.position.set(0.25, 0.85, 0);
+        rLegPivot.position.set(0.28, 0.85, 0);
         const rLegMesh = new THREE.Mesh(legGeo, darkSteelMat);
-        rLegMesh.position.set(0, -0.42, 0);
+        rLegMesh.position.set(0, -0.45, 0);
         rLegPivot.add(rLegMesh);
+        const rPiston = new THREE.Mesh(pistonGeo, chromeMat);
+        rPiston.position.set(-0.14, -0.40, 0.14);
+        rLegPivot.add(rPiston);
         this.modelGroup.add(rLegPivot);
         this.legs.push(rLegPivot);
 
         this.group.add(this.modelGroup);
+    }
+
+    emitSmoke() {
+        if (!this.scene) return;
+        const pos = new THREE.Vector3();
+        const exhausts = [this.leftExhaust, this.rightExhaust];
+        for (const ex of exhausts) {
+            if (!ex) continue;
+            ex.getWorldPosition(pos);
+            pos.y += 0.5;
+            const geo = new THREE.BoxGeometry(0.24, 0.24, 0.24);
+            const mat = new THREE.MeshBasicMaterial({
+                color: (Math.random() > 0.4 ? 0x334155 : 0x1e293b),
+                transparent: true,
+                opacity: 0.75
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            this.scene.add(mesh);
+            this.smokeParticles.push({
+                mesh,
+                mat,
+                geo,
+                life: 0,
+                maxLife: 1.2 + Math.random() * 0.4,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: 0.9 + Math.random() * 0.5,
+                vz: (Math.random() - 0.5) * 0.4
+            });
+        }
+    }
+
+    updateSmoke(dt) {
+        for (let i = this.smokeParticles.length - 1; i >= 0; i--) {
+            const p = this.smokeParticles[i];
+            p.life += dt;
+            if (p.life >= p.maxLife) {
+                if (p.mesh && p.mesh.parent) this.scene.remove(p.mesh);
+                p.geo?.dispose();
+                p.mat?.dispose();
+                this.smokeParticles.splice(i, 1);
+                continue;
+            }
+            p.mesh.position.x += p.vx * dt;
+            p.mesh.position.y += p.vy * dt;
+            p.mesh.position.z += p.vz * dt;
+            const progress = p.life / p.maxLife;
+            p.mat.opacity = 0.75 * (1 - progress);
+            const s = 1.0 + progress * 1.6;
+            p.mesh.scale.set(s, s, s);
+        }
     }
 
     takeDamage(amount, source = '') {
@@ -1611,6 +1704,17 @@ export class BossRobot extends Mob {
     die() {
         super.die();
         eventBus.emit('mob:killed', { type: 'boss_robot' });
+        eventBus.emit('boss_robot:defeated');
+
+        // Cleanup smoke particles
+        if (this.smokeParticles) {
+            for (const p of this.smokeParticles) {
+                if (p.mesh && p.mesh.parent) this.scene.remove(p.mesh);
+                p.geo?.dispose();
+                p.mat?.dispose();
+            }
+            this.smokeParticles = [];
+        }
 
         // Boss Drops: 4x Blue Element, 8x Diamonds, 1x Laser Sword, 1x Mystery Box!
         if (this.manager && this.manager.drops) {
@@ -1711,6 +1815,18 @@ export class BossRobot extends Mob {
 
         // Złoty portal powrotny do normalnego świata
         this.spawnVictoryPortal();
+    }
+
+    destroy() {
+        if (this.smokeParticles) {
+            for (const p of this.smokeParticles) {
+                if (p.mesh && p.mesh.parent) this.scene.remove(p.mesh);
+                p.geo?.dispose();
+                p.mat?.dispose();
+            }
+            this.smokeParticles = [];
+        }
+        super.destroy();
     }
 
     spawnVictoryPortal() {
@@ -1821,7 +1937,15 @@ export class BossRobot extends Mob {
     update(dt, playerPosition) {
         if (this.isDead || !playerPosition) return;
 
-        // 1. Awaken and Growth Animation: Starts small (0.35), then grows GIANT (2.2)!
+        // Smoke emission from dual exhaust pipes
+        this.smokeTimer += dt;
+        if (this.smokeTimer >= 0.12) {
+            this.smokeTimer = 0;
+            this.emitSmoke();
+        }
+        this.updateSmoke(dt);
+
+        // 1. Awaken and Growth Animation: Starts small (0.35), then grows GIANT COLOSSUS (scale 3.5)!
         if (this.isAwakening) {
             this.awakenTimer += dt;
             const progress = Math.min(1.0, this.awakenTimer / 2.5);
@@ -1857,17 +1981,30 @@ export class BossRobot extends Mob {
             this.group.position.x = this.position.x;
             this.group.position.z = this.position.z;
 
+            // Heavy Footstep Stomping sound and camera shake
+            this.stompTimer += dt;
+            if (this.stompTimer >= 0.52) {
+                this.stompTimer = 0;
+                if (dist < 32.0) {
+                    playBossStompSound();
+                    const shake = Math.max(0.04, (1 - dist / 32.0) * 0.28);
+                    eventBus.emit('camera:shake', shake);
+                }
+            }
+
             // Smash trees on way!
             this.treeSmashCooldown += dt;
             if (this.treeSmashCooldown >= 0.3) {
                 this.treeSmashCooldown = 0;
                 this.smashNearbyTrees();
             }
+        } else {
+            this.stompTimer = 0.4;
         }
 
         // 3. Melee Attack: 4 arms swinging rapidly!
         this.attackCooldown -= dt;
-        if (dist <= 2.8 && this.attackCooldown <= 0) {
+        if (dist <= 3.2 && this.attackCooldown <= 0) {
             this.attackCooldown = 1.0; // Fast hits: every 1 second
             this.swingTime = 0.6;
             playLaserSwordSound();
@@ -1875,17 +2012,17 @@ export class BossRobot extends Mob {
             // Ataki Bossa rozświetlają ciemną mapę błyskami laserów! ("I tylko jak atakuje to ci rozświetla ten ciemny świat")
             eventBus.emit('boss:attack_flash', {
                 color: (Math.random() > 0.5 ? 0x38bdf8 : 0xf43f5e),
-                intensity: 4.2,
+                intensity: 4.8,
                 x: this.position.x,
-                y: this.position.y + 2,
+                y: this.position.y + 2.5,
                 z: this.position.z
             });
 
             if (this.manager?.survival) {
-                // If player has armor: 1 heart (2 HP); without armor: 2 hearts (4 HP)
+                // If player has armor: 2 hearts (4 HP); without armor: 3 hearts (6 HP)
                 const hasArmor = Boolean(this.manager.survival.hasArmor || this.manager.survival.hasRubyArmor || this.manager.survival.hasStoneArmor);
-                const actualDamage = hasArmor ? 2 : 4;
-                this.manager.survival.takeDamage(actualDamage, 'Cios 4-ramiennego Bossa Robota! 🤖💥');
+                const actualDamage = hasArmor ? 4 : 6;
+                this.manager.survival.takeDamage(actualDamage, 'Cios 4-ramiennego Kolosa Bossa Robota! 🤖💥');
             }
         }
 

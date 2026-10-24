@@ -1,16 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=dark_dimension_v2';
-import { Player } from './player.js?v=dark_dimension_v2';
-import { Interaction } from './interaction.js?v=dark_dimension_v2';
-import { AnimalManager } from './animals.js?v=dark_dimension_v2';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=dark_dimension_v2';
-import { StorageManager } from './storage.js?v=dark_dimension_v2';
-import { SurvivalManager } from './survival.js?v=dark_dimension_v2';
-import { CraftingManager } from './crafting.js?v=dark_dimension_v2';
-import { DropsManager } from './drops.js?v=dark_dimension_v2';
-import { eventBus } from './events.js?v=dark_dimension_v2';
-import { updateWaterAnimation } from './textures.js?v=dark_dimension_v2';
-import { QuestManager } from './quests.js?v=dark_dimension_v2';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=realistic_boss_v3';
+import { Player } from './player.js?v=realistic_boss_v3';
+import { Interaction } from './interaction.js?v=realistic_boss_v3';
+import { AnimalManager } from './animals.js?v=realistic_boss_v3';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=realistic_boss_v3';
+import { StorageManager } from './storage.js?v=realistic_boss_v3';
+import { SurvivalManager } from './survival.js?v=realistic_boss_v3';
+import { CraftingManager } from './crafting.js?v=realistic_boss_v3';
+import { DropsManager } from './drops.js?v=realistic_boss_v3';
+import { eventBus } from './events.js';
+import { updateWaterAnimation } from './textures.js?v=realistic_boss_v3';
+import { QuestManager } from './quests.js?v=realistic_boss_v3';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=realistic_boss_v3';
 
 
 
@@ -235,6 +236,14 @@ class Game {
             this.exitDarkDimension();
         });
 
+        eventBus.on('boss_robot:defeated', () => {
+            stopBossRobotMusic();
+        });
+
+        eventBus.on('player:death', () => {
+            stopBossRobotMusic();
+        });
+
         this.clock = new THREE.Clock();
         this.dayTime = 0.2; // 0 to 1 cycle
         this.dayDuration = 180; // 3 minutes full day-night cycle
@@ -282,10 +291,13 @@ class Game {
             this.ui.addChatMessage('Serwer', '🌌 Wkroczyłeś do Mrocznego Wymiaru Bossa Robota! Ciemność rozświetlają tylko błyski energii mecha! ⚡🤖', 'chat-server');
             this.ui.showPopup('🌌 MROCZNY WYMIAR ROBOTA! ⚡🤖');
         }
+
+        startBossRobotMusic();
     }
 
     exitDarkDimension() {
         this.isInDarkDimension = false;
+        stopBossRobotMusic();
         const target = (this.savedOverworldPos && this.savedOverworldPos.x < 800) ? this.savedOverworldPos : new THREE.Vector3(32, 10, 32);
         this.player.position.copy(target);
         this.player.velocity.set(0, 0, 0);

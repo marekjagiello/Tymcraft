@@ -255,6 +255,15 @@ export class UI {
         this.lastFpsUpdate = performance.now();
         this.frameCount = 0;
 
+        // Tracking one-time secret codes (resettable after beating Boss Robot)
+        this.usedSecretCodes = new Set();
+        try {
+            const saved = localStorage.getItem('m2_used_codes');
+            if (saved) {
+                JSON.parse(saved).forEach(c => this.usedSecretCodes.add(c));
+            }
+        } catch (_) {}
+
         this.renderHotbar();
         this.renderBackpackSlots();
         this.renderModalHotbar();
@@ -265,8 +274,31 @@ export class UI {
         this.initBusEvents();
     }
 
+    isCodeUsed(codeKey) {
+        return this.usedSecretCodes.has(codeKey);
+    }
+
+    markCodeUsed(codeKey) {
+        this.usedSecretCodes.add(codeKey);
+        try {
+            localStorage.setItem('m2_used_codes', JSON.stringify([...this.usedSecretCodes]));
+        } catch (_) {}
+    }
+
+    resetSecretCodes() {
+        this.usedSecretCodes.clear();
+        try {
+            localStorage.removeItem('m2_used_codes');
+        } catch (_) {}
+        this.addChatMessage('Serwer', '🔄 Tajne kody zostały odnowione po pokonaniu Bossa Robota! Możesz ich użyć ponownie w nowej przygodzie! 🏆', 'chat-success');
+        this.showPopup('🔄 Kody odnowione po pokonaniu Bossa Robota! 🏆');
+    }
+
     initBusEvents() {
         this._handledByEvent = true;
+        eventBus.on('boss_robot:defeated', () => {
+            this.resetSecretCodes();
+        });
         eventBus.on('ui:popup', (text) => {
             if (typeof text === 'string') this.showPopup(text);
             else if (text?.message) this.showPopup(text.message);
@@ -1191,22 +1223,34 @@ export class UI {
 
         // Secret code 1: "miał" or "mial" gives Mystery Box!
         if (lower === 'miał' || lower === 'mial' || lower === 'miau' || lower === 'kot') {
+            if (this.isCodeUsed('mial')) {
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.showPopup('🔒 Kod "miał" już wykorzystany!');
+                return;
+            }
+            this.markCodeUsed('mial');
             this.addItem(44, 'Mystery Box', 1);
             this.addChatMessage('Serwer', '🐱 Miau! Odkryłeś tajne hasło! Otrzymałeś Mystery Boxa 🎁! Kliknij na niego PPM w ręku, aby go otworzyć!', 'chat-success');
             this.showPopup('🐱 Tajne hasło "miał" odkryte! +1 Mystery Box 🎁');
             return;
         }
 
-        // Secret code 2: "grat" or "rat" gives Water Bottle!
+        // Secret code 2: "grat" or "rat" gives Water Bottle (NIESKOŃCZONOŚĆ KODU NA WODĘ na życzenie Tymka!)
         if (lower === 'grat' || lower === 'rat' || lower === 'gratt' || lower === 'woda' || lower === 'butelka' || lower === 'water') {
             this.addItem(45, 'Butelka Wody', 1);
-            this.addChatMessage('Serwer', '💧 Odkryłeś tajne hasło! Otrzymałeś Butelkę Wody 💧! Kliknij na nią PPM w ręku, aby się orzeźwić!', 'chat-success');
+            this.addChatMessage('Serwer', '💧 Odkryłeś tajne hasło! Otrzymałeś Butelkę Wody 💧! Wodę możesz brać bez limitu! Kliknij na nią PPM w ręku, aby się orzeźwić!', 'chat-success');
             this.showPopup('💧 Tajne hasło odkryte! +1 Butelka Wody 💧');
             return;
         }
 
         // Secret code: "6261" / "626" gives Kolorowy Blok 626, Pioruny (Laserowe Miecze), Patyki & Totem!
         if (lower === '6261' || lower === '6 2 6 1' || lower === '6-2-6-1' || lower === '626' || lower === '6 2 6' || lower === '6-2-6' || lower === 'boss' || lower === 'krzesiwo') {
+            if (this.isCodeUsed('6261')) {
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.showPopup('🔒 Kod 6261 już wykorzystany!');
+                return;
+            }
+            this.markCodeUsed('6261');
             this.addItem(51, 'Kolorowy Blok 626', 1);
             this.addItem(47, 'Laserowy Miecz', 2); // Pioruny!
             this.addItem(20, 'Patyk', 2);
@@ -1220,6 +1264,12 @@ export class UI {
 
         // Secret code 4: "czar" / "wand" gives Niebieski Pierwiastek!
         if (lower === 'czar' || lower === 'wand' || lower === 'magia' || lower === 'rozdzka' || lower === 'różdżka') {
+            if (this.isCodeUsed('czar')) {
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.showPopup('🔒 Kod "czar" już wykorzystany!');
+                return;
+            }
+            this.markCodeUsed('czar');
             this.addItem(49, 'Niebieski Pierwiastek', 2);
             this.addChatMessage('Serwer', '✨ Tajne hasło magii odkryte! Otrzymałeś 2x Niebieski Pierwiastek 💠! Połącz go w craftingu [R/E] z Bedrockiem (kod "1234"), aby stworzyć Magiczną Różdżkę! 🪄', 'chat-success');
             this.showPopup('✨ +2 Niebieski Pierwiastek 💠');
@@ -1228,6 +1278,12 @@ export class UI {
 
         // Secret code 5: "tecza" / "rainbow" / "kolor" gives full Rainbow Armory!
         if (lower === 'tecza' || lower === 'tęcza' || lower === 'rainbow' || lower === 'kolor' || lower === 'epickie') {
+            if (this.isCodeUsed('tecza')) {
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.showPopup('🔒 Kod "tęcza" już wykorzystany!');
+                return;
+            }
+            this.markCodeUsed('tecza');
             this.addItem(54, 'Kolorowy Miecz', 1);
             this.addItem(55, 'Kolorowy Łuk', 1);
             this.addItem(56, 'Magiczna Kolorowa Strzała', 1);
@@ -1235,6 +1291,22 @@ export class UI {
             this.addItem(2, 'Ziemia', 2);
             this.addItem(3, 'Kamień', 2);
             this.addChatMessage('Serwer', '🌈👑 Odkryłeś tajne hasło TĘCZY! Otrzymałeś Kolorowy Miecz 🌈🗡️, Kolorowy Łuk 🌈🏹 i Magiczną Samonaprowadzającą Strzałę 🌈🎯! Naciśnij [T] z łukiem, aby namierzać potwory!', 'chat-success');
+            this.showPopup('🌈👑 Legendarne Kolorowe Uzbrojenie dodane!');
+            return;
+        }
+
+        // Secret code: "da da" / "dada" / "da" (wymóg odblokowania Etapu 2)
+        if (lower === 'da da' || lower === 'dada' || lower === 'da') {
+            if (this.isCodeUsed('dada')) {
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.showPopup('🔒 Kod "da da" już wykorzystany!');
+                return;
+            }
+            this.markCodeUsed('dada');
+            this.addItem(54, 'Kolorowy Miecz', 1);
+            this.addItem(55, 'Kolorowy Łuk', 1);
+            this.addItem(56, 'Magiczna Kolorowa Strzała', 1);
+            this.addChatMessage('Serwer', '🌈👑 Odkryłeś tajne hasło DA DA! Otrzymałeś drugą część Kolorowego Ekwipunku 🌈🗡️🏹🎯!', 'chat-success');
             this.showPopup('🌈👑 Legendarne Kolorowe Uzbrojenie dodane!');
             return;
         }
@@ -1247,6 +1319,12 @@ export class UI {
 
         // Secret code: "3" / "trzy" gives Warm Jacket (Ciepła Kurtka) and reveals Robot Dimension hint!
         if (lower === '3' || lower === 'trzy' || lower === 'kurtka') {
+            if (this.isCodeUsed('3')) {
+                this.addChatMessage('Serwer', '🔒 Ten kod został już wykorzystany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby odnowić kody!', 'chat-server');
+                this.showPopup('🔒 Kod "3" już wykorzystany!');
+                return;
+            }
+            this.markCodeUsed('3');
             this.addItem(46, 'Ciepła Kurtka', 1);
             this.addChatMessage('Serwer', '🧥 Odkryłeś tajne hasło 3! Otrzymałeś Ciepłą Kurtkę 🧥! Chroni ona przed mrozem na ośnieżonych szczytach gór! Odszukaj Robota 🤖 na mapie – gdy do niego podejdziesz, zabierze Cię w niezwykłą podróż do Mrocznego Wymiaru! 🌌⚡', 'chat-success');
             this.showPopup('🧥 Tajne hasło 3 odkryte! +1 Ciepła Kurtka 🧥');
@@ -1254,6 +1332,12 @@ export class UI {
         }
 
         if (lower === 'tymek' || lower === 'startpack' || lower === 'starter' || lower === 'kit') {
+            if (this.isCodeUsed('tymek')) {
+                this.addChatMessage('Serwer', '🔒 Zestaw Startowy Tymka został już odebrany! Pokonaj Bossa Robota w Mrocznym Wymiarze, aby go odnowić!', 'chat-server');
+                this.showPopup('🔒 Zestaw Startowy już odebrany!');
+                return;
+            }
+            this.markCodeUsed('tymek');
             this.playerName = 'Tymek';
             
             // Give items: Stone Pickaxe (22), Stone Sword (25), Stone Armor (43)

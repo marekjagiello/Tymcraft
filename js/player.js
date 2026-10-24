@@ -58,6 +58,11 @@ export class Player {
         this.desertTimer = 0;
         this.freezeDamageTimer = 0;
         this.heatDamageTimer = 0;
+        this.screenShakeIntensity = 0;
+
+        eventBus.on('camera:shake', (intensity = 0.2) => {
+            this.screenShakeIntensity = Math.max(this.screenShakeIntensity, intensity);
+        });
         this.questManager = null;
 
 
@@ -856,6 +861,14 @@ export class Player {
             }
             const camPos = eyePos.clone().addScaledVector(forward, -dist).add(new THREE.Vector3(0, 0.2, 0));
             this.camera.position.copy(camPos);
+        }
+
+        // Heavy Stomp / Explosion camera shake
+        if (this.screenShakeIntensity > 0.001) {
+            this.camera.position.x += (Math.random() - 0.5) * this.screenShakeIntensity;
+            this.camera.position.y += (Math.random() - 0.5) * this.screenShakeIntensity;
+            this.camera.position.z += (Math.random() - 0.5) * this.screenShakeIntensity;
+            this.screenShakeIntensity = Math.max(0, this.screenShakeIntensity - dt * 2.0);
         }
 
         // Hydration countdown

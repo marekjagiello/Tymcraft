@@ -73,8 +73,8 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'boss_robot') ? 4.5 : ((animal.type === 'robot') ? 2.0 : ((animal.type === 'mini_robot') ? 0.95 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)))))));
-            const hitRadius = (animal.type === 'boss_robot') ? 2.2 : ((animal.type === 'robot') ? 1.15 : ((animal.type === 'mini_robot') ? 0.75 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95))));
+            const height = (animal.type === 'boss_robot') ? 7.5 : ((animal.type === 'robot') ? 2.0 : ((animal.type === 'mini_robot') ? 0.95 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)))))));
+            const hitRadius = (animal.type === 'boss_robot') ? 3.2 : ((animal.type === 'robot') ? 1.15 : ((animal.type === 'mini_robot') ? 0.75 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95))));
 
 
             // Center of animal vertical capsule

@@ -148,6 +148,7 @@ export class SurvivalManager {
     die() {
         this.isDead = true;
         this.player.controls.unlock();
+        eventBus.emit('player:death');
         if (this.deathOverlayEl) {
             this.deathOverlayEl.style.display = 'flex';
         }

@@ -381,3 +381,152 @@ export function playMiniRobotZapSound() {
         osc.stop(now + 0.1);
     } catch (_) {}
 }
+
+// Dźwięk wibrującego hiper-reaktora ("dżżżżżżżż") podczas porywania przez robota
+export function playReactorChargeSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(65, now);
+        osc.frequency.linearRampToValueAtTime(140, now + 0.3);
+        osc.frequency.linearRampToValueAtTime(260, now + 0.55);
+
+        // Tremolo / LFO wibracja dla charakterystycznego efektu "dżżżż"
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(28, now); // 28Hz szybkie wibracje
+        lfoGain.gain.setValueAtTime(30, now);
+        lfo.connect(osc.frequency);
+        lfo.start(now);
+        lfo.stop(now + 0.55);
+
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.55);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.55);
+    } catch (_) {}
+}
+
+// Robotyczna syntezatorowa muzyka walki z mechem ("bźi-bźi-bźi-bźi")
+let bossMusicInterval = null;
+let bossMusicStep = 0;
+
+export function startBossRobotMusic() {
+    if (bossMusicInterval) return;
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        bossMusicStep = 0;
+
+        // Robotyczna melodia: "bźi bźi bźi bźi bźi..." w cybernetycznej skali
+        const melodyNotes = [
+            523.25, 523.25, 587.33, 622.25, // bźi bźi bźi bźi
+            783.99, 622.25, 587.33, 523.25, // bźi bźi bźi bźi
+            466.16, 523.25, 587.33, 783.99, // bźi bźi bźi bźi
+            698.46, 622.25, 587.33, 466.16  // bźi bźi bźi bźi
+        ];
+
+        const bassNotes = [130.81, 130.81, 155.56, 174.61]; // C3, Eb3, F3
+
+        bossMusicInterval = setInterval(() => {
+            try {
+                if (!ctx || ctx.state === 'suspended') return;
+                const now = ctx.currentTime;
+                const noteIdx = bossMusicStep % melodyNotes.length;
+                const bassIdx = Math.floor(bossMusicStep / 4) % bassNotes.length;
+                const freq = melodyNotes[noteIdx];
+
+                // 1. Synth Lead "bźi-bźi" - ostry, staccato dźwięk mecha
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = (bossMusicStep % 2 === 0) ? 'square' : 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.96, now + 0.11);
+
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.11);
+
+                // 2. Cyber-Bass Beat na co drugi krok
+                if (bossMusicStep % 2 === 0) {
+                    const bassOsc = ctx.createOscillator();
+                    const bassGain = ctx.createGain();
+                    bassOsc.type = 'triangle';
+                    bassOsc.frequency.setValueAtTime(bassNotes[bassIdx], now);
+                    bassOsc.frequency.exponentialRampToValueAtTime(50, now + 0.18);
+
+                    bassGain.gain.setValueAtTime(0.08, now);
+                    bassGain.gain.linearRampToValueAtTime(0.001, now + 0.18);
+
+                    bassOsc.connect(bassGain);
+                    bassGain.connect(ctx.destination);
+                    bassOsc.start(now);
+                    bassOsc.stop(now + 0.18);
+                }
+
+                bossMusicStep++;
+            } catch (_) {}
+        }, 135);
+    } catch (_) {}
+}
+
+export function stopBossRobotMusic() {
+    if (bossMusicInterval) {
+        clearInterval(bossMusicInterval);
+        bossMusicInterval = null;
+        bossMusicStep = 0;
+    }
+}
+
+// Ciężki metaliczny krok kolosa Bossa Robota
+export function playBossStompSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        // Sub-bass thud (75Hz -> 28Hz)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(75, now);
+        osc.frequency.exponentialRampToValueAtTime(28, now + 0.22);
+
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+
+        // Metallic clank noise burst
+        const bufferSize = Math.floor(ctx.sampleRate * 0.05);
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.08, now);
+        noiseGain.gain.linearRampToValueAtTime(0.001, now + 0.05);
+        noise.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noise.start(now);
+    } catch (_) {}
+}
+
