@@ -148,6 +148,29 @@ export class QuestManager {
                 }
             }
         });
+
+        eventBus.on('quests:skip_starter', () => {
+            this.skipStarterQuests();
+        });
+    }
+
+    skipStarterQuests() {
+        this.quests.forEach(q => {
+            q.completed = true;
+            q.current = q.target;
+        });
+
+        if (this.ui && !this.ui.hasItem(46)) {
+            this.ui.addItem(46, 'Ciepła Kurtka', 1);
+        }
+
+        this.stage2Unlocked = true;
+        this.render();
+
+        if (this.ui) {
+            this.ui.addChatMessage('Serwer', '💥💨 Tajne hasło aktywowane! Wszystkie zadania startowe pominięte! Odblokowano Epickie Kolorowe Zadania Mistrza! 👑🌈', 'chat-success');
+            this.ui.showPopup('💥 Zadania startowe pominięte! Witaj w Etapie 2! 👑🌈');
+        }
     }
 
     addProgress(questId, amount = 1) {

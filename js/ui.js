@@ -1239,6 +1239,12 @@ export class UI {
             return;
         }
 
+        // Secret code 6: "cz" / "czy" - niszczy wszystkie słabe questy i daje do tych lepszych, kolorowych! (Ściśle tajne)
+        if (lower === 'cz' || lower === 'czy' || lower === 'c z' || lower === 'c-z') {
+            eventBus.emit('quests:skip_starter');
+            return;
+        }
+
 
 
         // Secret code 2: Tymek Starter Pack!
