@@ -12,3 +12,4 @@ Thumbs.db
 # Local PID & ephemeral logs
 /tmp/
 *.tmp
+game_console.log
