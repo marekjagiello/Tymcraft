@@ -212,6 +212,21 @@ export class Interaction {
                     return;
                 }
 
+                // Check if right-clicking ozdobna brama powrotu pod ścianą (na życzenie Tymka!)
+                const victoryPortal = this.scene ? this.scene.getObjectByName('victoryPortal') : null;
+                if (victoryPortal && this.player && this.player.position.x > 800) {
+                    const portalPos = victoryPortal.position;
+                    const distToPortal = Math.hypot(this.player.position.x - portalPos.x, this.player.position.z - portalPos.z);
+                    if (distToPortal <= 6.5) {
+                        playCyberTeleportSound?.();
+                        const returnMsg = '🌟 Wracasz do bezpiecznego świata ze zdobytymi skarbami! 🏰✨';
+                        eventBus.emit('ui:popup', returnMsg);
+                        if (this.ui) this.ui.showPopup(returnMsg);
+                        eventBus.emit('dimension:return_to_overworld');
+                        return;
+                    }
+                }
+
                 // Check if right-clicking disguised Dirtik
                 const targetAnimal = this.raycastAnimal();
                 if (targetAnimal && targetAnimal.type === 'dirtik' && !targetAnimal.isAwakened) {

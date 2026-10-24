@@ -327,12 +327,17 @@ def run_test():
         # -------------------------------------------------------------
         # TEST 5: Wejście w portal przenosi gracza z powrotem do normalnego świata
         # -------------------------------------------------------------
-        print("\n--- TEST 5: Wejście w portal i bezpieczny powrót do świata gry ---")
+        print("\n--- TEST 5: Wejście w bramę pod ścianą i bezpieczny powrót do świata gry ---")
         enter_portal_test = eval_js(600, """
         (function() {
             const game = window.game;
-            // Gracz wchodzi bezpośrednio w portal na (1000, 12, 1000)
-            game.player.position.set(1000, 12, 1000);
+            // Gracz podchodzi do bramy pod ścianą na (1012, 12, 1000)
+            const portal = game.scene.getObjectByName('victoryPortal');
+            if (portal) {
+                game.player.position.set(portal.position.x, 12, portal.position.z);
+            } else {
+                game.player.position.set(1012, 12, 1000);
+            }
             return { entered: true };
         })()
         """)

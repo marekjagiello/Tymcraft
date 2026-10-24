@@ -1913,7 +1913,9 @@ export class BossRobot extends Mob {
         if (!this.scene) return;
         const portalGroup = new THREE.Group();
         portalGroup.name = 'victoryPortal';
-        portalGroup.position.set(1000, 11, 1000);
+        // Ozdobna brama umieszczona pod ścianą z Bedrocka (x=1012, z=1000) na życzenie Tymka!
+        portalGroup.position.set(1012, 11, 1000);
+        portalGroup.rotation.y = -Math.PI / 2;
 
         // 1. Podstawa i brama z Bedrocka i Złota (styl klasycznego portalu Minecraft)
         const bedrockMat = new THREE.MeshLambertMaterial({ color: 0x222226 });
@@ -2011,8 +2013,8 @@ export class BossRobot extends Mob {
         }
 
         if (this.manager?.ui) {
-            this.manager.ui.addChatMessage('Serwer', '🌟 Portal powrotu do gry otwarty! Wejdź w złoto-fioletowe przejście w centrum areny, aby wrócić ze swoimi skarbami!', 'chat-server');
-            this.manager.ui.showPopup('🌟 PORTAL POWROTU DO GRY OTWARTY! 🚪✨');
+            this.manager.ui.addChatMessage('Serwer', '🌟 Boss pokonany! Zbierz wszystkie skarby na arenie! Pod ścianą pojawiła się ozdobna brama – kliknij na nią prawym przyciskiem myszy (PPM), aby wrócić do domu ze skarbami! 🏰✨', 'chat-server');
+            this.manager.ui.showPopup('👑 BOSS POKONANY! Kliknij PPM na bramę pod ścianą, by wrócić! 🚪✨');
         }
 
         // Rotacja i pulsowanie energii portalu
@@ -2030,7 +2032,7 @@ export class BossRobot extends Mob {
             innerMat.opacity = 0.5 + Math.cos(animAngle * 3) * 0.2;
         }, 33);
 
-        // Portal nie znika z czasem! Czeka aż gracz sam do niego podejdzie i wejdzie.
+        // Brama pod ścianą czeka na gracza i NIE wywala go ze środka areny!
         const checkReturnInterval = setInterval(() => {
             if (!portalGroup.parent) {
                 clearInterval(checkReturnInterval);
@@ -2038,8 +2040,8 @@ export class BossRobot extends Mob {
                 return;
             }
             if (this.manager?.player && this.manager.player.position) {
-                const distToPortal = Math.hypot(this.manager.player.position.x - 1000, this.manager.player.position.z - 1000);
-                if (distToPortal <= 2.2) {
+                const distToPortal = Math.hypot(this.manager.player.position.x - 1012, this.manager.player.position.z - 1000);
+                if (distToPortal <= 1.4) {
                     clearInterval(checkReturnInterval);
                     clearInterval(animInterval);
                     if (portalGroup.parent) {
