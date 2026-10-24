@@ -1,0 +1,49 @@
+{
+  "generation_hash": "737231d2857f31069639",
+  "inputs": {
+    "jinja2_version": "3.1.6",
+    "project_root": "/home/marek/ai projects/m2",
+    "renderer_sha256": "a622fd5d9f633690323bdecf6cc9dc28625ef0d7b9d971fcc3cd101ed271fa19",
+    "resolved_values": {
+      "config.core.output_folder": "/home/marek/ai projects/m2/_bmad-output",
+      "customization.workflow.activation_steps_append": [],
+      "customization.workflow.activation_steps_prepend": [],
+      "customization.workflow.on_complete": "",
+      "customization.workflow.open_plan": "",
+      "customization.workflow.persistent_facts": [],
+      "customization.workflow.review": "none",
+      "customization.workflow.route": "oneshot"
+    },
+    "skill_root": "/home/marek/ai projects/m2/.agents/skills/bmad-build",
+    "source_sha256": {
+      "plan-template.md": "f27a97ac7e90b1d8c129e5836029dbef85263bce7d81399f3201970ef26b717c",
+      "references/claims-check.md": "6cb20a86d819b95272876bca0dffef59ca07ba6a373d804295066751043867c0",
+      "references/deletion-check.md": "0f1f124e4e957147e89164a272b10bedc694ad0d9ad2618c8610ac74ee9cb0da",
+      "review-prompts/edge-case-hunter.md": "b909fe0ec8e4daaf2550d0ec783618c5146261d0dbc0e054698ce00d0905a3d1",
+      "review-prompts/verification-gap.md": "45ab0b8c4c56c5c055c97a293a8591a67e256d0b1a2058ce1f093cd866be8d03",
+      "step-01-clarify-and-route.md": "e17028b910e13853f3e97a086dd03172baa4ea793ac264a407db9bb2c3dd101c",
+      "step-02-plan.md": "79df56a93fb25a5fd72b25c0fa9f85a39f9b14076a1b16321ce1d6778b6f2f99",
+      "step-03-implement.md": "df1a0f8a8fdb524581d371505a12a33a25d5150ecb442a58a9d8145d2b284954",
+      "step-04-review.md": "170bbabde8a2a1172db409e56d1efa5e9d4f03ae8e7ea12c96d680c448d1aca6",
+      "step-05-present.md": "8c3a4f5e627524b05c3f1db4850b6ab68ae6930d8046c340a3e1590dccc4ed61",
+      "step-oneshot.md": "430727834dd9c1c8355a3f5e163f3be1b70ea2ef47228fada5586b4a0627a863",
+      "workflow.md": "9383a7f98dbab150d9c66848dde2855f89d7544575affd1ddfef16e01aba9e5b"
+    }
+  },
+  "outputs": {
+    "plan-template.md": "f27a97ac7e90b1d8c129e5836029dbef85263bce7d81399f3201970ef26b717c",
+    "references/claims-check.md": "6cb20a86d819b95272876bca0dffef59ca07ba6a373d804295066751043867c0",
+    "references/deletion-check.md": "0f1f124e4e957147e89164a272b10bedc694ad0d9ad2618c8610ac74ee9cb0da",
+    "review-prompts/edge-case-hunter.md": "b909fe0ec8e4daaf2550d0ec783618c5146261d0dbc0e054698ce00d0905a3d1",
+    "review-prompts/verification-gap.md": "45ab0b8c4c56c5c055c97a293a8591a67e256d0b1a2058ce1f093cd866be8d03",
+    "step-01-clarify-and-route.md": "84b9aaf1e83ca597f1b9e85782e79ee5ddec2c521a7f4acce6d786c416010327",
+    "step-02-plan.md": "0e78119b5d3d26277f62bfece9e1fc38b6efe066900945b3d07ea84343735803",
+    "step-oneshot.md": "469a88c29a70ae91a106887ab4f94389648a64007f7a4aa9df90b4b9a0a5bf6c",
+    "workflow.md": "c0fd0a8a7cb6295c82b00f1707aeaee3c7c1aeb98c9b3458abcc423ecc06a039"
+  },
+  "project_root": "/home/marek/ai projects/m2",
+  "project_slug": "m2",
+  "root_hash": "858acc6e8272",
+  "schema_version": 1,
+  "skill": "bmad-build"
+}
