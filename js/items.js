@@ -61,7 +61,10 @@ export const ITEMS = {
     WATER_BOTTLE: { id: 45, name: 'Butelka Wody', type: ITEM_TYPES.FOOD, nutrition: 2, heals: 2, icon: 'water_bottle' },
     WARM_JACKET: { id: 46, name: 'Ciepła Kurtka', type: ITEM_TYPES.MATERIAL, icon: 'warm_jacket' },
     LASER_SWORD: { id: 47, name: 'Laserowy Miecz', type: ITEM_TYPES.WEAPON, damage: 18.0, efficiency: 1.0, icon: 'laser_sword' },
-    BEDROCK_SWORD: { id: 48, name: 'Miecz Bedrockowy', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'bedrock_sword' }
+    BEDROCK_SWORD: { id: 48, name: 'Miecz Bedrockowy', type: ITEM_TYPES.WEAPON, damage: 20.0, efficiency: 1.0, icon: 'bedrock_sword' },
+    BLUE_ELEMENT: { id: 49, name: 'Niebieski Pierwiastek', type: ITEM_TYPES.MATERIAL, icon: 'blue_element' },
+    MAGIC_WAND: { id: 50, name: 'Magiczna Różdżka', type: ITEM_TYPES.TOOL, damage: 8.0, efficiency: 1.0, icon: 'magic_wand' },
+    FLINT_AND_STEEL: { id: 52, name: 'Krzesiwo', type: ITEM_TYPES.TOOL, damage: 2.0, efficiency: 1.0, icon: 'flint_and_steel' }
 };
 
 
@@ -118,5 +121,9 @@ export function isBow(id) {
 
 export function isArrow(id) {
     return id === 28;
+}
+
+export function isMagicWand(id) {
+    return id === 50;
 }
 

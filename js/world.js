@@ -192,11 +192,21 @@ export class World {
         // Immediate spawn center (32, 32) is peaceful Plains
         if (Math.abs(dx) <= 9 && Math.abs(dz) <= 9) return 'Plains';
 
-        // West: Beautiful Golden Desert with Sand and Cacti!
-        if (dx < -11) return 'Desert';
+        // West: Beautiful Golden Desert - has clear borders (-11 to -48 in X, and |dz| < 40)
+        // Beyond that, it ends and transitions into other biomes!
+        if (dx < -11 && dx > -48 && Math.abs(dz) < 40) {
+            return 'Desert';
+        }
 
-        // East: Snowy Mountains with high freezing peaks!
-        if (dx > 14) return 'Mountains';
+        // East: Snowy Mountains with high freezing peaks - has clear borders (14 to 52 in X, and |dz| < 40)
+        if (dx > 14 && dx < 52 && Math.abs(dz) < 40) {
+            return 'Mountains';
+        }
+
+        // North / far zones: Snowy Winter (Zima)!
+        if (dz > 42 || (dx >= 52 && dz > 10)) {
+            return 'Winter';
+        }
 
         const scale = 0.025;
         const moisture = this.biomeNoise.noise2D((x + 200) * scale, (z + 200) * scale);
@@ -229,6 +239,8 @@ export class World {
                 } else if (biome === 'Mountains') {
                     const rawH = this.noise.fbm2D(x * 0.035, z * 0.035, 4);
                     h = 14 + Math.floor(rawH * 12);
+                } else if (biome === 'Winter') {
+                    h = 9 + Math.floor(this.noise.fbm2D(x * 0.035, z * 0.035, 3) * 3);
                 } else if (biome === 'Forest') {
                     h = 9 + Math.floor(this.noise.fbm2D(x * 0.04, z * 0.04, 3) * 4);
                 } else { // Plains
@@ -271,6 +283,8 @@ export class World {
                             chunk.voxels[lIdx] = 6; // Sand
                         } else if (biome === 'Mountains') {
                             chunk.voxels[lIdx] = (y >= 16) ? 7 : (y >= 13 ? 3 : 1); // Snow, Stone, or Grass
+                        } else if (biome === 'Winter') {
+                            chunk.voxels[lIdx] = 7; // Snow
                         } else {
                             // Piaszczysty brzeg jeziora / plaża
                             if (isLake && (h === waterLevel || h === waterLevel + 1)) {
@@ -408,6 +422,8 @@ export class World {
                         }
                     } else if (surfBlock === 6 && biome === 'Desert' && mod8X === 3 && mod8Z === 4) {
                         cactiToPlant.push({ x, y: h + 1, z });
+                    } else if (surfBlock === 7 && biome === 'Winter' && mod8X === 4 && mod8Z === 4) {
+                        treesToPlant.push({ x, y: h + 1, z });
                     }
                 }
             }

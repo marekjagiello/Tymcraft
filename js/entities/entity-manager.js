@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot } from './mobs/hostile.js?v=bedrock_1';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot } from './mobs/hostile.js?v=boss_1';
 
-import { FlyingArrow, ThrownGunpowder } from './projectile.js?v=drops_1';
+import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './projectile.js?v=wand_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -68,13 +68,15 @@ export class EntityManager {
         const creeper = new Creeper(this.scene, this.world, 48, 48, this);
         this.animals.push(creeper);
 
-        // 4. Początkowy ukryty Dirtik daleko od gracza (spokojny, uporządkowany start!)
+        // 4. Początkowe ukryte Dirtiki (więcej Dirtików na prośbę gracza!)
         const startX = (this.player && this.player.position) ? this.player.position.x : 32;
         const startZ = (this.player && this.player.position) ? this.player.position.z : 32;
-        this.spawnDirtikNear(startX, startZ, 22, 38);
+        this.spawnDirtikNear(startX, startZ, 18, 32);
+        this.spawnDirtikNear(startX, startZ, 25, 42);
 
-        // 4b. Początkowy ukryty Robot Transformer (16-26m)
+        // 4b. Początkowe ukryte Roboty Transformery (więcej Robotów na prośbę gracza!)
         this.spawnRobotNear(startX, startZ, 16, 26);
+        this.spawnRobotNear(startX, startZ, 24, 38);
 
 
         // 5. Dokładnie 1 oswojony, przyjazny Niedźwiedź Brunatny tuż obok gracza (3-4 bloki) do natychmiastowej jazdy!
@@ -159,6 +161,13 @@ export class EntityManager {
         this.animals.push(robot);
         console.log(`[EntityManager] Zespawnowano ukrytego Robota na wprost gracza na (${px.toFixed(1)}, ${pz.toFixed(1)})`);
         return robot;
+    }
+
+    spawnBossRobot(x, z) {
+        const boss = new BossRobot(this.scene, this.world, x, z, this);
+        this.animals.push(boss);
+        console.log(`[EntityManager] Zespawnowano Bossa Robota na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
+        return boss;
     }
 
 
@@ -382,6 +391,12 @@ export class EntityManager {
         return bomb;
     }
 
+    shootMagicStoneSpell(origin, direction) {
+        const spell = new MagicStoneSpell(this.scene, this.world, origin, direction, this);
+        this.thrownProjectiles.push(spell);
+        return spell;
+    }
+
     update(dt, playerPosition = null, isDay = true) {
         // Automatyczne utrzymywanie maksymalnie 1 węża na świecie
         const snakes = this.animals.filter(a => a.type === 'snake');
@@ -468,18 +483,18 @@ export class EntityManager {
             const activeDirtiks = this.animals.filter(a => a.type === 'dirtik' && !a.isDead);
             this.dirtikSpawnTimer = (this.dirtikSpawnTimer || 0) + dt;
 
-            // Utrzymuj maksymalnie 2 ukryte Dirtiki w świecie, w bezpiecznej odległości (25-45m)
-            if (activeDirtiks.length < 2 && this.dirtikSpawnTimer >= 25.0) {
+            // Utrzymuj do 4 ukrytych Dirtików w świecie, w bezpiecznej odległości (20-45m)
+            if (activeDirtiks.length < 4 && this.dirtikSpawnTimer >= 14.0) {
                 this.dirtikSpawnTimer = 0;
-                this.spawnDirtikNear(playerPosition.x, playerPosition.z, 25, 45);
+                this.spawnDirtikNear(playerPosition.x, playerPosition.z, 20, 45);
             }
 
-            // Utrzymuj do 1-2 ukrytych Robotów Transformerów w świecie (20-40m)
+            // Utrzymuj do 3 ukrytych Robotów Transformerów w świecie (18-38m)
             const activeRobots = this.animals.filter(a => a.type === 'robot' && !a.isDead);
             this.robotSpawnTimer = (this.robotSpawnTimer || 0) + dt;
-            if (activeRobots.length < 1 && this.robotSpawnTimer >= 22.0) {
+            if (activeRobots.length < 3 && this.robotSpawnTimer >= 16.0) {
                 this.robotSpawnTimer = 0;
-                this.spawnRobotNear(playerPosition.x, playerPosition.z, 20, 38);
+                this.spawnRobotNear(playerPosition.x, playerPosition.z, 18, 38);
             }
 
 
@@ -506,9 +521,13 @@ export class EntityManager {
 
         // Update all entities
         for (let i = this.animals.length - 1; i >= 0; i--) {
-            if (this.animals[i]) {
-                this.animals[i].update(dt, playerPosition, isDay);
+            const animal = this.animals[i];
+            if (!animal) continue;
+            if (animal.isStoneFrozen) {
+                animal.updateStone(dt, playerPosition);
+                continue;
             }
+            animal.update(dt, playerPosition, isDay);
         }
 
         // Update flying arrows

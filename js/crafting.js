@@ -1,5 +1,5 @@
 // 2x2 Crafting system using centralized Item Registry
-import { ITEMS } from './items.js?v=bedrock_1';
+import { ITEMS } from './items.js?v=wand_1';
 
 export { ITEMS };
 
@@ -115,6 +115,19 @@ export class CraftingManager {
             (s0 === 14 && s2 === 14 && !s1 && !s3) || (s1 === 14 && s3 === 14 && !s0 && !s2) ||
             (nonNulls.length === 2 && nonNulls.includes(14) && (nonNulls.includes(20) || nonNulls.filter(x => x === 14).length === 2))) {
             this.output = { item: ITEMS.BEDROCK_SWORD, count: 1 };
+            return this.output;
+        }
+
+        // 16. Magic Wand (Magiczna Różdżka): Bedrock (14) + Niebieski Pierwiastek (49)
+        if ((nonNulls.length === 2 && nonNulls.includes(14) && nonNulls.includes(49)) ||
+            (nonNulls.length === 3 && nonNulls.includes(14) && nonNulls.includes(49) && nonNulls.includes(20))) {
+            this.output = { item: ITEMS.MAGIC_WAND, count: 1 };
+            return this.output;
+        }
+
+        // 17. Flint & Steel (Krzesiwo): 2 Patyki (20) obok siebie w craftingu
+        if (nonNulls.length === 2 && nonNulls[0] === 20 && nonNulls[1] === 20) {
+            this.output = { item: ITEMS.FLINT_AND_STEEL, count: 1 };
             return this.output;
         }
 

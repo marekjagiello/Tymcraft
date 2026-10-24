@@ -141,6 +141,18 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🗡️'; // Miecz Bedrockowy
             itemSpan.style.filter = 'drop-shadow(0 0 9px #7c3aed)';
         }
+        else if (itemId === 49) {
+            itemSpan.innerText = '💠'; // Niebieski Pierwiastek
+            itemSpan.style.filter = 'drop-shadow(0 0 9px #38bdf8)';
+        }
+        else if (itemId === 50) {
+            itemSpan.innerText = '🪄'; // Magiczna Różdżka
+            itemSpan.style.filter = 'drop-shadow(0 0 10px #c084fc)';
+        }
+        else if (itemId === 52) {
+            itemSpan.innerText = '🔥'; // Krzesiwo
+            itemSpan.style.filter = 'drop-shadow(0 0 9px #f97316)';
+        }
         return itemSpan;
     }
 
@@ -1172,11 +1184,21 @@ export class UI {
             return;
         }
 
-        // Secret code 3: "1234" gives Bedrock!
-        if (lower === '1234' || lower === '1 2 3 4' || lower === 'bedrock' || lower === '1-2-3-4') {
-            this.addItem(14, 'Skała Macierzysta', 4);
-            this.addChatMessage('Serwer', '🪨 Odkryłeś tajne hasło 1234! Otrzymałeś 4x Bedrock! Ułóż go w craftingu [R/E] z patykiem, aby stworzyć potężny Miecz Bedrockowy! 🗡️', 'chat-success');
-            this.showPopup('🪨 Tajne hasło 1234 odkryte! +4 Bedrock 🪨');
+        // Secret code: "626" gives Krzesiwo & Totem blocks for Boss Robot!
+        if (lower === '626' || lower === '6 2 6' || lower === '6-2-6' || lower === 'boss' || lower === 'krzesiwo') {
+            this.addItem(52, 'Krzesiwo', 1);
+            this.addItem(2, 'Ziemia', 2);
+            this.addItem(3, 'Kamień', 2);
+            this.addChatMessage('Serwer', '🔥 Odkryłeś tajne hasło 626! Otrzymałeś Krzesiwo 🔥 oraz Ziemię i Kamień do zbudowania Totemu Bossa Robota (postaw Ziemię na dole, Kamień na górze i podpal Krzesiwem PPM)!', 'chat-success');
+            this.showPopup('🔥 Hasło 626 odkryte! +1 Krzesiwo i Totem Bossa 🤖');
+            return;
+        }
+
+        // Secret code 4: "czar" / "wand" gives Niebieski Pierwiastek!
+        if (lower === 'czar' || lower === 'wand' || lower === 'magia' || lower === 'rozdzka' || lower === 'różdżka') {
+            this.addItem(49, 'Niebieski Pierwiastek', 2);
+            this.addChatMessage('Serwer', '✨ Tajne hasło magii odkryte! Otrzymałeś 2x Niebieski Pierwiastek 💠! Połącz go w craftingu [R/E] z Bedrockiem (kod "1234"), aby stworzyć Magiczną Różdżkę! 🪄', 'chat-success');
+            this.showPopup('✨ +2 Niebieski Pierwiastek 💠');
             return;
         }
 

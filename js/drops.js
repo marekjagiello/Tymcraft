@@ -425,6 +425,83 @@ function createBedrockSwordMesh() {
     return group;
 }
 
+// Helper to create a miniature 3D Niebieski Pierwiastek drop mesh (ID 49)
+function createBlueElementMesh() {
+    const group = new THREE.Group();
+    // Glowing cyan crystal cluster
+    const coreGeo = new THREE.OctahedronGeometry(0.16, 0);
+    const coreMat = new THREE.MeshLambertMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.75
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    group.add(core);
+
+    const orbitGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+    const orbitMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+    for (let i = 0; i < 4; i++) {
+        const orbit = new THREE.Mesh(orbitGeo, orbitMat);
+        const ang = (i / 4) * Math.PI * 2;
+        orbit.position.set(Math.cos(ang) * 0.22, Math.sin(ang) * 0.12, Math.sin(ang) * 0.22);
+        group.add(orbit);
+    }
+    return group;
+}
+
+// Helper to create a miniature 3D Magiczna Różdżka drop mesh (ID 50)
+function createMagicWandMesh() {
+    const group = new THREE.Group();
+    // Obsidian / Bedrock shaft
+    const shaftMat = new THREE.MeshLambertMaterial({ color: 0x18181b });
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.44, 0.035), shaftMat);
+    group.add(shaft);
+
+    // Gold collar ring
+    const goldMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b });
+    const ring = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.06), goldMat);
+    ring.position.y = 0.18;
+    group.add(ring);
+
+    // Glowing cyan magic orb on top
+    const orbMat = new THREE.MeshLambertMaterial({
+        color: 0x38bdf8,
+        emissive: 0x7c3aed,
+        emissiveIntensity: 0.8
+    });
+    const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.08, 0), orbMat);
+    orb.position.y = 0.26;
+    group.add(orb);
+
+    group.rotation.z = Math.PI / 4;
+    return group;
+}
+
+// Helper to create a miniature 3D Krzesiwo drop mesh (ID 52)
+function createFlintAndSteelMesh() {
+    const group = new THREE.Group();
+    // Steel striker arc
+    const steelMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
+    const striker = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.16), steelMat);
+    striker.position.set(-0.04, 0, 0);
+    group.add(striker);
+
+    // Dark Flint piece
+    const flintMat = new THREE.MeshLambertMaterial({ color: 0x27272a });
+    const flint = new THREE.Mesh(new THREE.DodecahedronGeometry(0.08, 0), flintMat);
+    flint.position.set(0.06, -0.02, 0);
+    group.add(flint);
+
+    // Tiny glowing orange spark
+    const sparkMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+    const spark = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), sparkMat);
+    spark.position.set(0.02, 0.08, 0.04);
+    group.add(spark);
+
+    group.rotation.z = Math.PI / 6;
+    return group;
+}
+
 export class DroppedItem {
 
 
@@ -506,6 +583,12 @@ export class DroppedItem {
             this.mesh = createLaserSwordMesh();
         } else if (this.id === 48) {
             this.mesh = createBedrockSwordMesh();
+        } else if (this.id === 49) {
+            this.mesh = createBlueElementMesh();
+        } else if (this.id === 50) {
+            this.mesh = createMagicWandMesh();
+        } else if (this.id === 52) {
+            this.mesh = createFlintAndSteelMesh();
         } else {
             this.mesh = createMiniBlockMesh(this.id);
         }
@@ -611,6 +694,12 @@ export class DropsManager {
         this.scene = scene;
         this.world = world;
         this.items = [];
+    }
+
+    add(item) {
+        if (item) {
+            this.items.push(item);
+        }
     }
 
     // Called when a block is mined or exploded

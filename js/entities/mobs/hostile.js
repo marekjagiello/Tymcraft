@@ -1285,50 +1285,25 @@ export class Robot extends Mob {
         super.die();
         eventBus.emit('mob:killed', { type: 'robot' });
 
-        // Drops: Diamonds (30), Mystery Box (44), Gunpowder (36)
+        // Drops: Only Niebieski Pierwiastek (ID 49) as requested by player!
         if (this.manager && this.manager.drops) {
-            // 2-3 Diamonds
-            const dCount = 2 + Math.floor(Math.random() * 2);
-            for (let i = 0; i < dCount; i++) {
-                const drop = new DroppedItem(
+            const blueCount = 1 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < blueCount; i++) {
+                const blueDrop = new DroppedItem(
                     this.scene,
                     this.world,
-                    30,
-                    'Diament',
-                    this.position.x + (Math.random() - 0.5) * 0.7,
+                    49,
+                    'Niebieski Pierwiastek',
+                    this.position.x + (Math.random() - 0.5) * 0.6,
                     this.position.y + 0.6,
-                    this.position.z + (Math.random() - 0.5) * 0.7
+                    this.position.z + (Math.random() - 0.5) * 0.6
                 );
-                this.manager.drops.add(drop);
+                this.manager.drops.add(blueDrop);
             }
-
-            // 1 Mystery Box
-            const mbox = new DroppedItem(
-                this.scene,
-                this.world,
-                44,
-                'Mystery Box',
-                this.position.x,
-                this.position.y + 0.6,
-                this.position.z
-            );
-            this.manager.drops.add(mbox);
-
-            // Laser Sword drop
-            const sword = new DroppedItem(
-                this.scene,
-                this.world,
-                47,
-                'Laserowy Miecz',
-                this.position.x + 0.3,
-                this.position.y + 0.6,
-                this.position.z + 0.3
-            );
-            this.manager.drops.add(sword);
         }
 
         if (this.manager?.ui) {
-            this.manager.ui.addChatMessage('Serwer', '🏆 Zwycięstwo! Pokonałeś potężnego Robota Transformera! Zgarnij jego Laserowy Miecz i Diamenty!', 'chat-success');
+            this.manager.ui.addChatMessage('Serwer', '🏆 Zwycięstwo! Pokonałeś Robota Transformera! Zdobyłeś Niebieski Pierwiastek 💠!', 'chat-success');
         }
     }
 
@@ -1416,4 +1391,365 @@ export class Robot extends Mob {
         this.updateFooting(dt);
     }
 }
+
+// -------------------------------------------------------------
+// Boss Robot Mob (Spawned via Totem: Dirt + Stone + Krzesiwo!)
+// Has 4 arms, starts small and grows GIANT, smashes trees, 100 HP!
+// -------------------------------------------------------------
+export class BossRobot extends Mob {
+    constructor(scene, world, x = 32, z = 32, manager = null) {
+        const blockX = Math.floor(x) + 0.5;
+        const blockZ = Math.floor(z) + 0.5;
+        super(scene, world, 'boss_robot', blockX, blockZ, manager);
+        this.maxHealth = 100;
+        this.health = 100;
+        this.walkSpeed = 1.8;
+        this.attackDamage = 4; // 2 hearts without armor, 1 heart with armor!
+        this.isAwakening = true;
+        this.awakenTimer = 0;
+        this.targetScale = 2.2;
+        this.attackCooldown = 0;
+        this.swingTime = 0;
+        this.treeSmashCooldown = 0;
+
+        this.buildModel();
+        this.buildHealthBar(3.4);
+        this.group.scale.set(0.35, 0.35, 0.35); // Starts small, then grows!
+
+        this.snapToGround();
+        this.rotationY = 0;
+        this.targetRotationY = 0;
+        this.group.rotation.set(0, 0, 0);
+        this.scene.add(this.group);
+
+        playRobotWakeSound();
+    }
+
+    buildModel() {
+        this.modelGroup = new THREE.Group();
+
+        const darkSteelMat = new THREE.MeshLambertMaterial({ color: 0x0f172a }); // Dark Obsidian Steel
+        const armorGoldMat = new THREE.MeshLambertMaterial({ color: 0xd97706 }); // Hazard Gold
+        const redCoreMat = new THREE.MeshBasicMaterial({ color: 0xef4444 }); // Fiery glowing core
+        const cyanLaserMat = new THREE.MeshLambertMaterial({
+            color: 0x38bdf8,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.9
+        });
+        const redLaserMat = new THREE.MeshLambertMaterial({
+            color: 0xf43f5e,
+            emissive: 0xbe123c,
+            emissiveIntensity: 0.9
+        });
+
+        // Massive Torso / Chest
+        const chestGeo = new THREE.BoxGeometry(0.85, 0.95, 0.55);
+        this.body = new THREE.Mesh(chestGeo, darkSteelMat);
+        this.body.position.set(0, 1.35, 0);
+        this.body.castShadow = true;
+        this.modelGroup.add(this.body);
+
+        // Gold Shoulder Plates
+        const leftPauldrons = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.30, 0.65), armorGoldMat);
+        leftPauldrons.position.set(-0.55, 0.40, 0);
+        this.body.add(leftPauldrons);
+
+        const rightPauldrons = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.30, 0.65), armorGoldMat);
+        rightPauldrons.position.set(0.55, 0.40, 0);
+        this.body.add(rightPauldrons);
+
+        // Giant Reactor Core in center
+        const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), redCoreMat);
+        core.position.set(0, 0.12, 0.30);
+        this.body.add(core);
+
+        // Head with dual horns
+        const headGeo = new THREE.BoxGeometry(0.55, 0.48, 0.50);
+        this.head = new THREE.Mesh(headGeo, armorGoldMat);
+        this.head.position.set(0, 2.15, 0);
+        this.head.castShadow = true;
+        this.modelGroup.add(this.head);
+
+        // Glowing red visor
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.05), redCoreMat);
+        visor.position.set(0, 0.04, 0.26);
+        this.head.add(visor);
+
+        // Mecha Horns
+        const hornGeo = new THREE.BoxGeometry(0.08, 0.32, 0.08);
+        const lHorn = new THREE.Mesh(hornGeo, darkSteelMat);
+        lHorn.position.set(-0.25, 0.32, 0);
+        lHorn.rotation.z = 0.3;
+        this.head.add(lHorn);
+
+        const rHorn = new THREE.Mesh(hornGeo, darkSteelMat);
+        rHorn.position.set(0.25, 0.32, 0);
+        rHorn.rotation.z = -0.3;
+        this.head.add(rHorn);
+
+        // --- 4 MECHANICZNE RĘCE (4 ARMS) ---
+        const armGeo = new THREE.BoxGeometry(0.18, 0.70, 0.18);
+
+        // 1. Upper Left Arm (holds Red Laser Blade)
+        this.upperLArm = new THREE.Group();
+        this.upperLArm.position.set(-0.58, 1.70, 0);
+        const uLMesh = new THREE.Mesh(armGeo, darkSteelMat);
+        uLMesh.position.set(0, -0.32, 0);
+        this.upperLArm.add(uLMesh);
+        const blade1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.90, 0.05), redLaserMat);
+        blade1.position.set(0, -0.65, 0.20);
+        this.upperLArm.add(blade1);
+        this.modelGroup.add(this.upperLArm);
+
+        // 2. Upper Right Arm (holds Red Laser Blade)
+        this.upperRArm = new THREE.Group();
+        this.upperRArm.position.set(0.58, 1.70, 0);
+        const uRMesh = new THREE.Mesh(armGeo, darkSteelMat);
+        uRMesh.position.set(0, -0.32, 0);
+        this.upperRArm.add(uRMesh);
+        const blade2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.90, 0.05), redLaserMat);
+        blade2.position.set(0, -0.65, 0.20);
+        this.upperRArm.add(blade2);
+        this.modelGroup.add(this.upperRArm);
+
+        // 3. Lower Left Arm (holds Cyan Laser Blade)
+        this.lowerLArm = new THREE.Group();
+        this.lowerLArm.position.set(-0.52, 1.20, 0);
+        const lLMesh = new THREE.Mesh(armGeo, armorGoldMat);
+        lLMesh.position.set(0, -0.32, 0);
+        this.lowerLArm.add(lLMesh);
+        const blade3 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.85, 0.05), cyanLaserMat);
+        blade3.position.set(0, -0.65, 0.20);
+        this.lowerLArm.add(blade3);
+        this.modelGroup.add(this.lowerLArm);
+
+        // 4. Lower Right Arm (holds Cyan Laser Blade)
+        this.lowerRArm = new THREE.Group();
+        this.lowerRArm.position.set(0.52, 1.20, 0);
+        const lRMesh = new THREE.Mesh(armGeo, armorGoldMat);
+        lRMesh.position.set(0, -0.32, 0);
+        this.lowerRArm.add(lRMesh);
+        const blade4 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.85, 0.05), cyanLaserMat);
+        blade4.position.set(0, -0.65, 0.20);
+        this.lowerRArm.add(blade4);
+        this.modelGroup.add(this.lowerRArm);
+
+        // 2 Heavy Mecha Legs
+        const legGeo = new THREE.BoxGeometry(0.28, 0.85, 0.28);
+        this.legs = [];
+
+        const lLegPivot = new THREE.Group();
+        lLegPivot.position.set(-0.25, 0.85, 0);
+        const lLegMesh = new THREE.Mesh(legGeo, darkSteelMat);
+        lLegMesh.position.set(0, -0.42, 0);
+        lLegPivot.add(lLegMesh);
+        this.modelGroup.add(lLegPivot);
+        this.legs.push(lLegPivot);
+
+        const rLegPivot = new THREE.Group();
+        rLegPivot.position.set(0.25, 0.85, 0);
+        const rLegMesh = new THREE.Mesh(legGeo, darkSteelMat);
+        rLegMesh.position.set(0, -0.42, 0);
+        rLegPivot.add(rLegMesh);
+        this.modelGroup.add(rLegPivot);
+        this.legs.push(rLegPivot);
+
+        this.group.add(this.modelGroup);
+    }
+
+    takeDamage(amount, source = '') {
+        if (this.isAwakening) return; // Invulnerable while waking up!
+        super.takeDamage(amount, source);
+    }
+
+    die() {
+        super.die();
+        eventBus.emit('mob:killed', { type: 'boss_robot' });
+
+        // Boss Drops: 4x Blue Element, 8x Diamonds, 1x Laser Sword, 1x Mystery Box!
+        if (this.manager && this.manager.drops) {
+            // 4 Blue Elements
+            for (let i = 0; i < 4; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    49,
+                    'Niebieski Pierwiastek',
+                    this.position.x + (Math.random() - 0.5) * 1.2,
+                    this.position.y + 1.2,
+                    this.position.z + (Math.random() - 0.5) * 1.2
+                );
+                this.manager.drops.add(drop);
+            }
+
+            // 8 Diamonds
+            for (let i = 0; i < 8; i++) {
+                const drop = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    30,
+                    'Diament',
+                    this.position.x + (Math.random() - 0.5) * 1.5,
+                    this.position.y + 1.0,
+                    this.position.z + (Math.random() - 0.5) * 1.5
+                );
+                this.manager.drops.add(drop);
+            }
+
+            // 1 Laser Sword
+            const sword = new DroppedItem(
+                this.scene,
+                this.world,
+                47,
+                'Laserowy Miecz',
+                this.position.x,
+                this.position.y + 1.2,
+                this.position.z
+            );
+            this.manager.drops.add(sword);
+
+            // 1 Mystery Box
+            const box = new DroppedItem(
+                this.scene,
+                this.world,
+                44,
+                'Mystery Box',
+                this.position.x + 0.4,
+                this.position.y + 1.2,
+                this.position.z - 0.4
+            );
+            this.manager.drops.add(box);
+        }
+
+        if (this.manager?.ui) {
+            this.manager.ui.addChatMessage('Serwer', '👑 Zwycięstwo! Pokonałeś potężnego 4-ramiennego Bossa Robota! Zgarnij Niebieskie Pierwiastki 💠, Diamenty 💎 i Laserowy Miecz ⚡!', 'chat-success');
+            this.manager.ui.showPopup('👑 BOSS ROBOT POKONANY! Gratulacje! 🏆');
+        }
+    }
+
+    smashNearbyTrees() {
+        if (!this.world) return;
+        const bx = Math.floor(this.position.x);
+        const by = Math.floor(this.position.y);
+        const bz = Math.floor(this.position.z);
+
+        for (let ox = -1; ox <= 1; ox++) {
+            for (let oz = -1; oz <= 1; oz++) {
+                for (let oy = 0; oy <= 3; oy++) {
+                    const blockId = this.world.getBlock(bx + ox, by + oy, bz + oz);
+                    if (blockId === 4 || blockId === 5) { // Wood or Leaves
+                        this.world.setBlock(bx + ox, by + oy, bz + oz, 0);
+                        if (this.manager?.drops) {
+                            const dropName = blockId === 4 ? 'Drewno' : 'Liście';
+                            const drop = new DroppedItem(
+                                this.scene,
+                                this.world,
+                                blockId,
+                                dropName,
+                                bx + ox + 0.5,
+                                by + oy + 0.5,
+                                bz + oz + 0.5
+                            );
+                            this.manager.drops.add(drop);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    update(dt, playerPosition) {
+        if (this.isDead) return;
+
+        // 1. Awaken and Growth Animation: Starts small (0.35), then grows GIANT (2.2)!
+        if (this.isAwakening) {
+            this.awakenTimer += dt;
+            const progress = Math.min(1.0, this.awakenTimer / 2.5);
+            const currentScale = 0.35 + (this.targetScale - 0.35) * progress;
+            this.group.scale.set(currentScale, currentScale, currentScale);
+
+            // Shaking vibration effect while growing
+            this.group.position.x += (Math.random() - 0.5) * 0.08;
+            this.group.position.z += (Math.random() - 0.5) * 0.08;
+
+            if (progress >= 1.0) {
+                this.isAwakening = false;
+                eventBus.emit('ui:popup', '🤖⚠️ POTĘŻNY BOSS ROBOT PRZEBUDZIŁ SIĘ! UWAŻAJ NA 4 RAMIONA! ⚠️🤖');
+                if (this.manager?.ui) {
+                    this.manager.ui.showPopup('🤖⚠️ POTĘŻNY BOSS ROBOT PRZEBUDZIŁ SIĘ! ⚠️🤖');
+                }
+            }
+            return;
+        }
+
+        // 2. Boss Combat AI
+        const dx = playerPosition.x - this.position.x;
+        const dz = playerPosition.z - this.position.z;
+        const dist = Math.hypot(dx, dz);
+
+        this.targetRotationY = Math.atan2(dx, dz);
+
+        // Move towards player
+        if (dist > 2.2) {
+            const moveStep = this.walkSpeed * dt;
+            this.position.x += (dx / dist) * moveStep;
+            this.position.z += (dz / dist) * moveStep;
+            this.group.position.x = this.position.x;
+            this.group.position.z = this.position.z;
+
+            // Smash trees on way!
+            this.treeSmashCooldown += dt;
+            if (this.treeSmashCooldown >= 0.3) {
+                this.treeSmashCooldown = 0;
+                this.smashNearbyTrees();
+            }
+        }
+
+        // 3. Melee Attack: 4 arms swinging rapidly!
+        this.attackCooldown -= dt;
+        if (dist <= 2.8 && this.attackCooldown <= 0) {
+            this.attackCooldown = 1.0; // Fast hits: every 1 second
+            this.swingTime = 0.6;
+            playLaserSwordSound();
+
+            if (this.manager?.survival) {
+                // If player has armor: 1 heart (2 HP); without armor: 2 hearts (4 HP)
+                const hasArmor = Boolean(this.manager.survival.hasArmor || this.manager.survival.hasRubyArmor || this.manager.survival.hasStoneArmor);
+                const actualDamage = hasArmor ? 2 : 4;
+                this.manager.survival.takeDamage(actualDamage, 'Cios 4-ramiennego Bossa Robota! 🤖💥');
+            }
+        }
+
+        // 4. Arm animations
+        this.animTime += dt * 6;
+        if (this.swingTime > 0) {
+            this.swingTime -= dt;
+            const swingPhase = Math.sin((0.6 - this.swingTime) * 18);
+            this.upperLArm.rotation.x = -swingPhase * 1.5;
+            this.upperRArm.rotation.x = swingPhase * 1.5;
+            this.lowerLArm.rotation.x = swingPhase * 1.2;
+            this.lowerRArm.rotation.x = -swingPhase * 1.2;
+        } else if (dist > 2.2) {
+            const legSwing = Math.sin(this.animTime) * 0.5;
+            this.legs[0].rotation.x = legSwing;
+            this.legs[1].rotation.x = -legSwing;
+
+            // 4 arms alternating walk swing
+            this.upperLArm.rotation.x = -legSwing * 0.8;
+            this.upperRArm.rotation.x = legSwing * 0.8;
+            this.lowerLArm.rotation.x = legSwing * 0.7;
+            this.lowerRArm.rotation.x = -legSwing * 0.7;
+        } else {
+            this.legs[0].rotation.x *= 0.8;
+            this.legs[1].rotation.x *= 0.8;
+            this.upperLArm.rotation.x *= 0.8;
+            this.upperRArm.rotation.x *= 0.8;
+            this.lowerLArm.rotation.x *= 0.8;
+            this.lowerRArm.rotation.x *= 0.8;
+        }
+
+        this.updateFooting(dt);
+    }
+}
+
 

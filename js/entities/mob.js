@@ -54,6 +54,10 @@ export class Mob extends Entity {
         this.healthBarGroup = null;
         this.healthBarFill = null;
         this.barFillMat = null;
+
+        this.isStoneFrozen = false;
+        this.stoneFreezeTimer = 0;
+        this._stoneOriginalColors = null;
     }
 
     spawnHeartParticles(offsetY = 0.8) {
@@ -124,11 +128,61 @@ export class Mob extends Entity {
         setTimeout(() => {
             // ALWAYS restore colors even if mob is dead so materials never stay red
             for (const mat of mats) {
-                if (mat._origColor) {
+                if (this.isStoneFrozen) {
+                    mat.color.setHex(0x71717a);
+                } else if (mat._origColor) {
                     mat.color.copy(mat._origColor);
                 }
             }
         }, 180);
+    }
+
+    turnToStone(duration = 5.0) {
+        if (this.isDead) return;
+        this.isStoneFrozen = true;
+        this.stoneFreezeTimer = duration;
+
+        if (!this._stoneOriginalColors) {
+            this._stoneOriginalColors = new Map();
+            this.group.traverse((child) => {
+                if (child.isMesh && child.material && child.material.color) {
+                    if (child.material.name === 'AtlasMaterial' || child.material._isSharedAtlas) return;
+                    this._stoneOriginalColors.set(child.material, child.material.color.clone());
+                    child.material.color.setHex(0x71717a); // Solid stone gray
+                }
+            });
+        }
+
+        if (this.manager && this.manager.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position.clone().add(new THREE.Vector3(0, 0.4, 0)));
+        }
+    }
+
+    restoreFromStone() {
+        this.isStoneFrozen = false;
+        this.stoneFreezeTimer = 0;
+        if (this._stoneOriginalColors) {
+            for (const [mat, origColor] of this._stoneOriginalColors.entries()) {
+                mat.color.copy(origColor);
+            }
+            this._stoneOriginalColors = null;
+        }
+        if (this.manager && this.manager.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position.clone().add(new THREE.Vector3(0, 0.4, 0)));
+        }
+    }
+
+    updateStone(dt, playerPosition) {
+        if (!this.isStoneFrozen) return;
+        this.stoneFreezeTimer -= dt;
+        if (this.stoneFreezeTimer <= 0) {
+            this.restoreFromStone();
+            return;
+        }
+
+        // Freeze in place: update footing and health bar, but zero animation and movement
+        this.updateFooting(dt);
+        this.updateHealthBar(playerPosition);
     }
 
     onAttacked(damage = 2, attackerPos = null) {
@@ -204,6 +258,13 @@ export class Mob extends Entity {
     die() {
         if (this.isDead) return;
         this.isDead = true;
+
+        if (this._stoneOriginalColors) {
+            for (const [mat, origColor] of this._stoneOriginalColors.entries()) {
+                mat.color.copy(origColor);
+            }
+            this._stoneOriginalColors = null;
+        }
 
         eventBus.emit('entity:died', { entity: this });
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
-import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow } from './items.js?v=bedrock_1';
+import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound } from './audio.js';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=wand_1';
 
 import { eventBus } from './events.js';
 
@@ -46,6 +46,7 @@ export class Interaction {
         this.bowCharge = 0.0;
         this.bowDrawTime = 0.0;
         this.bowRecoil = 0.0;
+        this.magicWandCooldown = 0.0;
 
         this.buildFirstPersonHand();
         this.initEvents();
@@ -64,8 +65,8 @@ export class Interaction {
         for (const animal of this.animals.animals) {
             if (animal.isDead) continue;
 
-            const height = (animal.type === 'robot') ? 2.0 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85)))));
-            const hitRadius = (animal.type === 'robot') ? 1.15 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95));
+            const height = (animal.type === 'boss_robot') ? 4.5 : ((animal.type === 'robot') ? 2.0 : ((animal.type === 'zombie' || animal.type === 'skeleton') ? 1.85 : ((animal.type === 'creeper') ? 1.6 : ((animal.type === 'bear') ? 1.4 : ((animal.type === 'dirtik') ? 1.05 : ((animal.type === 'snake') ? 0.35 : 0.85))))));
+            const hitRadius = (animal.type === 'boss_robot') ? 2.2 : ((animal.type === 'robot') ? 1.15 : ((animal.type === 'bear') ? 1.25 : ((animal.type === 'snake') ? 0.80 : 0.95)));
 
 
             // Center of animal vertical capsule
@@ -96,6 +97,26 @@ export class Interaction {
             const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
 
             if (e.button === 0) {
+                // If using Magiczna Różdżka (ID: 50) with Left Click
+                if (activeItemId === 50) {
+                    const wandAnimal = this.raycastAnimal();
+                    if (wandAnimal) {
+                        playHitSound();
+                        const hitPos = wandAnimal.position.clone().add(new THREE.Vector3(0, 0.9, 0));
+                        this.spawnHitParticles(hitPos);
+                        wandAnimal.onAttacked(10, this.player.position);
+                        if (typeof wandAnimal.turnToStone === 'function') {
+                            wandAnimal.turnToStone(5.0);
+                        }
+                        const msg = '✨🪄 Magiczna Różdżka: cel zamieniony w kamień na 5 sekund! 🪨';
+                        eventBus.emit('ui:popup', msg);
+                        if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+                    } else {
+                        this.castMagicWand();
+                    }
+                    return;
+                }
+
                 // If riding a bear, left click triggers bear paw attack!
                 if (this.player && this.player.mountedBear) {
                     this.player.mountedBear.performPawAttack();
@@ -111,13 +132,13 @@ export class Interaction {
                         animal.awaken();
                         return;
                     }
-                    if (activeItemId === 23) {
+                    if (activeItemId === 23 && typeof animal.interactWithApple === 'function') {
                         // Clicking with apple feeds it instead: hearts appear!
                         animal.interactWithApple();
                         eventBus.emit('item:consume');
-                        eventBus.emit('ui:popup', '❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
+                        eventBus.emit('ui:popup', '❤️ Nakarmiono zwierzątko! Pojawiły się serca! 🐍');
                         if (this.onItemConsumed) this.onItemConsumed(23);
-                        if (this.ui && !this.ui._handledByEvent) this.ui.showPopup('❤️ Nakarmiono węża! Pojawiły się serca! 🐍');
+                        if (this.ui && !this.ui._handledByEvent) this.ui.showPopup('❤️ Nakarmiono zwierzątko! Pojawiły się serca! 🐍');
                         return;
                     } else {
                         const damage = getItemDamage(activeItemId, 2.0);
@@ -131,19 +152,21 @@ export class Interaction {
 
                         if (wasAlive && animal.health <= 0) {
                             let name = 'zwierzę';
-                            if (animal.type === 'snake') name = 'węża';
+                            if (animal.type === 'boss_robot') name = 'Bossa Robota';
+                            else if (animal.type === 'snake') name = 'węża';
                             else if (animal.type === 'zombie') name = 'Zombie';
                             else if (animal.type === 'skeleton') name = 'Szkieleta';
                             else if (animal.type === 'creeper') name = 'Creepera';
                             else if (animal.type === 'dirtik') name = 'Dirtika';
+                            else if (animal.type === 'robot') name = 'Robota Transformera';
                             else if (animal.type === 'pig') name = 'świnię';
                             else if (animal.type === 'sheep') name = 'owcę';
 
                             const msg = `💥 Pokonano ${name}!`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
-                        } else if ((animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
-                            const enemyName = animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie'));
+                        } else if ((animal.type === 'boss_robot' || animal.type === 'robot' || animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
+                            const enemyName = animal.type === 'boss_robot' ? 'Bossa Robota' : (animal.type === 'robot' ? 'Robota Transformera' : (animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie'))));
                             const msg = `⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
@@ -157,6 +180,12 @@ export class Interaction {
             } else if (e.button === 2) {
                 // Right Click: Check if shooting bow
                 e.preventDefault();
+
+                // Check if casting with Magiczna Różdżka (ID: 50) with Right Click (PPM)
+                if (activeItemId === 50) {
+                    this.castMagicWand();
+                    return;
+                }
 
                 if (isBow(activeItemId)) {
                     if (this.ui && !this.ui.hasItem(28)) {
@@ -314,6 +343,56 @@ export class Interaction {
                     return;
                 }
 
+                // Check if using Krzesiwo (Flint & Steel - ID 52) on Totem: Dirt (2) on bottom, Stone (3) on top!
+                if (activeItemId === 52) {
+                    if (this.currentTarget && this.currentTarget.hit) {
+                        const cx = this.currentTarget.x;
+                        const cy = this.currentTarget.y;
+                        const cz = this.currentTarget.z;
+                        const clickedId = this.world.getBlock(cx, cy, cz);
+
+                        let isTotem = false;
+                        let dirtY = cy;
+                        let stoneY = cy;
+
+                        // Case 1: Clicked Stone (3) with Dirt (2) below
+                        if (clickedId === 3 && this.world.getBlock(cx, cy - 1, cz) === 2) {
+                            isTotem = true;
+                            stoneY = cy;
+                            dirtY = cy - 1;
+                        }
+                        // Case 2: Clicked Dirt (2) with Stone (3) above
+                        else if (clickedId === 2 && this.world.getBlock(cx, cy + 1, cz) === 3) {
+                            isTotem = true;
+                            dirtY = cy;
+                            stoneY = cy + 1;
+                        }
+
+                        if (isTotem) {
+                            // Break both totem blocks
+                            this.world.setBlock(cx, dirtY, cz, 0);
+                            this.world.setBlock(cx, stoneY, cz, 0);
+
+                            playExplosionSound();
+
+                            // Spawn Boss Robot right here!
+                            if (this.animals && this.animals.spawnBossRobot) {
+                                this.animals.spawnBossRobot(cx + 0.5, cz + 0.5);
+                            }
+
+                            const msg = '🔥🤖 TOTEM ZAPŁONĄŁ! BUDZI SIĘ POTĘŻNY BOSS ROBOT! 🤖🔥';
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui) this.ui.showPopup(msg);
+                            return;
+                        } else {
+                            playHitSound();
+                            const msg = '🔥 Trzask krzesiwa! Zbuduj totem: Ziemia (Dirt) na dole, Kamień na górze!';
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui) this.ui.showPopup(msg);
+                            return;
+                        }
+                    }
+                }
 
                 this.placeBlock();
             }
@@ -480,6 +559,30 @@ export class Interaction {
         eventBus.emit('ui:popup', '🧨 Rzucono ładunek prochu!');
         if (this.ui && !this.ui._handledByEvent) {
             this.ui.showPopup('🧨 Rzucono ładunek prochu!');
+        }
+    }
+
+    castMagicWand() {
+        const activeItemId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+        if (activeItemId !== 50) return;
+
+        if (this.magicWandCooldown > 0) return;
+        this.magicWandCooldown = 0.45;
+
+        this.triggerSwing();
+
+        const origin = this.camera.position.clone();
+        const dir = new THREE.Vector3();
+        this.camera.getWorldDirection(dir);
+        origin.addScaledVector(dir, 0.4);
+
+        if (this.animals && typeof this.animals.shootMagicStoneSpell === 'function') {
+            this.animals.shootMagicStoneSpell(origin, dir);
+        }
+
+        eventBus.emit('ui:popup', '✨🪄 Rzucono zaklęcie Magicznej Różdżki! 🪨');
+        if (this.ui && !this.ui._handledByEvent) {
+            this.ui.showPopup('✨🪄 Rzucono zaklęcie Magicznej Różdżki! 🪨');
         }
     }
 
@@ -997,6 +1100,10 @@ export class Interaction {
 
         this.updateHighlight();
         this.updateHand(dt);
+
+        if (this.magicWandCooldown > 0) {
+            this.magicWandCooldown -= dt;
+        }
 
         // Update block break & hit particles
         for (let i = this.particles.length - 1; i >= 0; i--) {

@@ -313,3 +313,141 @@ export class ThrownGunpowder extends Entity {
     }
 }
 
+export class MagicStoneSpell extends Entity {
+    constructor(scene, world, origin, direction, manager = null) {
+        super(scene, world, origin.x, origin.y, origin.z);
+        this.manager = manager;
+        this.speed = 28.0;
+        this.velocity = direction.clone().normalize().multiplyScalar(this.speed);
+        this.lifetime = 0;
+        this.maxLifetime = 3.0;
+
+        this.buildMesh();
+        this.group.position.copy(this.position);
+        this.scene.add(this.group);
+    }
+
+    buildMesh() {
+        // Glowing cyan-purple magical sphere / crystal with stone core
+        const stoneCoreGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+        const stoneCoreMat = new THREE.MeshLambertMaterial({ color: 0x52525b });
+        const core = new THREE.Mesh(stoneCoreGeo, stoneCoreMat);
+        this.group.add(core);
+
+        const energyGeo = new THREE.SphereGeometry(0.22, 8, 8);
+        const energyMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.75
+        });
+        const energy = new THREE.Mesh(energyGeo, energyMat);
+        this.group.add(energy);
+
+        const haloGeo = new THREE.SphereGeometry(0.30, 8, 8);
+        const haloMat = new THREE.MeshBasicMaterial({
+            color: 0xa855f7,
+            transparent: true,
+            opacity: 0.4,
+            wireframe: true
+        });
+        const halo = new THREE.Mesh(haloGeo, haloMat);
+        this.group.add(halo);
+    }
+
+    update(dt, player = null, survival = null, ui = null, animals = null) {
+        if (this.isDead) return;
+        this.lifetime += dt;
+        if (this.lifetime >= this.maxLifetime) {
+            this.destroy();
+            return;
+        }
+
+        this.group.rotation.x += 12 * dt;
+        this.group.rotation.y += 15 * dt;
+
+        const prevPos = this.position.clone();
+        this.position.addScaledVector(this.velocity, dt);
+        this.group.position.copy(this.position);
+
+        // Check collision with mobs/animals
+        if (animals && Array.isArray(animals)) {
+            for (const mob of animals) {
+                if (!mob || mob.isDead || !mob.position) continue;
+                const mobCenter = mob.position.clone().add(new THREE.Vector3(0, mob.type === 'robot' ? 1.4 : 0.9, 0));
+                const dist = this.position.distanceTo(mobCenter);
+                const hitRadius = mob.type === 'robot' ? 1.6 : (mob.type === 'bear' ? 1.3 : 1.0);
+                if (dist <= hitRadius) {
+                    this.onHitMob(mob);
+                    return;
+                }
+            }
+        }
+
+        // Check collision with solid block
+        const bx = Math.floor(this.position.x);
+        const by = Math.floor(this.position.y);
+        const bz = Math.floor(this.position.z);
+
+        if (this.world && this.world.isSolid(bx, by, bz)) {
+            this.onHitBlock(bx, by, bz, prevPos);
+            return;
+        }
+    }
+
+    onHitMob(mob) {
+        if (mob.isDead) return;
+        mob.onAttacked(10, this.position);
+        if (typeof mob.turnToStone === 'function') {
+            mob.turnToStone(5.0);
+        }
+        playHitSound();
+
+        let name = mob.type || 'cel';
+        if (mob.type === 'boss_robot') name = 'Bossa Robota';
+        else if (mob.type === 'robot') name = 'Robota Transformera';
+        else if (mob.type === 'zombie') name = 'Zombie';
+        else if (mob.type === 'skeleton') name = 'Szkieleta';
+        else if (mob.type === 'creeper') name = 'Creepera';
+        else if (mob.type === 'dirtik') name = 'Dirtika';
+        else if (mob.type === 'bear') name = 'Niedźwiedzia';
+
+        const msg = `✨🪄 Magiczna Różdżka: ${name} zamieniony w kamień na 5 sekund! 🪨`;
+        eventBus.emit('ui:popup', msg);
+        if (this.manager?.ui) {
+            this.manager.ui.showPopup(msg);
+        }
+        if (this.manager?.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position);
+        }
+        this.destroy();
+    }
+
+    onHitBlock(bx, by, bz, prevPos) {
+        const px = Math.floor(prevPos.x);
+        const py = Math.floor(prevPos.y);
+        const pz = Math.floor(prevPos.z);
+
+        if (this.world && py >= 1 && py < WORLD_HEIGHT && px >= 0 && px < WORLD_SIZE_X && pz >= 0 && pz < WORLD_SIZE_Z) {
+            const currentBlock = this.world.getBlock(px, py, pz);
+            if (currentBlock === 0) {
+                this.world.setBlock(px, py, pz, 3); // Kamień!
+                eventBus.emit('ui:popup', '✨🪄 Magiczna Różdżka wyczarowała Kamień! 🪨');
+            }
+        }
+
+        playHitSound();
+        if (this.manager?.spawnDeathPoof) {
+            this.manager.spawnDeathPoof(this.position);
+        }
+        this.destroy();
+    }
+
+    destroy() {
+        if (this.isDead) return;
+        this.isDead = true;
+        if (this.group && this.group.parent) {
+            this.scene.remove(this.group);
+        }
+    }
+}
+
