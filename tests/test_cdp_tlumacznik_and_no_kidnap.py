@@ -209,23 +209,18 @@ def run_test():
 
             const messagesEl = document.getElementById('chat-messages');
             const chatText = messagesEl ? (messagesEl.innerText || messagesEl.textContent) : '';
-            const containsTranslator = chatText.includes('Tłumacznik');
-            const containsTotem = chatText.includes('TOTEM');
-            const containsNoTeleport = chatText.includes('Małe roboty NIE teleportują') || chatText.includes('Małe ludki');
+            const containsBossGuide = chatText.includes('Weź krzesiwo i zrób portal z kamienia') || chatText.includes('JAK WEJŚĆ DO BOSSA');
 
             return {
                 hasSpeakMethod,
-                containsTranslator,
-                containsTotem,
-                containsNoTeleport
+                containsBossGuide
             };
         })()
         """)
         print("Chat Command Test Result:", chat_cmd_test)
         assert chat_cmd_test and chat_cmd_test.get('hasSpeakMethod') is True, "speakTranslator method missing on ui"
-        assert chat_cmd_test.get('containsTranslator') is True, "Tłumacznik message not printed to chat"
-        assert chat_cmd_test.get('containsTotem') is True, "Totem instructions missing from chat"
-        print("✓ /pomoc command invokes Tłumacznik guide in chat with TTS integration!")
+        assert chat_cmd_test.get('containsBossGuide') is True, "Boss guide message not printed to chat"
+        print("✓ /pomoc command invokes boss guide in chat with TTS integration!")
 
         print("\nALL TŁUMACZNIK AND NO-KIDNAP ROBOT VERIFICATIONS PASSED SUCCESSFULLY!")
 

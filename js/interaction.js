@@ -474,38 +474,38 @@ export class Interaction {
                             }
                         }
 
-                        // Check if activating Stone Portal (Portal z kamienia)
-                        if (clickedId === 3 || clickedId === 11) {
-                            if (this.checkStonePortal(cx, cy, cz)) {
-                                playCyberTeleportSound();
-                                eventBus.emit('boss:attack_flash', {
-                                    color: 0x38bdf8,
-                                    intensity: 4.8,
-                                    x: cx,
-                                    y: cy + 1,
-                                    z: cz
-                                });
-                                const msg = '🌌 Brama z kamienia zapłonęła cyber-energią! Wkraczasz do Mrocznego Wymiaru Bossa!';
-                                eventBus.emit('ui:popup', msg);
-                                if (this.ui) {
-                                    this.ui.addChatMessage('Portal', '🌌 Brama z kamienia otworzyła przejście do Mrocznego Wymiaru! Zbuduj Totem (Ziemia + Kamień) na arenie, by wezwać Bossa! 🤖⚡', 'chat-server');
-                                    this.ui.showPopup(msg);
-                                }
-                                setTimeout(() => {
-                                    eventBus.emit('dimension:enter_dark');
-                                }, 350);
-                                return;
-                            } else {
-                                playHitSound();
-                                const msg = '🔥 Trzask krzesiwa! Zbuduj ramę portalu z kamienia (np. bramę 3x3 lub 4x5) albo Totem (Ziemia na dole, Kamień na górze)!';
-                                eventBus.emit('ui:popup', msg);
-                                if (this.ui) this.ui.showPopup(msg);
-                                return;
+                        // Check if activating Stone Portal (Portal z kamienia - np. rama 2x2 lub podpalenie pod sobą)
+                        if (this.checkStonePortal(cx, cy, cz)) {
+                            playCyberTeleportSound?.();
+                            eventBus.emit('boss:attack_flash', {
+                                color: 0x38bdf8,
+                                intensity: 4.8,
+                                x: cx,
+                                y: cy + 1,
+                                z: cz
+                            });
+                            const msg = '🌌 Brama z kamienia zapłonęła cyber-energią! Wkraczasz do Mrocznego Wymiaru Bossa!';
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui) {
+                                this.ui.addChatMessage('Portal', '🌌 Brama z kamienia otworzyła przejście do Mrocznego Wymiaru! Zbuduj Totem (Ziemia + Kamień) na arenie, by wezwać Bossa! 🤖⚡', 'chat-server');
+                                this.ui.showPopup(msg);
                             }
+                            setTimeout(() => {
+                                eventBus.emit('dimension:enter_dark');
+                            }, 350);
+                            return;
                         }
 
-                        playHitSound();
-                        const msg = '🔥 Trzask krzesiwa! Podpal portal ze świniowych bloków, portal z kamienia lub totem!';
+                        if (clickedId === 3 || clickedId === 11) {
+                            playHitSound?.();
+                            const msg = '🔥 Trzask krzesiwa! Zbuduj ramę portalu z kamienia na 2x2 kratki (co najmniej 4 bloki kamienia)!';
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui) this.ui.showPopup(msg);
+                            return;
+                        }
+
+                        playHitSound?.();
+                        const msg = '🔥 Trzask krzesiwa! Zrób portal z kamienia na 2x2 kratki, wejdź do środka i zapal pod sobą, albo zbuduj Totem!';
                         eventBus.emit('ui:popup', msg);
                         if (this.ui) this.ui.showPopup(msg);
                         return;
@@ -1054,12 +1054,11 @@ export class Interaction {
         if (!this.world) return false;
         const isStone = (id) => id === 3 || id === 11;
         const centerId = this.world.getBlock(cx, cy, cz);
-        if (!isStone(centerId)) return false;
 
-        // Count stone/cobblestone blocks in 5x5x5 neighborhood around clicked position
+        // Count stone/cobblestone blocks in 5x5x6 neighborhood around clicked position
         let stoneCount = 0;
         for (let ox = -2; ox <= 2; ox++) {
-            for (let oy = -2; oy <= 3; oy++) {
+            for (let oy = -1; oy <= 3; oy++) {
                 for (let oz = -2; oz <= 2; oz++) {
                     if (isStone(this.world.getBlock(cx + ox, cy + oy, cz + oz))) {
                         stoneCount++;
@@ -1067,8 +1066,41 @@ export class Interaction {
                 }
             }
         }
-        // A doorway / frame of stone needs at least 4 stone blocks
-        return stoneCount >= 4;
+
+        // Case 1: Clicked directly on a stone/cobblestone block with at least 4 stone blocks around
+        if (isStone(centerId) && stoneCount >= 4) {
+            return true;
+        }
+
+        // Case 2: Clicked floor inside portal opening ("zapal pod sobą krzesiwem")
+        // Check if there is air above the clicked floor block for the player to enter (cy+1 and cy+2)
+        const airAbove1 = this.world.getBlock(cx, cy + 1, cz) === 0;
+        const airAbove2 = this.world.getBlock(cx, cy + 2, cz) === 0;
+        if (airAbove1 && airAbove2 && stoneCount >= 4) {
+            return true;
+        }
+
+        // Case 3: Player standing inside portal opening and clicked nearby ground/frame
+        if (this.player && this.player.camera) {
+            const px = Math.floor(this.player.camera.position.x);
+            const py = Math.floor(this.player.camera.position.y);
+            const pz = Math.floor(this.player.camera.position.z);
+            let pStoneCount = 0;
+            for (let ox = -2; ox <= 2; ox++) {
+                for (let oy = -2; oy <= 2; oy++) {
+                    for (let oz = -2; oz <= 2; oz++) {
+                        if (isStone(this.world.getBlock(px + ox, py + oy, pz + oz))) {
+                            pStoneCount++;
+                        }
+                    }
+                }
+            }
+            if (pStoneCount >= 4) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     checkPigPortal(cx, cy, cz) {

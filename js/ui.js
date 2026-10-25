@@ -1481,16 +1481,66 @@ export class UI {
     }
 
     printTranslatorGuide(speak = false) {
-        this.addChatMessage('🎙️ Tłumacznik', '📜 ROZPISKA: JAK DOTRZEĆ DO BOSSA ROBOTA 👑', 'chat-server');
-        this.addChatMessage('🎙️ Tłumacznik', '1️⃣ ZRÓB KRZESIWO: 1x Patyk + 1x Kamień (na skos w craftingu [E/R]) 🔥', 'chat-server');
-        this.addChatMessage('🎙️ Tłumacznik', '2️⃣ ZBUDUJ PORTAL: Brama z Kamienia lub Bruku 🪨', 'chat-server');
-        this.addChatMessage('🎙️ Tłumacznik', '3️⃣ PODPAL PORTAL KRZESIWO: Teleport do Mrocznego Wymiaru! (Małe roboty NIE teleportują!) 🌌', 'chat-server');
-        this.addChatMessage('🎙️ Tłumacznik', '4️⃣ NA ARENIE ZBUDUJ TOTEM: Ziemia na dole, Kamień na górze i podpal krzesiwem! 🗿💥', 'chat-server');
-        this.addChatMessage('🎙️ Tłumacznik', '5️⃣ ZASADA: Boss i kody są TYLKO 1 RAZ NA MAPĘ! Odnawiają się po resecie gry w menu! 🔄', 'chat-server');
-
+        this.addChatMessage('👑 Przewodnik', '📜 JAK WEJŚĆ DO BOSSA: Weź krzesiwo i zrób portal z kamienia na 2 na 2 kratki, żeby twój skin wszedł, a potem zapal pod sobą krzesiwem i będziesz już u bossa. Życzę powodzenia! 🔥🪨', 'chat-server');
         if (speak) {
-            this.speakTranslator('Rozpiska tłumacznika! Zrób krzesiwo z patyka i kamienia na skos w craftingu. Zbuduj bramę z kamienia i podpal ją krzesiwem, aby wejść do portalu. Pamiętaj, małe roboty nie teleportują! Na arenie postaw totem z ziemi i kamienia i podpal go krzesiwem, aby obudzić kolosa bossa!');
+            this.speakTranslator('Weź krzesiwo i zrób portal z kamienia na dwie na dwie kratki, żeby twój skin wszedł, a potem zapal pod sobą krzesiwem i będziesz już u bossa. Życzę powodzenia!');
         }
+    }
+
+    showBossStartGuide() {
+        this.addChatMessage('👑 Przewodnik', '📜 JAK WEJŚĆ DO BOSSA: Weź krzesiwo i zrób portal z kamienia na 2 na 2 kratki, żeby twój skin wszedł, a potem zapal pod sobą krzesiwem i będziesz już u bossa. Życzę powodzenia! 🔥🪨', 'chat-server');
+
+        let banner = document.getElementById('boss-start-guide-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'boss-start-guide-banner';
+            banner.style.position = 'fixed';
+            banner.style.top = '22px';
+            banner.style.left = '50%';
+            banner.style.transform = 'translateX(-50%)';
+            banner.style.zIndex = '99998';
+            banner.style.width = 'min(640px, 92vw)';
+            banner.style.background = 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 27, 75, 0.96))';
+            banner.style.border = '2px solid #f59e0b';
+            banner.style.borderRadius = '14px';
+            banner.style.padding = '14px 20px';
+            banner.style.boxShadow = '0 12px 30px rgba(0,0,0,0.85), 0 0 20px rgba(245, 158, 11, 0.35)';
+            banner.style.color = '#ffffff';
+            banner.style.fontFamily = "'Segoe UI', Roboto, sans-serif";
+            banner.style.cursor = 'pointer';
+            banner.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            banner.onclick = () => {
+                banner.style.opacity = '0';
+                banner.style.transform = 'translateX(-50%) translateY(-15px)';
+                setTimeout(() => { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 400);
+            };
+            document.body.appendChild(banner);
+        }
+
+        banner.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="font-size: 34px;">📜👑</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; font-size: 15px; color: #fbbf24; margin-bottom: 3px; letter-spacing: 0.5px;">
+                        JAK WEJŚĆ DO BOSSA:
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.45; color: #f8fafc;">
+                        Weź krzesiwo i zrób portal z kamienia na <b>2 na 2 kratki</b>, żeby twój skin wszedł, a potem <b>zapal pod sobą krzesiwem</b> i będziesz już u bossa. Życzę powodzenia! 🔥🪨
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: right; margin-top: 5px; font-size: 11px; color: #94a3b8;">
+                (Kliknij, aby zamknąć ✕)
+            </div>
+        `;
+
+        setTimeout(() => {
+            if (banner && banner.parentNode) {
+                banner.style.opacity = '0';
+                banner.style.transform = 'translateX(-50%) translateY(-15px)';
+                setTimeout(() => { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 400);
+            }
+        }, 9000);
     }
 
     initChat() {
@@ -1506,12 +1556,12 @@ export class UI {
             }
         });
 
-        // Komunikat o wklejonej na stałe Tarczy Anty-Hakerskiej dla każdego gracza!
+        // Krótka instrukcja wejścia do bossa na początku gry na życzenie Tymka!
         setTimeout(() => {
+            this.showBossStartGuide();
             this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Wpisz /pomoc, aby zobaczyć komendy ✨', 'chat-server');
             this.addChatMessage('🛡️ System Ochrony', '🛡️ TARCZA ANTY-HAKERSKA TYMCRAFT: WKLEJONA NA STAŁE! Każdy gracz ma automatyczną blokadę przechodzenia przez ściany, noclip i cheatów od razu! Nikt nie musi nic wpisywać! 🔒✨', 'chat-success');
-            this.showPopup('🛡️ Tarcza Anty-Hakerska: Wklejona na stałe! Przechodzenie przez ściany zablokowane! 🔒');
-        }, 1500);
+        }, 1200);
     }
 
     openChat(initialChar = '') {
