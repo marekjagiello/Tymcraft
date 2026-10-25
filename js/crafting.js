@@ -1,4 +1,4 @@
-import { ITEMS } from './items.js?v=empty_start_bow_string_v10';
+import { ITEMS } from './items.js?v=recipe_tts_pig_king_v5';
 
 export { ITEMS };
 

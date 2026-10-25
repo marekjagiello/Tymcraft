@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
 import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound, playRainbowChimeSound, playCyberTeleportSound, playPigGruntSound, startBossRobotMusic } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=epic_rainbow_1';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=recipe_tts_pig_king_v5';
 
 import { eventBus } from './events.js';
 
@@ -1020,6 +1020,18 @@ export class Interaction {
         }
 
         this.world.setBlock(placeX, placeY, placeZ, activeItemId);
+
+        // Tymek: "Ten blok świń jak się położy, to będzie Król Świń."
+        if (activeItemId === 59) {
+            if (this.animals && this.animals.spawnPigKing) {
+                const king = this.animals.spawnPigKing(placeX + 0.5, placeZ + 0.5);
+                if (king) {
+                    king.position.y = Math.max(king.position.y, placeY + 1);
+                    king.group.position.copy(king.position);
+                }
+                eventBus.emit('ui:popup', '👑 Oink! Król Świń narodził się ze Świniowego Bloku! 🐷👑');
+            }
+        }
 
         eventBus.emit('item:consume');
         if (this.onBlockPlaced) {

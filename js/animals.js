@@ -1,7 +1,7 @@
 import { Pig, Sheep, Snake, Bear, Cow, createPixelHeartMesh } from './entities/mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './entities/mobs/hostile.js?v=recipe_book_v4';
-import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './entities/projectile.js?v=recipe_book_v4';
-import { EntityManager } from './entities/entity-manager.js?v=recipe_book_v4';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './entities/mobs/hostile.js?v=recipe_tts_pig_king_v5';
+import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './entities/projectile.js?v=recipe_tts_pig_king_v5';
+import { EntityManager } from './entities/entity-manager.js?v=recipe_tts_pig_king_v5';
 
 export {
     createPixelHeartMesh,

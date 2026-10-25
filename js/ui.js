@@ -1,8 +1,8 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
-import { ITEMS, RECIPES, canCraftRecipe, craftRecipeDirect } from './crafting.js?v=recipe_book_v4';
-import { getItem } from './items.js?v=empty_start_bow_string_v10';
+import { ITEMS, RECIPES, canCraftRecipe, craftRecipeDirect } from './crafting.js?v=recipe_tts_pig_king_v5';
+import { getItem } from './items.js?v=recipe_tts_pig_king_v5';
 import { eventBus } from './events.js';
-import { playWarningBuzzer, playCraftSuccessSound } from './audio.js?v=recipe_book_v4';
+import { playCraftSuccessSound, speakText } from './audio.js?v=recipe_tts_pig_king_v5';
 
 // 9 Pustych Slotów Paska Podręcznego (gracz zaczyna bez żadnych rzeczy na życzenie Tymka!)
 export const HOTBAR_BLOCKS = Array.from({ length: 9 }, (_, i) => ({
@@ -1054,8 +1054,18 @@ export class UI {
 
             const ingSpan = document.createElement('div');
             ingSpan.className = 'recipe-ingredients';
-            const ingText = recipe.ingredients.map(ing => `${ing.count}x ${ing.name}`).join(' + ');
-            ingSpan.innerText = ingText;
+            const ingElements = recipe.ingredients.map(ing => {
+                const allowedIds = ing.alternatives || [ing.id];
+                let count = 0;
+                for (const id of allowedIds) {
+                    for (const slot of this.hotbarBlocks) { if (slot.id === id && slot.count > 0) count += slot.count; }
+                    for (const slot of this.backpackSlots) { if (slot.id === id && slot.count > 0) count += slot.count; }
+                }
+                const isSatisfied = count >= ing.count;
+                const col = isSatisfied ? '#4ade80' : '#fca5a5';
+                return `<span style="color: ${col}; font-weight: ${isSatisfied ? 'normal' : 'bold'};">${ing.count}x ${ing.name} (${count}/${ing.count})</span>`;
+            }).join(' + ');
+            ingSpan.innerHTML = ingElements;
 
             texts.appendChild(nameSpan);
             texts.appendChild(ingSpan);
@@ -1074,7 +1084,7 @@ export class UI {
 
             // Obsługa kliknięcia wg reguł Tymka:
             // - Zielona: od razu wytwarza przedmiot
-            // - Czerwona: dźwięk buzzer + komunikat: "Nie masz dobrych surowców, żeby to zrobić!"
+            // - Czerwona: Mówi na głos (TTS) czego potrzebujesz i wyraźnie to POKAZUJE na ekranie!
             card.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (canCraft) {
@@ -1090,12 +1100,14 @@ export class UI {
                         this.renderRecipeBook();
                     }
                 } else {
-                    playWarningBuzzer();
                     card.classList.add('shake');
                     setTimeout(() => card.classList.remove('shake'), 350);
 
-                    const missingStr = missing.map(m => `${m.diff}x ${m.name}`).join(', ');
-                    this.showPopup(`🚫 Nie masz dobrych surowców, żeby to zrobić! (Brakuje: ${missingStr})`);
+                    // Tymek: "Ma mówić czego potrzebujesz, ma pokazywać czego potrzebujesz, a nie robić bzzzt bzzzt!"
+                    const spokenMissing = missing.map(m => `${m.diff} ${m.name}`).join(' oraz ');
+                    speakText(`Do wytworzenia ${recipe.output.name} potrzebujesz: ${spokenMissing}`);
+
+                    this.showRecipeNeedsModal(recipe, missing);
                 }
             });
 
@@ -1108,6 +1120,57 @@ export class UI {
             readyCountEl.style.color = readyCount > 0 ? '#34d399' : '#fca5a5';
             readyCountEl.style.borderColor = readyCount > 0 ? '#10b981' : '#ef4444';
         }
+    }
+
+    showRecipeNeedsModal(recipe, missing) {
+        let el = document.getElementById('recipe-needs-popup');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'recipe-needs-popup';
+            el.style.position = 'fixed';
+            el.style.top = '12%';
+            el.style.left = '50%';
+            el.style.transform = 'translateX(-50%)';
+            el.style.zIndex = '99999';
+            el.style.background = 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96))';
+            el.style.border = '2px solid #f59e0b';
+            el.style.borderRadius = '12px';
+            el.style.padding = '14px 22px';
+            el.style.color = '#ffffff';
+            el.style.textAlign = 'center';
+            el.style.fontFamily = "'Segoe UI', Roboto, sans-serif";
+            el.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(245, 158, 11, 0.35)';
+            el.style.pointerEvents = 'none';
+            el.style.transition = 'opacity 0.25s ease';
+            document.body.appendChild(el);
+        }
+
+        const missingItemsHtml = missing.map(m => `
+            <div style="margin: 4px 0; color: #fef08a; font-size: 13px;">
+                🔴 <b>${m.name}</b>: Masz <b>${m.have}</b> / Potrzebujesz <b>${m.needed}</b> (Brakuje: <b>${m.diff}</b>)
+            </div>
+        `).join('');
+
+        el.innerHTML = `
+            <div style="font-size: 15px; font-weight: bold; color: #fbbf24; margin-bottom: 6px;">
+                📋 Czego potrzebujesz do wytworzenia: <b>${recipe.output.name}</b> (x${recipe.output.count})?
+            </div>
+            ${missingItemsHtml}
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
+                Zbierz brakujące surowce w świecie lub wykop ze skał!
+            </div>
+        `;
+        el.style.display = 'block';
+        el.style.opacity = '1';
+
+        clearTimeout(this._recipeNeedsTimeout);
+        this._recipeNeedsTimeout = setTimeout(() => {
+            el.style.opacity = '0';
+            setTimeout(() => { if (el.style.opacity === '0') el.style.display = 'none'; }, 300);
+        }, 3600);
+
+        const missingStr = missing.map(m => `${m.diff}x ${m.name}`).join(', ');
+        this.showPopup(`🚫 Nie masz dobrych surowców, żeby to zrobić! (Potrzebujesz: ${missingStr})`);
     }
 
     initEvents() {

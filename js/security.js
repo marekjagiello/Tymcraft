@@ -135,12 +135,9 @@ Wszelkie próby pobierania, kopiowania, noclip i przerabiania są w 100% ZABLOKO
 
     initContextMenuBlocker() {
         window.addEventListener('contextmenu', (e) => {
-            // Blokuj menu kontekstowe na całej stronie, aby nikt nie mógł kliknąć "Zapisz stronę jako..."
+            // Cichy strażnik: blokuj menu kontekstowe przeglądarki, aby nikt nie mógł kliknąć "Zapisz stronę jako..."
+            // Nie wyświetla żadnych natrętnych okien, aby nie przeszkadzać graczom!
             e.preventDefault();
-            // Jeśli mysz nie jest zablokowana wskaźnikiem (np. gracz kliknął w menu/interfejsie):
-            if (!this.game?.player?.controls?.isLocked) {
-                this.showSecurityAlert('Opcje przeglądarki i pobieranie są zablokowane! Gra Tymka ma własną ochronę!');
-            }
         }, true);
     }
 

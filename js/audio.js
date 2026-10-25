@@ -308,19 +308,23 @@ export function playDirtikVoiceSound() {
     speakDirtikCry();
 }
 
-export function speakDirtikCry() {
+export function speakText(text, lang = 'pl-PL', pitch = 1.0, rate = 1.0) {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
             window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance('Wiem, że to ty chcesz mnie zabić!');
-            utter.lang = 'pl-PL';
-            utter.pitch = 1.8; // Thin, high-pitched squeaky voice
-            utter.rate = 1.25;
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = lang;
+            utter.pitch = pitch;
+            utter.rate = rate;
             window.speechSynthesis.speak(utter);
         } catch (e) {
-            console.warn('[Speech] Could not speak Dirtik cry:', e);
+            console.warn('[Speech] Could not speak text:', e);
         }
     }
+}
+
+export function speakDirtikCry() {
+    speakText('Wiem, że to ty chcesz mnie zabić!', 'pl-PL', 1.8, 1.25);
 }
 
 export function playRainbowChimeSound() {

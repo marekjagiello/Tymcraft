@@ -115,10 +115,10 @@ export function isTool(id) {
 }
 
 export function isPlaceableBlock(id) {
-    if (id === 51 || id === 53) return true;
-    if (id < 1 || id > 19) return false;
+    if (id === 51 || id === 53 || id === 59) return true;
     const item = getItem(id);
-    return item ? Boolean(item.placeable) : false;
+    if (item && item.placeable !== undefined) return Boolean(item.placeable);
+    return id >= 1 && id <= 19;
 }
 
 export function isArmor(id) {
