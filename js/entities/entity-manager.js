@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './mobs/hostile.js?v=pig_king_boss_v14';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './mobs/hostile.js?v=boss_phase2_v1';
 
 import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=epic_rainbow_1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
@@ -181,6 +181,13 @@ export class EntityManager {
         const boss = new BossRobot(this.scene, this.world, x, z, this);
         this.animals.push(boss);
         console.log(`[EntityManager] Zespawnowano Bossa Robota na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
+        return boss;
+    }
+
+    spawnBossRobotPhase2(x, z) {
+        const boss = new BossRobot(this.scene, this.world, x, z, this, true);
+        this.animals.push(boss);
+        console.log(`[EntityManager] Zespawnowano Bossa Robota FAZY 2 na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
         return boss;
     }
 

@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=dirtik_quest_v16';
-import { Player } from './player.js?v=dirtik_quest_v16';
-import { Interaction } from './interaction.js?v=dirtik_quest_v16';
-import { AnimalManager } from './animals.js?v=dirtik_quest_v16';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=dirtik_quest_v16';
-import { StorageManager } from './storage.js?v=dirtik_quest_v16';
-import { SurvivalManager } from './survival.js?v=dirtik_quest_v16';
-import { CraftingManager } from './crafting.js?v=dirtik_quest_v16';
-import { DropsManager } from './drops.js?v=dirtik_quest_v16';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_phase2_v1';
+import { Player } from './player.js?v=boss_phase2_v1';
+import { Interaction } from './interaction.js?v=boss_phase2_v1';
+import { AnimalManager } from './animals.js?v=boss_phase2_v1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_phase2_v1';
+import { StorageManager } from './storage.js?v=boss_phase2_v1';
+import { SurvivalManager } from './survival.js?v=boss_phase2_v1';
+import { CraftingManager } from './crafting.js?v=boss_phase2_v1';
+import { DropsManager } from './drops.js?v=boss_phase2_v1';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=dirtik_quest_v16';
-import { QuestManager } from './quests.js?v=dirtik_quest_v16';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=dirtik_quest_v16';
+import { updateWaterAnimation } from './textures.js?v=boss_phase2_v1';
+import { QuestManager } from './quests.js?v=boss_phase2_v1';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_phase2_v1';
 
 
 

@@ -129,12 +129,12 @@ export class FlyingArrow extends Entity {
                     playHitSound();
                     const wasAlive = mob.health > 0;
                     const knockbackOrigin = this.position.clone().sub(this.velocity.clone().normalize().multiplyScalar(2.0));
-                    mob.onAttacked(this.damage, knockbackOrigin);
+                    mob.onAttacked(this.damage, knockbackOrigin, this.sourceBowId || 29);
 
                     let name = 'przeciwnika';
                     if (mob.type === 'boss_pig_king') name = 'Króla Świń 👑';
                     else if (mob.type === 'red_eyed_pig') name = 'Świnię z czerwonymi oczami 🔴';
-                    else if (mob.type === 'boss_robot') name = 'Bossa Robota 🤖';
+                    else if (mob.type === 'boss_robot') name = mob.isPhase2 ? 'Bossa Robota (Faza 2) 🤖' : 'Bossa Robota 🤖';
                     else if (mob.type === 'mini_robot') name = 'Małego Robota 🤖';
                     else if (mob.type === 'robot') name = 'Robota 🤖';
                     else if (mob.type === 'dirtik') name = 'Dirtika';
@@ -151,7 +151,7 @@ export class FlyingArrow extends Entity {
                         const msg = `🏹💥 Trafienie! Pokonano ${name}!`;
                         eventBus.emit('ui:popup', msg);
                         if (ui && !ui._handledByEvent) ui.showPopup(msg);
-                    } else {
+                    } else if (!(mob.type === 'boss_robot' && mob.isPhase2 && this.sourceBowId === 55)) {
                         const msg = `🏹 Trafiono ${name}! (${Math.max(0, mob.health)}/${mob.maxHealth} HP)`;
                         eventBus.emit('ui:popup', msg);
                         if (ui && !ui._handledByEvent) ui.showPopup(msg);
@@ -466,16 +466,22 @@ export class MagicStoneSpell extends Entity {
         else if (mob.type === 'bear') name = 'Niedźwiedzia';
 
         let msg = '';
+        if (mob.type === 'boss_robot' && mob.isPhase2) {
+            mob.onAttacked(0, this.position, 50);
+            this.destroy();
+            return;
+        }
+
         if (this.spellType === 'lightning') {
-            mob.onAttacked(16, this.position);
+            mob.onAttacked(16, this.position, 50);
             playExplosionSound();
             msg = `⚡🪄 Piorun z Różdżki uderzył w ${name}! (16 obrażeń!) ⚡`;
         } else if (this.spellType === 'fireball') {
-            mob.onAttacked(14, this.position);
+            mob.onAttacked(14, this.position, 50);
             playExplosionSound();
             msg = `🔥🪄 Kula Ognia trafiła ${name}! (14 obrażeń!) 🔥`;
         } else {
-            mob.onAttacked(8, this.position);
+            mob.onAttacked(8, this.position, 50);
             if (typeof mob.turnToStone === 'function') {
                 mob.turnToStone(5.0);
             }
@@ -734,14 +740,20 @@ export class HomingRainbowArrow extends Entity {
         else if (mob.type === 'creeper') mobName = 'Creepera 💥';
         else if (mob.type === 'dirtik') mobName = 'Dirtika 🐗';
 
+        if (mob.type === 'boss_robot' && mob.isPhase2) {
+            mob.onAttacked(0, this.position, 56);
+            this.startReturn();
+            return;
+        }
+
         if (mob.type === 'boss_robot' || mob.type === 'boss_pig_king') {
-            mob.onAttacked(50, this.position);
+            mob.onAttacked(50, this.position, 56);
             const msg = `🌈🎯 Potężne trafienie Kolorową Strzałą w ${mobName}! (50 DMG!) [HP: ${Math.max(0, mob.health)}/${mob.maxHealth}]`;
             eventBus.emit('ui:popup', msg);
             if (ui) ui.showPopup(msg);
         } else {
             const dmg = Math.max(40, mob.health + 10);
-            mob.onAttacked(dmg, this.position);
+            mob.onAttacked(dmg, this.position, 56);
             const msg = `🌈🎯 Trafienie bez pudła! Kolorowa Strzała zniszczyła ${mobName}!`;
             eventBus.emit('ui:popup', msg);
             if (ui) ui.showPopup(msg);

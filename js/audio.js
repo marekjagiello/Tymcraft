@@ -580,3 +580,52 @@ export function playPigGruntSound(isKing = false) {
     } catch (_) {}
 }
 
+// Dźwięk tarczy anty-kolorowej odbijającej kolorowe bronie (na życzenie Tymka!)
+export function playShieldDeflectSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(320, now + 0.18);
+
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.18);
+    } catch (_) {}
+}
+
+// Dźwięk dezorientacji / nagłego obrócenia gracza tyłem (na życzenie Tymka!)
+export function playDisorientSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.linearRampToValueAtTime(360, now + 0.12);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.24);
+
+        gain.gain.setValueAtTime(0.40, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.24);
+    } catch (_) {}
+}
+

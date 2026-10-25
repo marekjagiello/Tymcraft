@@ -1049,4 +1049,15 @@ export class Player {
             }
         }
     }
+
+    // Obrót gracza tyłem (180 stopni) - wywoływane przy uderzeniu Bossa Fazy 2 (na życzenie Tymka!)
+    turnAround() {
+        const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+        euler.setFromQuaternion(this.camera.quaternion);
+        euler.y += Math.PI;
+        this.camera.quaternion.setFromEuler(euler);
+        if (this.playerGroup) {
+            this.playerGroup.rotation.y = euler.y;
+        }
+    }
 }

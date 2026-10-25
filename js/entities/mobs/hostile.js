@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playLaserPistolSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound, playPigGruntSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playLaserPistolSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound, playPigGruntSound, playShieldDeflectSound, playDisorientSound } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=water_2';
 
 
@@ -1486,20 +1486,21 @@ export class BossLaserBolt {
 // ręce wysuwają się kolejno jedna po drugiej, smashes trees, 160 HP!
 // -------------------------------------------------------------
 export class BossRobot extends Mob {
-    constructor(scene, world, x = 32, z = 32, manager = null) {
+    constructor(scene, world, x = 32, z = 32, manager = null, isPhase2 = false) {
         const blockX = Math.floor(x) + 0.5;
         const blockZ = Math.floor(z) + 0.5;
         super(scene, world, 'boss_robot', blockX, blockZ, manager);
-        this.maxHealth = 160;
-        this.health = 160;
-        this.walkSpeed = 1.9;
-        this.attackDamage = 5; // Potężny atak 4-ramiennego kolosa!
+        this.isPhase2 = isPhase2;
+        this.maxHealth = isPhase2 ? 240 : 160;
+        this.health = this.maxHealth;
+        this.walkSpeed = isPhase2 ? 2.4 : 1.9;
+        this.attackDamage = isPhase2 ? 7 : 5; // Potężny atak kolosa!
         this.isAwakening = true;
         this.awakenTimer = 0;
-        this.targetScale = 3.5;
+        this.targetScale = isPhase2 ? 4.0 : 3.5;
         this.attackCooldown = 0;
         this.swingTime = 0;
-        this.gunCooldown = 1.5;
+        this.gunCooldown = isPhase2 ? 1.4 : 1.5;
         this.treeSmashCooldown = 0;
         this.smokeParticles = [];
         this.smokeTimer = 0;
@@ -1510,11 +1511,25 @@ export class BossRobot extends Mob {
         this.buildHealthBar(3.5);
         this.group.scale.set(0.35, 0.35, 0.35); // Starts small, then grows!
 
-        // 4 ramiona startują schowane, a potem wysuwają się po kolei (na życzenie Tymka!)
-        this.arms = [this.upperRArm, this.upperLArm, this.lowerRArm, this.lowerLArm];
-        this.arms.forEach(arm => {
-            if (arm) arm.scale.set(0, 0, 0);
-        });
+        if (this.isPhase2) {
+            // Remove Phase 1 arms and build Phase 2 (12 arms)
+            if (this.upperRArm && this.upperRArm.parent) this.modelGroup.remove(this.upperRArm);
+            if (this.upperLArm && this.upperLArm.parent) this.modelGroup.remove(this.upperLArm);
+            if (this.lowerRArm && this.lowerRArm.parent) this.modelGroup.remove(this.lowerRArm);
+            if (this.lowerLArm && this.lowerLArm.parent) this.modelGroup.remove(this.lowerLArm);
+            this.buildPhase2Arms();
+            this.arms.forEach(arm => {
+                if (arm) arm.scale.set(0, 0, 0);
+            });
+            if (this.core) this.core.material = new THREE.MeshBasicMaterial({ color: 0xd946ef });
+            if (this.visor) this.visor.material = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+        } else {
+            // 4 ramiona startują schowane, a potem wysuwają się po kolei (na życzenie Tymka!)
+            this.arms = [this.upperRArm, this.upperLArm, this.lowerRArm, this.lowerLArm];
+            this.arms.forEach(arm => {
+                if (arm) arm.scale.set(0, 0, 0);
+            });
+        }
 
         if (blockX >= 980 && blockX <= 1020) {
             this.position.set(blockX, 12, blockZ);
@@ -1528,7 +1543,8 @@ export class BossRobot extends Mob {
         this.scene.add(this.group);
 
         if (this.manager?.ui) {
-            this.manager.ui.showBossBar('👑 BOSS ROBOT', this.health, this.maxHealth);
+            const title = this.isPhase2 ? '👑 ULTRA BOSS ROBOT - FAZA 2 (12 RAMION)' : '👑 BOSS ROBOT';
+            this.manager.ui.showBossBar(title, this.health, this.maxHealth);
         }
 
         playRobotWakeSound();
@@ -1571,6 +1587,7 @@ export class BossRobot extends Mob {
         const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 0), redCoreMat);
         core.position.set(0, 0.12, 0.35);
         this.body.add(core);
+        this.core = core;
 
         // Dual industrial exhaust chimneys on back
         const pipeGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.85, 8);
@@ -1611,6 +1628,7 @@ export class BossRobot extends Mob {
         const visor = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.15, 0.05), redCoreMat);
         visor.position.set(0, 0.04, 0.28);
         this.head.add(visor);
+        this.visor = visor;
 
         // Mecha Horns
         const hornGeo = new THREE.BoxGeometry(0.08, 0.35, 0.08);
@@ -1730,6 +1748,159 @@ export class BossRobot extends Mob {
         this.group.add(this.modelGroup);
     }
 
+    // --- 12 MECHANICZNYCH RAMION DLA FAZY 2 (PO 6 PO KAŻDEJ STRONIE na życzenie Tymka!) ---
+    buildPhase2Arms() {
+        const darkSteelMat = new THREE.MeshLambertMaterial({ color: 0x090d16 });
+        const crimsonMat = new THREE.MeshLambertMaterial({ color: 0x991b1b });
+        const goldMat = new THREE.MeshLambertMaterial({ color: 0xd97706 });
+
+        const redLaserMat = new THREE.MeshLambertMaterial({
+            color: 0xf43f5e,
+            emissive: 0xbe123c,
+            emissiveIntensity: 1.0
+        });
+        const cyanLaserMat = new THREE.MeshLambertMaterial({
+            color: 0x38bdf8,
+            emissive: 0x0284c7,
+            emissiveIntensity: 1.0
+        });
+        const purpleLaserMat = new THREE.MeshLambertMaterial({
+            color: 0xc084fc,
+            emissive: 0x9333ea,
+            emissiveIntensity: 1.0
+        });
+        const goldLaserMat = new THREE.MeshLambertMaterial({
+            color: 0xfacc15,
+            emissive: 0xca8a04,
+            emissiveIntensity: 1.0
+        });
+        const greenLaserMat = new THREE.MeshLambertMaterial({
+            color: 0x4ade80,
+            emissive: 0x16a34a,
+            emissiveIntensity: 1.0
+        });
+
+        // Prawa strona (x > 0) - dokładnie 6 ramion (3 miecze, 3 blastery)
+        const r1 = this.createPhase2Arm('right', 0.65, 1.85, 0.24, 'sword', redLaserMat, darkSteelMat);
+        const r2 = this.createPhase2Arm('right', 0.65, 1.85, -0.24, 'blaster', cyanLaserMat, darkSteelMat);
+        const r3 = this.createPhase2Arm('right', 0.72, 1.45, 0.26, 'sword', cyanLaserMat, crimsonMat);
+        const r4 = this.createPhase2Arm('right', 0.72, 1.45, -0.26, 'blaster', redLaserMat, crimsonMat);
+        const r5 = this.createPhase2Arm('right', 0.60, 1.05, 0.22, 'sword', goldLaserMat, goldMat);
+        const r6 = this.createPhase2Arm('right', 0.60, 1.05, -0.22, 'blaster', purpleLaserMat, darkSteelMat);
+        this.armsPhase2Right = [r1, r2, r3, r4, r5, r6];
+
+        // Lewa strona (x < 0) - dokładnie 6 ramion (3 miecze, 3 blastery)
+        const l1 = this.createPhase2Arm('left', -0.65, 1.85, 0.24, 'sword', purpleLaserMat, darkSteelMat);
+        const l2 = this.createPhase2Arm('left', -0.65, 1.85, -0.24, 'blaster', cyanLaserMat, darkSteelMat);
+        const l3 = this.createPhase2Arm('left', -0.72, 1.45, 0.26, 'sword', greenLaserMat, crimsonMat);
+        const l4 = this.createPhase2Arm('left', -0.72, 1.45, -0.26, 'blaster', redLaserMat, crimsonMat);
+        const l5 = this.createPhase2Arm('left', -0.60, 1.05, 0.22, 'sword', cyanLaserMat, darkSteelMat);
+        const l6 = this.createPhase2Arm('left', -0.60, 1.05, -0.22, 'blaster', goldLaserMat, goldMat);
+        this.armsPhase2Left = [l1, l2, l3, l4, l5, l6];
+
+        this.armsPhase2 = [...this.armsPhase2Right, ...this.armsPhase2Left];
+        this.arms = this.armsPhase2;
+    }
+
+    createPhase2Arm(side, xPos, yPos, zPos, weaponType, bladeOrMuzzleMat, armMat) {
+        const armGroup = new THREE.Group();
+        armGroup.position.set(xPos, yPos, zPos);
+
+        const armGeo = new THREE.BoxGeometry(0.18, 0.70, 0.18);
+        const armMesh = new THREE.Mesh(armGeo, armMat);
+        armMesh.position.set(0, -0.32, 0);
+        armGroup.add(armMesh);
+
+        // Shoulder joint
+        const joint = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), bladeOrMuzzleMat);
+        armGroup.add(joint);
+
+        if (weaponType === 'sword') {
+            const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.08), armMat);
+            hilt.position.set(0, -0.60, 0.14);
+            armGroup.add(hilt);
+            const guard = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.06, 0.10), armMat);
+            guard.position.set(0, -0.56, 0.14);
+            armGroup.add(guard);
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(0.10, 1.20, 0.06), bladeOrMuzzleMat);
+            blade.position.set(0, -0.76, 0.22);
+            armGroup.add(blade);
+        } else {
+            const pistol = new THREE.Group();
+            pistol.position.set(0, -0.62, 0.20);
+            const pBody = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.22, 0.38), armMat);
+            pistol.add(pBody);
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.44, 8), armMat);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(0, 0.03, 0.30);
+            pistol.add(barrel);
+            const tip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.10), bladeOrMuzzleMat);
+            tip.position.set(0, 0.03, 0.54);
+            pistol.add(tip);
+            armGroup.add(pistol);
+        }
+
+        this.modelGroup.add(armGroup);
+        return armGroup;
+    }
+
+    isRainbowSource(sourceItem) {
+        if (!sourceItem && sourceItem !== 0) return false;
+        if (typeof sourceItem === 'number') {
+            return sourceItem === 50 || sourceItem === 51 || sourceItem === 53 ||
+                   sourceItem === 54 || sourceItem === 55 || sourceItem === 56;
+        }
+        if (typeof sourceItem === 'string') {
+            const lower = sourceItem.toLowerCase();
+            return lower.includes('kolor') || lower.includes('rainbow') ||
+                   lower.includes('tęcz') || lower.includes('różdżk');
+        }
+        return false;
+    }
+
+    transformToPhase2() {
+        this.isPhase2 = true;
+        this.maxHealth = 240;
+        this.health = 240;
+        this.walkSpeed = 2.4;
+        this.attackDamage = 7;
+        this.isAwakening = true;
+        this.awakenTimer = 0;
+        this.deployedArmsCount = 0;
+        this.targetScale = 4.0;
+
+        playExplosionSound();
+        playReactorChargeSound();
+        playRobotWakeSound();
+
+        for (let i = 0; i < 18; i++) {
+            this.emitSmoke();
+        }
+
+        // Usuń stare 4 ramiona Fazy 1
+        if (this.upperRArm && this.upperRArm.parent) this.modelGroup.remove(this.upperRArm);
+        if (this.upperLArm && this.upperLArm.parent) this.modelGroup.remove(this.upperLArm);
+        if (this.lowerRArm && this.lowerRArm.parent) this.modelGroup.remove(this.lowerRArm);
+        if (this.lowerLArm && this.lowerLArm.parent) this.modelGroup.remove(this.lowerLArm);
+
+        // Zbuduj 12 ramion Fazy 2
+        this.buildPhase2Arms();
+
+        // Zmiana barw reaktora i wizjera na neonowy fiolet i róż
+        if (this.core) {
+            this.core.material = new THREE.MeshBasicMaterial({ color: 0xd946ef });
+        }
+        if (this.visor) {
+            this.visor.material = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+        }
+
+        if (this.manager?.ui) {
+            this.manager.ui.showBossBar('👑 ULTRA BOSS ROBOT - FAZA 2 (12 RAMION)', this.health, this.maxHealth);
+            this.manager.ui.showPopup('⚠️ TRANSFORMACJA! Boss Robot wkracza w FAZĘ 2 z 12 RAMIONAMI! 🤖🔥');
+            this.manager.ui.addChatMessage('Serwer', '⚠️ UWAGA! Boss Robot aktywował drugą wersję! Posiada 12 ramion (miecze i pistolety), a KOLOROWE BRONIE NIE DZIAŁAJĄ! Użyj diamentowych, rubinowych lub laserowych broni!', 'chat-server');
+        }
+    }
+
     emitSmoke() {
         if (!this.scene) return;
         const pos = new THREE.Vector3();
@@ -1781,14 +1952,79 @@ export class BossRobot extends Mob {
         }
     }
 
-    takeDamage(amount, source = '') {
+    takeDamage(amount, source = '', sourceItem = null) {
         if (this.isAwakening) return; // Invulnerable while waking up!
-        super.takeDamage(amount, source);
+        return this.onAttacked(amount, null, sourceItem || source);
+    }
+
+    onAttacked(damage = 2, attackerPos = null, sourceItem = null) {
+        if (this.isDead) return;
+        if (this.isAwakening) return;
+
+        if (this.isPhase2) {
+            // Niewrażliwość na Kolorowe Przedmioty (na życzenie Tymka!)
+            if (this.isRainbowSource(sourceItem)) {
+                playShieldDeflectSound();
+                eventBus.emit('boss:attack_flash', {
+                    color: 0x38bdf8,
+                    intensity: 6.0,
+                    x: this.position.x,
+                    y: this.position.y + 2.0,
+                    z: this.position.z
+                });
+                if (this.manager?.ui) {
+                    this.manager.ui.showPopup('🛡️ TARCZA ANTY-KOLOROWA! Kolorowe bronie nie zadają obrażeń Fazie 2!');
+                    this.manager.ui.addChatMessage('Serwer', '🛡️ Tarcza Bossa Fazy 2 zablokowała kolorową broń! (0 DMG) Użyj Diamentowego, Rubinowego lub Laserowego Miecza! ⚔️💎', 'chat-server');
+                }
+                // Gracz i tak zostaje obrócony tyłem!
+                if (this.manager?.player?.turnAround) {
+                    this.manager.player.turnAround();
+                    playDisorientSound();
+                }
+                return;
+            }
+
+            // Prawidłowe trafienie Fazie 2: Gracz zostaje natychmiast obrócony tyłem (utrudnienie Tymka!)
+            if (this.manager?.player?.turnAround) {
+                this.manager.player.turnAround();
+                playDisorientSound();
+                if (this.manager?.ui) {
+                    this.manager.ui.showPopup('🌀 Boss odrzucił Cię i obrócił tyłem!');
+                }
+            }
+        }
+
+        this.health -= damage;
+        this.flashRed();
+
+        if (this.manager?.ui) {
+            const title = this.isPhase2 ? '👑 ULTRA BOSS ROBOT - FAZA 2 (12 RAMION)' : '👑 BOSS ROBOT';
+            this.manager.ui.showBossBar(title, Math.max(0, this.health), this.maxHealth);
+        }
+
+        eventBus.emit('entity:damaged', { entity: this, damage, attackerPos });
+
+        // Knockback
+        if (attackerPos) {
+            const kb = this.position.clone().sub(attackerPos).setY(0);
+            if (kb.lengthSq() > 0.001) {
+                kb.normalize();
+                this.position.addScaledVector(kb, 0.25);
+            }
+        }
+
+        if (this.health <= 0) {
+            if (!this.isPhase2) {
+                this.transformToPhase2();
+            } else {
+                this.die();
+            }
+        }
     }
 
     die() {
         super.die();
-        eventBus.emit('mob:killed', { type: 'boss_robot' });
+        eventBus.emit('mob:killed', { type: 'boss_robot', isPhase2: this.isPhase2 });
         eventBus.emit('boss_robot:defeated');
 
         // Cleanup smoke particles
@@ -1801,75 +2037,78 @@ export class BossRobot extends Mob {
             this.smokeParticles = [];
         }
 
-        // Boss Drops: 4x Blue Element, 8x Diamonds, 1x Laser Sword, 1x Mystery Box!
+        // Boss Drops
         if (this.manager && this.manager.drops) {
-            // 4 Blue Elements
-            for (let i = 0; i < 4; i++) {
+            const countBlue = this.isPhase2 ? 8 : 4;
+            for (let i = 0; i < countBlue; i++) {
                 const drop = new DroppedItem(
                     this.scene,
                     this.world,
                     49,
                     'Niebieski Pierwiastek',
-                    this.position.x + (Math.random() - 0.5) * 1.2,
+                    this.position.x + (Math.random() - 0.5) * 1.5,
                     this.position.y + 1.2,
-                    this.position.z + (Math.random() - 0.5) * 1.2
+                    this.position.z + (Math.random() - 0.5) * 1.5
                 );
                 this.manager.drops.add(drop);
             }
 
-            // 8 Diamonds
-            for (let i = 0; i < 8; i++) {
+            const countDia = this.isPhase2 ? 12 : 8;
+            for (let i = 0; i < countDia; i++) {
                 const drop = new DroppedItem(
                     this.scene,
                     this.world,
                     30,
                     'Diament',
-                    this.position.x + (Math.random() - 0.5) * 1.5,
+                    this.position.x + (Math.random() - 0.5) * 1.8,
                     this.position.y + 1.0,
-                    this.position.z + (Math.random() - 0.5) * 1.5
+                    this.position.z + (Math.random() - 0.5) * 1.8
                 );
                 this.manager.drops.add(drop);
             }
 
-            // 1 Laser Sword
-            const sword = new DroppedItem(
-                this.scene,
-                this.world,
-                47,
-                'Laserowy Miecz',
-                this.position.x,
-                this.position.y + 1.2,
-                this.position.z
-            );
-            this.manager.drops.add(sword);
+            const countLaser = this.isPhase2 ? 2 : 1;
+            for (let i = 0; i < countLaser; i++) {
+                const sword = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    47,
+                    'Laserowy Miecz',
+                    this.position.x + (Math.random() - 0.5) * 0.8,
+                    this.position.y + 1.2,
+                    this.position.z + (Math.random() - 0.5) * 0.8
+                );
+                this.manager.drops.add(sword);
+            }
 
-            // 1 Mystery Box
-            const box = new DroppedItem(
-                this.scene,
-                this.world,
-                44,
-                'Mystery Box',
-                this.position.x + 0.4,
-                this.position.y + 1.2,
-                this.position.z - 0.4
-            );
-            this.manager.drops.add(box);
+            const countBox = this.isPhase2 ? 2 : 1;
+            for (let i = 0; i < countBox; i++) {
+                const box = new DroppedItem(
+                    this.scene,
+                    this.world,
+                    44,
+                    'Mystery Box',
+                    this.position.x + (Math.random() - 0.5) * 0.9,
+                    this.position.y + 1.2,
+                    this.position.z + (Math.random() - 0.5) * 0.9
+                );
+                this.manager.drops.add(box);
+            }
 
-            // 4 Rubies
-            for (let i = 0; i < 4; i++) {
+            const countRubies = this.isPhase2 ? 8 : 4;
+            for (let i = 0; i < countRubies; i++) {
                 const drop = new DroppedItem(
                     this.scene,
                     this.world,
                     35,
                     'Rubin',
-                    this.position.x + (Math.random() - 0.5) * 1.5,
+                    this.position.x + (Math.random() - 0.5) * 1.8,
                     this.position.y + 1.2,
-                    this.position.z + (Math.random() - 0.5) * 1.5
+                    this.position.z + (Math.random() - 0.5) * 1.8
                 );
                 this.manager.drops.add(drop);
             }
 
-            // 1 Kolorowy Blok 626
             const block626 = new DroppedItem(
                 this.scene,
                 this.world,
@@ -1882,9 +2121,11 @@ export class BossRobot extends Mob {
             this.manager.drops.add(block626);
         }
 
-        // Zapisanie pokonania Bossa na zawsze w pamięci gry ("bossa możesz zrobić tylko raz")
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem('m2_boss_robot_defeated', 'true');
+            if (this.isPhase2) {
+                localStorage.setItem('m2_boss_robot_phase2_defeated', 'true');
+            }
         }
 
         // Likwidacja wszystkich pozostałych małych robocików
@@ -1894,8 +2135,11 @@ export class BossRobot extends Mob {
         }
 
         if (this.manager?.ui) {
-            this.manager.ui.addChatMessage('Serwer', '👑 Zwycięstwo! Pokonałeś potężnego 4-ramiennego Bossa Robota! Zgarnij Niebieskie Pierwiastki 💠, Diamenty 💎, Rubiny 🔴 i Laserowy Miecz ⚡!', 'chat-success');
-            this.manager.ui.showPopup('👑 BOSS ROBOT POKONANY NA ZAWSZE! Gratulacje! 🏆');
+            const vicMsg = this.isPhase2
+                ? '👑 ZWYCIĘSTWO NAD FAZĄ 2! Pokonałeś 12-ramiennego Bossa Robota! Zgarnij Niebieskie Pierwiastki 💠, Diamenty 💎, Rubiny 🔴 i Laserowe Miecze ⚡!'
+                : '👑 Zwycięstwo! Pokonałeś potężnego Bossa Robota! Zgarnij Niebieskie Pierwiastki 💠, Diamenty 💎, Rubiny 🔴 i Laserowy Miecz ⚡!';
+            this.manager.ui.addChatMessage('Serwer', vicMsg, 'chat-success');
+            this.manager.ui.showPopup(this.isPhase2 ? '👑 ULTRA BOSS ROBOT FAZA 2 POKONANY NA ZAWSZE! Gratulacje! 🏆' : '👑 BOSS ROBOT POKONANY NA ZAWSZE! Gratulacje! 🏆');
             this.manager.ui.hideBossBar();
         }
 
@@ -2143,13 +2387,25 @@ export class BossRobot extends Mob {
 
         playLaserPistolSound();
 
-        // Wybierz losowo jeden z dwóch pistoletów (upperLArm lub lowerRArm)
-        const useUpper = Math.random() > 0.5;
-        const arm = useUpper ? this.upperLArm : this.lowerRArm;
-        const boltColor = useUpper ? 0x38bdf8 : 0xf43f5e;
+        const gunArms = (this.isPhase2 && this.armsPhase2)
+            ? this.armsPhase2.filter((_, i) => i % 2 === 1)
+            : [this.upperLArm, this.lowerRArm].filter(Boolean);
+
+        const chosenArm = gunArms.length > 0
+            ? gunArms[Math.floor(Math.random() * gunArms.length)]
+            : (this.upperLArm || this.group);
+
+        const boltColors = this.isPhase2
+            ? [0x38bdf8, 0xf43f5e, 0xc084fc, 0xfacc15]
+            : [0x38bdf8, 0xf43f5e];
+        const boltColor = boltColors[Math.floor(Math.random() * boltColors.length)];
 
         const muzzlePos = new THREE.Vector3();
-        arm.getWorldPosition(muzzlePos);
+        if (chosenArm && typeof chosenArm.getWorldPosition === 'function') {
+            chosenArm.getWorldPosition(muzzlePos);
+        } else {
+            muzzlePos.copy(this.position).add(new THREE.Vector3(0, 2.5, 0));
+        }
         muzzlePos.y += 0.4;
 
         eventBus.emit('boss:attack_flash', {
@@ -2183,11 +2439,11 @@ export class BossRobot extends Mob {
         }
         this.updateSmoke(dt);
 
-        // 1. Awaken and Growth Animation: Starts small (0.35), then grows GIANT COLOSSUS (scale 3.5)!
-        // Na życzenie Tymka: "najpierw ma jedną rękę, potem drugą, potem trzecią, potem czwartą, i wszystkie mają miecze i pistolety"!
+        // 1. Awaken and Growth Animation: Starts small (0.35), then grows GIANT COLOSSUS (scale 3.5 or 4.0 in Phase 2)!
         if (this.isAwakening) {
             this.awakenTimer += dt;
-            const progress = Math.min(1.0, this.awakenTimer / 3.2);
+            const animDuration = this.isPhase2 ? 2.6 : 3.2;
+            const progress = Math.min(1.0, this.awakenTimer / animDuration);
             const currentScale = 0.35 + (this.targetScale - 0.35) * progress;
             this.group.scale.set(currentScale, currentScale, currentScale);
 
@@ -2195,45 +2451,55 @@ export class BossRobot extends Mob {
             this.group.position.x += (Math.random() - 0.5) * 0.08;
             this.group.position.z += (Math.random() - 0.5) * 0.08;
 
-            // Sekwencyjne wysuwanie 4 ramion (1., potem 2., potem 3., potem 4.!)
-            // 1. Górne Prawe (Miecz Czerwony ⚔️)
-            if (this.awakenTimer >= 0.7) {
-                const p1 = Math.min(1.0, (this.awakenTimer - 0.7) / 0.4);
-                if (this.upperRArm) this.upperRArm.scale.set(p1, p1, p1);
-                if (this.deployedArmsCount < 1) {
-                    this.deployedArmsCount = 1;
-                    playLaserSwordSound();
-                    eventBus.emit('ui:popup', '🤖⚡ Boss Robot wysuwa 1. ramię: Miecz Laserowy! ⚔️');
+            if (this.isPhase2 && this.armsPhase2) {
+                this.armsPhase2.forEach((arm, idx) => {
+                    const threshold = (idx / 12) * 1.6;
+                    if (this.awakenTimer >= threshold) {
+                        const p = Math.min(1.0, (this.awakenTimer - threshold) / 0.25);
+                        arm.scale.set(p, p, p);
+                    }
+                });
+            } else {
+                // Sekwencyjne wysuwanie 4 ramion (1., potem 2., potem 3., potem 4.!)
+                // 1. Górne Prawe (Miecz Czerwony ⚔️)
+                if (this.awakenTimer >= 0.7) {
+                    const p1 = Math.min(1.0, (this.awakenTimer - 0.7) / 0.4);
+                    if (this.upperRArm) this.upperRArm.scale.set(p1, p1, p1);
+                    if (this.deployedArmsCount < 1) {
+                        this.deployedArmsCount = 1;
+                        playLaserSwordSound();
+                        eventBus.emit('ui:popup', '🤖⚡ Boss Robot wysuwa 1. ramię: Miecz Laserowy! ⚔️');
+                    }
                 }
-            }
-            // 2. Górne Lewe (Pistolet Laserowy 🔫)
-            if (this.awakenTimer >= 1.4) {
-                const p2 = Math.min(1.0, (this.awakenTimer - 1.4) / 0.4);
-                if (this.upperLArm) this.upperLArm.scale.set(p2, p2, p2);
-                if (this.deployedArmsCount < 2) {
-                    this.deployedArmsCount = 2;
-                    playLaserPistolSound();
-                    eventBus.emit('ui:popup', '🤖🔫 Boss Robot wysuwa 2. ramię: Pistolet Laserowy! 🔫');
+                // 2. Górne Lewe (Pistolet Laserowy 🔫)
+                if (this.awakenTimer >= 1.4) {
+                    const p2 = Math.min(1.0, (this.awakenTimer - 1.4) / 0.4);
+                    if (this.upperLArm) this.upperLArm.scale.set(p2, p2, p2);
+                    if (this.deployedArmsCount < 2) {
+                        this.deployedArmsCount = 2;
+                        playLaserPistolSound();
+                        eventBus.emit('ui:popup', '🤖🔫 Boss Robot wysuwa 2. ramię: Pistolet Laserowy! 🔫');
+                    }
                 }
-            }
-            // 3. Dolne Prawe (Pistolet Plazmowy 🔫)
-            if (this.awakenTimer >= 2.1) {
-                const p3 = Math.min(1.0, (this.awakenTimer - 2.1) / 0.4);
-                if (this.lowerRArm) this.lowerRArm.scale.set(p3, p3, p3);
-                if (this.deployedArmsCount < 3) {
-                    this.deployedArmsCount = 3;
-                    playLaserPistolSound();
-                    eventBus.emit('ui:popup', '🤖🔫 Boss Robot wysuwa 3. ramię: Pistolet Plazmowy! 🔫');
+                // 3. Dolne Prawe (Pistolet Plazmowy 🔫)
+                if (this.awakenTimer >= 2.1) {
+                    const p3 = Math.min(1.0, (this.awakenTimer - 2.1) / 0.4);
+                    if (this.lowerRArm) this.lowerRArm.scale.set(p3, p3, p3);
+                    if (this.deployedArmsCount < 3) {
+                        this.deployedArmsCount = 3;
+                        playLaserPistolSound();
+                        eventBus.emit('ui:popup', '🤖🔫 Boss Robot wysuwa 3. ramię: Pistolet Plazmowy! 🔫');
+                    }
                 }
-            }
-            // 4. Dolne Lewe (Błękitny Miecz ⚔️)
-            if (this.awakenTimer >= 2.8) {
-                const p4 = Math.min(1.0, (this.awakenTimer - 2.8) / 0.4);
-                if (this.lowerLArm) this.lowerLArm.scale.set(p4, p4, p4);
-                if (this.deployedArmsCount < 4) {
-                    this.deployedArmsCount = 4;
-                    playLaserSwordSound();
-                    eventBus.emit('ui:popup', '🤖⚔️ Boss Robot wysuwa 4. ramię: Błękitny Miecz! ⚔️');
+                // 4. Dolne Lewe (Błękitny Miecz ⚔️)
+                if (this.awakenTimer >= 2.8) {
+                    const p4 = Math.min(1.0, (this.awakenTimer - 2.8) / 0.4);
+                    if (this.lowerLArm) this.lowerLArm.scale.set(p4, p4, p4);
+                    if (this.deployedArmsCount < 4) {
+                        this.deployedArmsCount = 4;
+                        playLaserSwordSound();
+                        eventBus.emit('ui:popup', '🤖⚔️ Boss Robot wysuwa 4. ramię: Błękitny Miecz! ⚔️');
+                    }
                 }
             }
 
@@ -2242,9 +2508,12 @@ export class BossRobot extends Mob {
                 if (this.arms) {
                     this.arms.forEach(a => { if (a) a.scale.set(1, 1, 1); });
                 }
-                eventBus.emit('ui:popup', '🤖⚠️ POTĘŻNY 4-RAMIENNY BOSS ROBOT PRZEBUDZONY! MIECZE I PISTOLETY W GOTOWOŚCI! ⚠️🤖');
+                const wakeMsg = this.isPhase2
+                    ? '🤖⚠️ ULTRA BOSS ROBOT FAZA 2 PRZEBUDZONY! 12 RAMION W GOTOWOŚCI! ⚠️🤖'
+                    : '🤖⚠️ POTĘŻNY 4-RAMIENNY BOSS ROBOT PRZEBUDZONY! MIECZE I PISTOLETY W GOTOWOŚCI! ⚠️🤖';
+                eventBus.emit('ui:popup', wakeMsg);
                 if (this.manager?.ui) {
-                    this.manager.ui.showPopup('👑 POTĘŻNY 4-RAMIENNY BOSS ROBOT PRZEBUDZONY! ⚔️🔫');
+                    this.manager.ui.showPopup(wakeMsg);
                 }
             }
             return;
@@ -2291,38 +2560,38 @@ export class BossRobot extends Mob {
             this.stompTimer = 0.4;
         }
 
-        // 3a. Ostrzał z Pistoletów Laserowych na dystans (miecze i pistolety!)
+        // 3a. Ostrzał z Pistoletów Laserowych na dystans
         this.gunCooldown = (this.gunCooldown || 1.8) - dt;
         if (dist >= 3.2 && dist <= 28.0 && this.gunCooldown <= 0) {
-            this.gunCooldown = 2.0; // strzał co 2 sekundy
+            this.gunCooldown = this.isPhase2 ? 1.4 : 2.0;
             this.shootLaserPistol(playerPosition);
         }
 
         // 3b. Atak Wręcz: Cięcia mieczami laserowymi z bliska!
         this.attackCooldown -= dt;
         if (dist <= 3.8 && this.attackCooldown <= 0) {
-            this.attackCooldown = 1.0; // Fast hits: every 1 second
+            this.attackCooldown = this.isPhase2 ? 0.8 : 1.0;
             this.swingTime = 0.6;
             playLaserSwordSound();
 
-            // Ataki Bossa rozświetlają ciemną mapę błyskami laserów!
+            // Ataki Bossa rozświetlają mapę
             eventBus.emit('boss:attack_flash', {
-                color: (Math.random() > 0.5 ? 0x38bdf8 : 0xf43f5e),
-                intensity: 4.8,
+                color: (this.isPhase2 ? 0xc084fc : (Math.random() > 0.5 ? 0x38bdf8 : 0xf43f5e)),
+                intensity: 5.0,
                 x: this.position.x,
                 y: this.position.y + 2.5,
                 z: this.position.z
             });
 
             if (this.manager?.survival) {
-                // If player has armor: 2 hearts (4 HP); without armor: 3 hearts (6 HP)
                 const hasArmor = Boolean(this.manager.survival.hasArmor || this.manager.survival.hasRubyArmor || this.manager.survival.hasStoneArmor);
-                const actualDamage = hasArmor ? 4 : 6;
-                this.manager.survival.takeDamage(actualDamage, 'Cios 4-ramiennego Kolosa Bossa Robota! 🤖💥');
+                const actualDamage = this.isPhase2 ? (hasArmor ? 6 : 9) : (hasArmor ? 4 : 6);
+                const name = this.isPhase2 ? 'Cios 12-ramiennego Bossa Fazy 2! 🤖💥⚡' : 'Cios 4-ramiennego Kolosa Bossa Robota! 🤖💥';
+                this.manager.survival.takeDamage(actualDamage, name);
             }
         }
 
-        // 3b. Przywoływanie małych robocików w Mrocznym Wymiarze
+        // 3c. Przywoływanie małych robocików w Mrocznym Wymiarze
         this.summonTimer = (this.summonTimer || 0) + dt;
         if (this.summonTimer >= 10.0) {
             const miniRobots = this.manager ? this.manager.animals.filter(a => a.type === 'mini_robot' && !a.isDead) : [];
@@ -2334,30 +2603,63 @@ export class BossRobot extends Mob {
 
         // 4. Arm animations
         this.animTime += dt * 6;
-        if (this.swingTime > 0) {
-            this.swingTime -= dt;
-            const swingPhase = Math.sin((0.6 - this.swingTime) * 18);
-            this.upperLArm.rotation.x = -swingPhase * 1.5;
-            this.upperRArm.rotation.x = swingPhase * 1.5;
-            this.lowerLArm.rotation.x = swingPhase * 1.2;
-            this.lowerRArm.rotation.x = -swingPhase * 1.2;
-        } else if (dist > 2.2) {
-            const legSwing = Math.sin(this.animTime) * 0.5;
-            this.legs[0].rotation.x = legSwing;
-            this.legs[1].rotation.x = -legSwing;
+        if (this.isPhase2 && this.armsPhase2) {
+            if (this.swingTime > 0) {
+                this.swingTime -= dt;
+                const swingPhase = Math.sin((0.6 - this.swingTime) * 18);
+                this.armsPhase2Right.forEach((arm, i) => {
+                    arm.rotation.x = (i % 2 === 0 ? swingPhase * 1.5 : -swingPhase * 1.1);
+                });
+                this.armsPhase2Left.forEach((arm, i) => {
+                    arm.rotation.x = (i % 2 === 0 ? -swingPhase * 1.5 : swingPhase * 1.1);
+                });
+            } else if (dist > 2.2) {
+                const legSwing = Math.sin(this.animTime) * 0.5;
+                this.legs[0].rotation.x = legSwing;
+                this.legs[1].rotation.x = -legSwing;
 
-            // 4 arms alternating walk swing
-            this.upperLArm.rotation.x = -legSwing * 0.8;
-            this.upperRArm.rotation.x = legSwing * 0.8;
-            this.lowerLArm.rotation.x = legSwing * 0.7;
-            this.lowerRArm.rotation.x = -legSwing * 0.7;
+                this.armsPhase2Right.forEach((arm, i) => {
+                    arm.rotation.x = Math.sin(this.animTime + i * 0.6) * 0.6;
+                    arm.rotation.z = Math.cos(this.animTime + i * 0.6) * 0.15;
+                });
+                this.armsPhase2Left.forEach((arm, i) => {
+                    arm.rotation.x = -Math.sin(this.animTime + i * 0.6) * 0.6;
+                    arm.rotation.z = -Math.cos(this.animTime + i * 0.6) * 0.15;
+                });
+            } else {
+                this.legs[0].rotation.x *= 0.8;
+                this.legs[1].rotation.x *= 0.8;
+                this.armsPhase2.forEach(arm => {
+                    arm.rotation.x *= 0.8;
+                    arm.rotation.z *= 0.8;
+                });
+            }
         } else {
-            this.legs[0].rotation.x *= 0.8;
-            this.legs[1].rotation.x *= 0.8;
-            this.upperLArm.rotation.x *= 0.8;
-            this.upperRArm.rotation.x *= 0.8;
-            this.lowerLArm.rotation.x *= 0.8;
-            this.lowerRArm.rotation.x *= 0.8;
+            // Phase 1: 4 arms animation
+            if (this.swingTime > 0) {
+                this.swingTime -= dt;
+                const swingPhase = Math.sin((0.6 - this.swingTime) * 18);
+                if (this.upperLArm) this.upperLArm.rotation.x = -swingPhase * 1.5;
+                if (this.upperRArm) this.upperRArm.rotation.x = swingPhase * 1.5;
+                if (this.lowerLArm) this.lowerLArm.rotation.x = swingPhase * 1.2;
+                if (this.lowerRArm) this.lowerRArm.rotation.x = -swingPhase * 1.2;
+            } else if (dist > 2.2) {
+                const legSwing = Math.sin(this.animTime) * 0.5;
+                this.legs[0].rotation.x = legSwing;
+                this.legs[1].rotation.x = -legSwing;
+
+                if (this.upperLArm) this.upperLArm.rotation.x = -legSwing * 0.8;
+                if (this.upperRArm) this.upperRArm.rotation.x = legSwing * 0.8;
+                if (this.lowerLArm) this.lowerLArm.rotation.x = legSwing * 0.7;
+                if (this.lowerRArm) this.lowerRArm.rotation.x = -legSwing * 0.7;
+            } else {
+                this.legs[0].rotation.x *= 0.8;
+                this.legs[1].rotation.x *= 0.8;
+                if (this.upperLArm) this.upperLArm.rotation.x *= 0.8;
+                if (this.upperRArm) this.upperRArm.rotation.x *= 0.8;
+                if (this.lowerLArm) this.lowerLArm.rotation.x *= 0.8;
+                if (this.lowerRArm) this.lowerRArm.rotation.x *= 0.8;
+            }
         }
 
         this.updateFooting(dt);

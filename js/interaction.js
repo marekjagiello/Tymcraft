@@ -155,23 +155,24 @@ export class Interaction {
                     } else {
                         const damage = getItemDamage(activeItemId, 2.0);
 
-                        if (activeItemId === 54) {
+                        const isBossPhase2Immune = (animal.type === 'boss_robot' && animal.isPhase2 && activeItemId === 54);
+                        if (activeItemId === 54 && !isBossPhase2Immune) {
                             playRainbowChimeSound();
                             const msg = '🌈🗡️ POTĘŻNE CIĘCIE KOLOROWYM MIECZEM! (25 OBRAŻEŃ!) 🌈';
                             eventBus.emit('ui:popup', msg);
                             if (this.ui) this.ui.showPopup(msg);
-                        } else {
+                        } else if (activeItemId !== 54) {
                             playHitSound();
                         }
                         const hitPos = animal.position.clone().add(new THREE.Vector3(0, 0.9, 0));
                         this.spawnHitParticles(hitPos);
 
                         const wasAlive = animal.health > 0;
-                        animal.onAttacked(damage, this.player.position);
+                        animal.onAttacked(damage, this.player.position, activeItemId);
 
                         if (wasAlive && animal.health <= 0) {
                             let name = 'zwierzę';
-                            if (animal.type === 'boss_robot') name = 'Bossa Robota';
+                            if (animal.type === 'boss_robot') name = animal.isPhase2 ? 'Bossa Robota (Faza 2)' : 'Bossa Robota';
                             else if (animal.type === 'mini_robot') name = 'małego robocika';
                             else if (animal.type === 'snake') name = 'węża';
                             else if (animal.type === 'zombie') name = 'Zombie';
@@ -185,9 +186,9 @@ export class Interaction {
                             const msg = `💥 Pokonano ${name}!`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
-                        } else if ((animal.type === 'boss_robot' || animal.type === 'robot' || animal.type === 'mini_robot' || animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
-                            const enemyName = animal.type === 'boss_robot' ? 'Bossa Robota' : (animal.type === 'mini_robot' ? 'Małego Robocika' : (animal.type === 'robot' ? 'Robota Transformera' : (animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie')))));
-                            const msg = `⚔️ Trafiono ${enemyName}! (${animal.health}/${animal.maxHealth} HP)`;
+                        } else if (!isBossPhase2Immune && (animal.type === 'boss_robot' || animal.type === 'robot' || animal.type === 'mini_robot' || animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
+                            const enemyName = animal.type === 'boss_robot' ? (animal.isPhase2 ? 'Bossa Robota (Faza 2)' : 'Bossa Robota') : (animal.type === 'mini_robot' ? 'Małego Robocika' : (animal.type === 'robot' ? 'Robota Transformera' : (animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie')))));
+                            const msg = `⚔️ Trafiono ${enemyName}! (${Math.max(0, animal.health)}/${animal.maxHealth} HP)`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
                         }
@@ -613,6 +614,7 @@ export class Interaction {
                     const arrow = this.animals.spawnArrow(origin, dir, 'player', damage);
                     if (arrow) {
                         arrow.velocity = dir.clone().multiplyScalar(speed);
+                        arrow.sourceBowId = isRainbowBow ? 55 : 29;
                     }
                 }
                 this.bowRecoil = 0.14;
