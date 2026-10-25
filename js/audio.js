@@ -558,29 +558,34 @@ export function playLaserPistolSound() {
     } catch (_) {}
 }
 
-// Chrumknięcie / ryk Króla Świń oraz świń z czerwonymi oczami (na życzenie Tymka!)
+// Chrumknięcie / ryk Króla Świń oraz świń z czerwonymi oczami (na życzenie Tymka: "taki świński bardziej chrum/chrr!")
 export function playPigGruntSound(isKing = false) {
     try {
         const ctx = getAudioContext();
         if (!ctx) return;
         const now = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
 
-        osc.type = 'sawtooth';
-        const startFreq = isKing ? 140 : 280;
-        const endFreq = isKing ? 75 : 170;
-        osc.frequency.setValueAtTime(startFreq, now);
-        osc.frequency.linearRampToValueAtTime(endFreq, now + 0.22);
+        // Podwójny impuls chrumknięcia ("chrum-chrum")
+        [0, 0.11].forEach((offset, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
 
-        gain.gain.setValueAtTime(isKing ? 0.45 : 0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.type = 'sawtooth';
+            const startFreq = isKing ? (idx === 0 ? 150 : 130) : (idx === 0 ? 290 : 250);
+            const endFreq = isKing ? 65 : 140;
+            osc.frequency.setValueAtTime(startFreq, now + offset);
+            osc.frequency.linearRampToValueAtTime(endFreq, now + offset + 0.19);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+            const vol = isKing ? (idx === 0 ? 0.42 : 0.35) : (idx === 0 ? 0.28 : 0.22);
+            gain.gain.setValueAtTime(vol, now + offset);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.21);
 
-        osc.start(now);
-        osc.stop(now + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now + offset);
+            osc.stop(now + offset + 0.21);
+        });
     } catch (_) {}
 }
 

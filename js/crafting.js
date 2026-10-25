@@ -1,4 +1,4 @@
-import { ITEMS } from './items.js?v=more_desert_mountains_icons_v6';
+import { ITEMS } from './items.js?v=pig_kingdom_dialogue_stage2_v8';
 
 export { ITEMS };
 
@@ -171,10 +171,9 @@ export class CraftingManager {
             return this.output;
         }
 
-        // 23. Świniowy Blok (59): Zgniłe Mięso (26) w craftingu 2x2 (na życzenie Tymka!)
-        if (nonNulls.length >= 2 && nonNulls.every(id => id === 26)) {
-            const count = nonNulls.length >= 4 ? 2 : 1;
-            this.output = { item: ITEMS.PIG_BLOCK, count };
+        // 23. Świniowy Blok (59): 1 Mięso daje aż 4 bloki na życzenie Tymka!
+        if (nonNulls.length >= 1 && nonNulls.every(id => [26, 38, 39, 40].includes(id))) {
+            this.output = { item: ITEMS.PIG_BLOCK, count: 4 };
             return this.output;
         }
 
@@ -400,12 +399,12 @@ export const RECIPES = [
     {
         id: 'pig_block',
         name: 'Świniowy Blok',
-        output: { id: 59, name: 'Świniowy Blok', count: 1, icon: 'pig_block' },
+        output: { id: 59, name: 'Świniowy Blok', count: 4, icon: 'pig_block' },
         category: 'blocks',
         categoryName: '🧱 Bloki',
-        description: 'Różowy blok stworzony ze zgniłego mięsa!',
+        description: 'Magiczny różowy blok teleportujący do Królestwa Świń!',
         ingredients: [
-            { id: 26, name: 'Zgniłe Mięso', count: 2 }
+            { id: 26, name: 'Zgniłe Mięso / Schab', count: 1, alternatives: [26, 38, 39, 40] }
         ]
     },
     {

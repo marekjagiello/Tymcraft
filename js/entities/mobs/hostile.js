@@ -3,7 +3,7 @@ import { Mob } from '../mob.js';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../../world.js';
 import { DroppedItem } from '../../drops.js';
 import { eventBus } from '../../events.js';
-import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playLaserPistolSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound, playPigGruntSound, playShieldDeflectSound, playDisorientSound } from '../../audio.js';
+import { playHitSound, playHissSound, playExplosionSound, playDirtikVoiceSound, playRobotWakeSound, playLaserSwordSound, playLaserPistolSound, playCyberTeleportSound, playMiniRobotZapSound, playReactorChargeSound, playBossStompSound, playPigGruntSound, playShieldDeflectSound, playDisorientSound, speakText } from '../../audio.js';
 import { BLOCK_DEF, AtlasMaterial, getTileUV } from '../../textures.js?v=water_2';
 
 
@@ -3012,22 +3012,21 @@ export class RedEyedPig extends Mob {
 // PigKing Mob (Nowy Boss: Król Świnia na życzenie Tymka!)
 // Posiada królewską koronę 👑, 150 HP, szarżuje, tupie i przywołuje świnie z czerwonymi oczami!
 // -------------------------------------------------------------
-export class PigKing extends Mob {
-    constructor(scene, world, x = 2000, z = 2000, manager = null) {
+export class GiantPigGuard extends Mob {
+    constructor(scene, world, x, z, manager = null, name = 'Wielki Świnioł Strażnik') {
         const blockX = Math.floor(x) + 0.5;
         const blockZ = Math.floor(z) + 0.5;
-        super(scene, world, 'boss_pig_king', blockX, blockZ, manager);
-        this.maxHealth = 150;
-        this.health = 150;
-        this.walkSpeed = 2.4;
-        this.attackDamage = 6;
+        super(scene, world, 'giant_pig_guard', blockX, blockZ, manager);
+        this.name = name;
+        this.maxHealth = 55;
+        this.health = 55;
+        this.walkSpeed = 2.6;
+        this.attackDamage = 4;
         this.attackCooldown = 0;
-        this.stompCooldown = 4.0;
-        this.summonCooldown = 8.0;
-        this.targetScale = 3.2;
+        this.targetScale = 2.4;
 
         this.buildModel();
-        this.buildHealthBar(4.0);
+        this.buildHealthBar(2.6);
         this.group.scale.set(this.targetScale, this.targetScale, this.targetScale);
 
         if (blockX >= 1980 && blockX <= 2020) {
@@ -3037,110 +3036,70 @@ export class PigKing extends Mob {
             this.snapToGround();
         }
         this.scene.add(this.group);
-
-        if (this.manager?.ui) {
-            this.manager.ui.showBossBar('👑 KRÓL ŚWINIA', this.health, this.maxHealth);
-        }
-
-        playPigGruntSound(true);
+        playPigGruntSound?.(true);
     }
 
     buildModel() {
         this.modelGroup = new THREE.Group();
 
-        const royalPinkMat = new THREE.MeshLambertMaterial({ color: 0xf472b6 });
-        const darkPinkMat = new THREE.MeshLambertMaterial({ color: 0xbe185d });
-        const goldMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b, emissive: 0x78350f });
-        const rubyMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e1b4b });
+        const warPigMat = new THREE.MeshLambertMaterial({ color: 0x9f1239 }); // Ciemnoczerwona pancerna świnia
+        const armorMat = new THREE.MeshLambertMaterial({ color: 0x475569 });  // Stalowe płyty pancerza
+        const snoutMat = new THREE.MeshLambertMaterial({ color: 0x881337 });
+        const tuskMat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });      // Ogniste czerwone oczy
 
-        // 1. Potężne ciało Króla Świń
-        const bodyGeo = new THREE.BoxGeometry(1.2, 0.9, 1.6);
-        const body = new THREE.Mesh(bodyGeo, royalPinkMat);
-        body.position.set(0, 0.85, 0);
+        // Potężne ciało wielkiej świni
+        const bodyGeo = new THREE.BoxGeometry(1.0, 0.75, 1.4);
+        const body = new THREE.Mesh(bodyGeo, warPigMat);
+        body.position.set(0, 0.65, 0);
         this.modelGroup.add(body);
 
-        // Królewski złoty pas
-        const beltGeo = new THREE.BoxGeometry(1.26, 0.22, 1.66);
-        const belt = new THREE.Mesh(beltGeo, goldMat);
-        belt.position.set(0, 0.85, 0);
-        this.modelGroup.add(belt);
+        // Stalowy pancerz na grzbiecie
+        const armorGeo = new THREE.BoxGeometry(1.06, 0.22, 1.0);
+        const armor = new THREE.Mesh(armorGeo, armorMat);
+        armor.position.set(0, 1.05, 0);
+        this.modelGroup.add(armor);
 
-        // 2. Głowa
-        const headGeo = new THREE.BoxGeometry(0.85, 0.85, 0.85);
-        this.head = new THREE.Mesh(headGeo, royalPinkMat);
-        this.head.position.set(0, 1.25, 1.05);
+        // Wielka głowa
+        const headGeo = new THREE.BoxGeometry(0.72, 0.72, 0.72);
+        this.head = new THREE.Mesh(headGeo, warPigMat);
+        this.head.position.set(0, 0.95, 0.85);
 
-        // Ryjek ze złotymi kłami
-        const snoutGeo = new THREE.BoxGeometry(0.48, 0.32, 0.24);
-        const snout = new THREE.Mesh(snoutGeo, darkPinkMat);
-        snout.position.set(0, -0.12, 0.50);
+        // Ryjek
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.26, 0.22), snoutMat);
+        snout.position.set(0, -0.12, 0.42);
         this.head.add(snout);
 
-        // Złote kły
-        const tuskGeo = new THREE.BoxGeometry(0.08, 0.20, 0.08);
-        const leftTusk = new THREE.Mesh(tuskGeo, goldMat);
-        leftTusk.position.set(-0.24, 0.02, 0.50);
-        const rightTusk = new THREE.Mesh(tuskGeo, goldMat);
-        rightTusk.position.set(0.24, 0.02, 0.50);
-        this.head.add(leftTusk, rightTusk);
+        // Złote/stalowe kły
+        const tuskL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.24, 0.08), tuskMat);
+        tuskL.position.set(-0.20, 0.05, 0.42);
+        const tuskR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.24, 0.08), tuskMat);
+        tuskR.position.set(0.20, 0.05, 0.42);
+        this.head.add(tuskL, tuskR);
 
         // Oczy
-        const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.06);
-        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-        leftEye.position.set(-0.30, 0.14, 0.44);
-        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-        rightEye.position.set(0.30, 0.14, 0.44);
-        this.head.add(leftEye, rightEye);
-
-        // 3. Królewska Złota Korona 👑 z rubinami na głowie Króla Świń!
-        const crownBaseGeo = new THREE.BoxGeometry(0.75, 0.18, 0.75);
-        const crownBase = new THREE.Mesh(crownBaseGeo, goldMat);
-        crownBase.position.set(0, 0.52, 0);
-        this.crownMesh = crownBase;
-        this.head.add(crownBase);
-
-        // 4 kolce korony
-        const spikeGeo = new THREE.ConeGeometry(0.10, 0.30, 4);
-        const spikeOffsets = [
-            [-0.28, 0.72, 0.28],
-            [0.28, 0.72, 0.28],
-            [-0.28, 0.72, -0.28],
-            [0.28, 0.72, -0.28]
-        ];
-        for (const [sx, sy, sz] of spikeOffsets) {
-            const spike = new THREE.Mesh(spikeGeo, goldMat);
-            spike.position.set(sx, sy, sz);
-            this.head.add(spike);
-
-            const ruby = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), rubyMat);
-            ruby.position.set(sx, sy + 0.16, sz);
-            this.head.add(ruby);
-        }
+        const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), eyeMat);
+        eyeL.position.set(-0.24, 0.14, 0.36);
+        const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), eyeMat);
+        eyeR.position.set(0.24, 0.14, 0.36);
+        this.head.add(eyeL, eyeR);
 
         this.modelGroup.add(this.head);
 
-        // 4. Cztery potężne nogi ze złotymi bransoletami na kopytach
-        const legGeo = new THREE.BoxGeometry(0.34, 0.65, 0.34);
-        const cuffGeo = new THREE.BoxGeometry(0.38, 0.16, 0.38);
-        const legOffsets = [
-            [-0.38, 0.325, 0.52],
-            [0.38, 0.325, 0.52],
-            [-0.38, 0.325, -0.52],
-            [0.38, 0.325, -0.52]
+        // 4 mocne nogi
+        const legGeo = new THREE.BoxGeometry(0.28, 0.55, 0.28);
+        const offsets = [
+            [-0.32, 0.275, 0.45],
+            [0.32, 0.275, 0.45],
+            [-0.32, 0.275, -0.45],
+            [0.32, 0.275, -0.45]
         ];
-
         for (let i = 0; i < 4; i++) {
             const pivot = new THREE.Group();
-            pivot.position.set(legOffsets[i][0], 0.65, legOffsets[i][2]);
-            const legMesh = new THREE.Mesh(legGeo, royalPinkMat);
-            legMesh.position.set(0, -0.325, 0);
-            pivot.add(legMesh);
-
-            const cuff = new THREE.Mesh(cuffGeo, goldMat);
-            cuff.position.set(0, -0.52, 0);
-            pivot.add(cuff);
-
+            pivot.position.set(offsets[i][0], 0.55, offsets[i][2]);
+            const leg = new THREE.Mesh(legGeo, warPigMat);
+            leg.position.set(0, -0.275, 0);
+            pivot.add(leg);
             this.modelGroup.add(pivot);
             this.legs.push(pivot);
         }
@@ -3148,86 +3107,35 @@ export class PigKing extends Mob {
         this.group.add(this.modelGroup);
     }
 
-    summonMinions() {
-        return this.summonRedEyedPigs();
-    }
-
-    summonRedEyedPigs() {
-        if (!this.manager || this.isDead) return;
-        eventBus.emit('boss:attack_flash', {
-            color: 0xf43f5e,
-            intensity: 4.5,
-            x: this.position.x,
-            y: this.position.y + 2,
-            z: this.position.z
-        });
-
-        playPigGruntSound(true);
-        const msg = '👑🐖 KRÓL ŚWINIA PRZYWOŁUJE SWOJE ŚWINIE Z CZERWONYMI OCZAMI! 🔴👀';
-        eventBus.emit('ui:popup', msg);
-        if (this.manager.ui) {
-            this.manager.ui.addChatMessage('Król Świnia', '👑🐖 CHRRRR! Moje świnie z czerwonymi oczami, zniszczcie intruza! 🔴🔴', 'chat-warning');
-            this.manager.ui.showPopup(msg);
-        }
-
-        // Przywołaj 2 świnie z czerwonymi oczami w pobliżu
-        for (let i = 0; i < 2; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 3.0 + Math.random() * 2.5;
-            const px = this.position.x + Math.cos(angle) * dist;
-            const pz = this.position.z + Math.sin(angle) * dist;
-            if (this.manager.spawnRedEyedPig) {
-                const minion = this.manager.spawnRedEyedPig(px, pz);
-                if (minion) {
-                    minion.position.set(px, 12, pz);
-                    minion.group.position.copy(minion.position);
-                }
+    takeDamage(amount, source = '') {
+        super.takeDamage(amount, source);
+        playPigGruntSound?.(true);
+        if (this.manager?.ui) {
+            const guards = (this.manager.animals || []).filter(a => a.type === 'giant_pig_guard' && !a.isDead);
+            const totalHealth = guards.reduce((acc, g) => acc + Math.max(0, g.health), 0);
+            if (guards.length > 0) {
+                const countText = guards.length === 2 ? '2 Pozostały' : '1 Pozostał';
+                this.manager.ui.showBossBar(`⚔️ BOSS: WIELKIE ŚWINIOŁY (${countText})`, totalHealth, 110);
             }
+        }
+        if (this.health <= 0 && !this.isDead) {
+            this.die();
         }
     }
 
-    stompGround() {
-        playBossStompSound();
-        eventBus.emit('boss:attack_flash', {
-            color: 0xef4444,
-            intensity: 3.5,
-            x: this.position.x,
-            y: this.position.y + 1,
-            z: this.position.z
-        });
-
-        if (this.manager?.player && this.manager.player.position) {
-            const dist = this.position.distanceTo(this.manager.player.position);
-            if (dist < 5.0) {
-                eventBus.emit('player:damage', {
-                    amount: 4,
-                    reason: 'pig_king_stomp'
-                });
-                eventBus.emit('ui:popup', '💥 Król Świnia tąpnął w ziemię wywołując falę uderzeniową!');
-            }
+    die() {
+        if (this.isDead) return;
+        super.die();
+        playPigGruntSound?.(true);
+        if (this.manager) {
+            this.manager.onGiantPigGuardDied(this);
         }
     }
 
     update(dt) {
         if (this.isDead) return;
-
         this.attackCooldown = Math.max(0, this.attackCooldown - dt);
-        this.stompCooldown = Math.max(0, this.stompCooldown - dt);
-        this.summonCooldown = Math.max(0, this.summonCooldown - dt);
 
-        // Co ~10 sekund Król Świnia przywołuje świnie z czerwonymi oczami!
-        if (this.summonCooldown <= 0) {
-            this.summonCooldown = 11.0;
-            this.summonRedEyedPigs();
-        }
-
-        // Tąpnięcie co ~6 sekund
-        if (this.stompCooldown <= 0) {
-            this.stompCooldown = 6.5;
-            this.stompGround();
-        }
-
-        // Szarża i atak na gracza
         if (this.manager?.player && this.manager.player.position) {
             const playerPos = this.manager.player.position;
             const dx = playerPos.x - this.position.x;
@@ -3236,7 +3144,7 @@ export class PigKing extends Mob {
 
             if (dist < 35.0) {
                 this.targetRotationY = Math.atan2(dx, dz);
-                if (dist > 2.5) {
+                if (dist > 2.0) {
                     const step = this.walkSpeed * dt;
                     this.position.x += Math.sin(this.targetRotationY) * step;
                     this.position.z += Math.cos(this.targetRotationY) * step;
@@ -3247,13 +3155,248 @@ export class PigKing extends Mob {
                     if (this.legs[2]) this.legs[2].rotation.x = -legAngle;
                     if (this.legs[3]) this.legs[3].rotation.x = legAngle;
                 } else if (this.attackCooldown <= 0) {
+                    this.attackCooldown = 1.3;
+                    eventBus.emit('player:damage', {
+                        amount: this.attackDamage,
+                        reason: 'giant_pig_guard'
+                    });
+                    playHitSound?.();
+                    eventBus.emit('ui:popup', '💥 Wielki Świnioł uderzył cię potężnymi kłami!');
+                }
+            }
+        }
+
+        this.group.position.copy(this.position);
+        this.group.rotation.y = this.targetRotationY;
+    }
+}
+
+export class PigKing extends Mob {
+    constructor(scene, world, x = 2000, z = 2000, manager = null) {
+        const blockX = Math.floor(x) + 0.5;
+        const blockZ = Math.floor(z) + 0.5;
+        super(scene, world, 'boss_pig_king', blockX, blockZ, manager);
+        this.maxHealth = 40; // Tymek: "ale Król Świń jest słaby, a ci dwaj są mocni"
+        this.health = 40;
+        this.walkSpeed = 2.4;
+        this.attackDamage = 3;
+        this.attackCooldown = 0;
+        this.targetScale = 2.4;
+        this.stage = 1;      // Etap 1: Obserwuje z tronu, Etap 2: Walczy osobiście
+        this.isImmune = true; // W etapie 1 chronią go wielkie świnie
+
+        this.buildModel();
+        this.buildHealthBar(3.2);
+        this.group.scale.set(this.targetScale, this.targetScale, this.targetScale);
+
+        if (blockX >= 1980 && blockX <= 2020) {
+            this.position.set(blockX, 12, blockZ);
+            this.group.position.copy(this.position);
+        } else {
+            this.snapToGround();
+        }
+        this.scene.add(this.group);
+        playPigGruntSound?.(true);
+    }
+
+    // Tymek: "Ale Król Świń ma już być taki ludzik, okej? Czyli Król Świń, a potem te świnie wielkie."
+    buildModel() {
+        this.modelGroup = new THREE.Group();
+
+        const royalPinkMat = new THREE.MeshLambertMaterial({ color: 0xf472b6 });
+        const robeMat = new THREE.MeshLambertMaterial({ color: 0xbe185d });     // Królewskie szaty
+        const goldMat = new THREE.MeshLambertMaterial({ color: 0xf59e0b, emissive: 0x78350f });
+        const rubyMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e1b4b });
+        const snoutMat = new THREE.MeshLambertMaterial({ color: 0xdb2777 });
+
+        // 1. Dwie nogi ludzika w złotych butach
+        const legGeo = new THREE.BoxGeometry(0.32, 0.85, 0.32);
+        const bootGeo = new THREE.BoxGeometry(0.36, 0.20, 0.40);
+
+        this.leftLeg = new THREE.Group();
+        this.leftLeg.position.set(-0.24, 0.85, 0);
+        const lMesh = new THREE.Mesh(legGeo, robeMat);
+        lMesh.position.set(0, -0.425, 0);
+        const lBoot = new THREE.Mesh(bootGeo, goldMat);
+        lBoot.position.set(0, -0.75, 0.04);
+        this.leftLeg.add(lMesh, lBoot);
+
+        this.rightLeg = new THREE.Group();
+        this.rightLeg.position.set(0.24, 0.85, 0);
+        const rMesh = new THREE.Mesh(legGeo, robeMat);
+        rMesh.position.set(0, -0.425, 0);
+        const rBoot = new THREE.Mesh(bootGeo, goldMat);
+        rBoot.position.set(0, -0.75, 0.04);
+        this.rightLeg.add(rMesh, rBoot);
+
+        this.modelGroup.add(this.leftLeg, this.rightLeg);
+
+        // 2. Tułów ludzika w purpurowo-złotym królewskim płaszczu
+        const torsoGeo = new THREE.BoxGeometry(0.85, 1.10, 0.52);
+        const torso = new THREE.Mesh(torsoGeo, robeMat);
+        torso.position.set(0, 1.40, 0);
+        this.modelGroup.add(torso);
+
+        // Złoty pas królewski z rubinową klamrą
+        const beltGeo = new THREE.BoxGeometry(0.90, 0.18, 0.56);
+        const belt = new THREE.Mesh(beltGeo, goldMat);
+        belt.position.set(0, 1.05, 0);
+        const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.60), rubyMat);
+        buckle.position.set(0, 1.05, 0);
+        this.modelGroup.add(belt, buckle);
+
+        // 3. Dwie ręce ludzika
+        const armGeo = new THREE.BoxGeometry(0.26, 0.85, 0.26);
+
+        this.leftArm = new THREE.Group();
+        this.leftArm.position.set(-0.56, 1.80, 0);
+        const laMesh = new THREE.Mesh(armGeo, royalPinkMat);
+        laMesh.position.set(0, -0.425, 0);
+        this.leftArm.add(laMesh);
+
+        this.rightArm = new THREE.Group();
+        this.rightArm.position.set(0.56, 1.80, 0);
+        const raMesh = new THREE.Mesh(armGeo, royalPinkMat);
+        raMesh.position.set(0, -0.425, 0);
+        this.rightArm.add(raMesh);
+
+        // Złote Berło Królewskie w prawej dłoni Króla Świń
+        const scepterShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8), goldMat);
+        scepterShaft.position.set(0.08, -0.40, 0.35);
+        scepterShaft.rotation.x = Math.PI / 4;
+        const scepterOrb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), rubyMat);
+        scepterOrb.position.set(0.08, 0.05, 0.75);
+        this.rightArm.add(scepterShaft, scepterOrb);
+
+        this.modelGroup.add(this.leftArm, this.rightArm);
+
+        // 4. Świńska Głowa Króla
+        const headGeo = new THREE.BoxGeometry(0.70, 0.70, 0.70);
+        this.head = new THREE.Mesh(headGeo, royalPinkMat);
+        this.head.position.set(0, 2.30, 0);
+
+        // Ryjek ze złotymi kłami
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.24, 0.20), snoutMat);
+        snout.position.set(0, -0.10, 0.40);
+        this.head.add(snout);
+
+        const leftTusk = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06), goldMat);
+        leftTusk.position.set(-0.18, 0.02, 0.40);
+        const rightTusk = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06), goldMat);
+        rightTusk.position.set(0.18, 0.02, 0.40);
+        this.head.add(leftTusk, rightTusk);
+
+        // Oczy
+        const eyeGeo = new THREE.BoxGeometry(0.10, 0.10, 0.05);
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        leftEye.position.set(-0.22, 0.12, 0.36);
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rightEye.position.set(0.22, 0.12, 0.36);
+        this.head.add(leftEye, rightEye);
+
+        // 5. Złota Korona 👑 z rubinami na czubku głowy
+        const crownBaseGeo = new THREE.BoxGeometry(0.65, 0.16, 0.65);
+        const crownBase = new THREE.Mesh(crownBaseGeo, goldMat);
+        crownBase.position.set(0, 0.42, 0);
+        this.head.add(crownBase);
+
+        const spikeOffsets = [
+            [-0.24, 0.58, 0.24],
+            [0.24, 0.58, 0.24],
+            [-0.24, 0.58, -0.24],
+            [0.24, 0.58, -0.24]
+        ];
+        for (const [sx, sy, sz] of spikeOffsets) {
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.24, 4), goldMat);
+            spike.position.set(sx, sy, sz);
+            const ruby = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.07), rubyMat);
+            ruby.position.set(sx, sy + 0.12, sz);
+            this.head.add(spike, ruby);
+        }
+
+        this.modelGroup.add(this.head);
+        this.group.add(this.modelGroup);
+    }
+
+    activateStage2() {
+        this.stage = 2;
+        this.isImmune = false;
+        this.maxHealth = 25; // Tymek: "a król jest łatwy"
+        this.health = 25;
+        this.walkSpeed = 2.2;
+        this.attackDamage = 2;
+        playPigGruntSound?.(true);
+
+        const msg = '👑 Król Świnia: „Chrum! Moje wielkie świnioły pokonane?! Teraz moja kolej!”';
+        eventBus.emit('ui:popup', msg);
+        if (this.manager?.ui) {
+            this.manager.ui.showBossBar('👑 KRÓL ŚWINIA (Łatwy Władca)', this.health, this.maxHealth);
+            this.manager.ui.addChatMessage('Król Świnia', '👑 Chrum! Pokonałeś moje wielkie świnioły?! Teraz ja ci pokażę, ludziku!', 'chat-warning');
+            this.manager.ui.showPopup(msg);
+        }
+        speakText('Chrum! Moje wielkie świnioły pokonane?! Teraz moja kolej!', 'pl-PL', 1.0);
+    }
+
+    takeDamage(amount, source = '') {
+        if (this.isDead) return;
+        if (this.stage === 1 || this.isImmune) {
+            playHitSound?.();
+            eventBus.emit('ui:popup', '🛡️ Króla chronią Wielkie Świnioły! Pokonaj najpierw strażników!');
+            return;
+        }
+
+        super.takeDamage(amount, source);
+        playPigGruntSound?.(true);
+        if (this.manager?.ui) {
+            this.manager.ui.showBossBar('👑 KRÓL ŚWINIA (Łatwy Władca)', Math.max(0, this.health), this.maxHealth);
+        }
+    }
+
+    update(dt) {
+        if (this.isDead) return;
+
+        // Etap 1: Król stoi na tronie i obserwuje walkę
+        if (this.stage === 1) {
+            if (this.manager?.player && this.manager.player.position) {
+                const px = this.manager.player.position.x;
+                const pz = this.manager.player.position.z;
+                this.targetRotationY = Math.atan2(px - this.position.x, pz - this.position.z);
+                this.group.rotation.y = this.targetRotationY;
+            }
+            return;
+        }
+
+        // Etap 2: Król Świń osobiście walczy
+        this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+
+        if (this.manager?.player && this.manager.player.position) {
+            const playerPos = this.manager.player.position;
+            const dx = playerPos.x - this.position.x;
+            const dz = playerPos.z - this.position.z;
+            const dist = Math.hypot(dx, dz);
+
+            if (dist < 35.0) {
+                this.targetRotationY = Math.atan2(dx, dz);
+                if (dist > 1.8) {
+                    const step = this.walkSpeed * dt;
+                    this.position.x += Math.sin(this.targetRotationY) * step;
+                    this.position.z += Math.cos(this.targetRotationY) * step;
+
+                    // Chód dwunożnego ludzika
+                    const walkAngle = Math.sin(Date.now() * 0.009) * 0.55;
+                    if (this.leftLeg) this.leftLeg.rotation.x = walkAngle;
+                    if (this.rightLeg) this.rightLeg.rotation.x = -walkAngle;
+                    if (this.leftArm) this.leftArm.rotation.x = -walkAngle;
+                    if (this.rightArm) this.rightArm.rotation.x = walkAngle;
+                } else if (this.attackCooldown <= 0) {
                     this.attackCooldown = 1.4;
                     eventBus.emit('player:damage', {
                         amount: this.attackDamage,
                         reason: 'boss_pig_king'
                     });
-                    eventBus.emit('ui:popup', '👑💥 Potężny cios Króla Świń! (-3 serca)');
-                    playHitSound();
+                    eventBus.emit('ui:popup', '👑💥 Cios berłem Króla Świń!');
+                    playHitSound?.();
                 }
             }
         }
@@ -3267,7 +3410,6 @@ export class PigKing extends Mob {
         if (this.position.x >= 1980 && this.position.x <= 2020) {
             this.position.y = 12;
         }
-
         this.group.position.copy(this.position);
     }
 

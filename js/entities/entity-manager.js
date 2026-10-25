@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './mobs/hostile.js?v=more_desert_mountains_icons_v6';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig, GiantPigGuard } from './mobs/hostile.js?v=pig_kingdom_dialogue_stage2_v8';
 
-import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=more_desert_mountains_icons_v6';
+import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=pig_kingdom_dialogue_stage2_v8';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -203,6 +203,32 @@ export class EntityManager {
         this.animals.push(king);
         console.log(`[EntityManager] Zespawnowano Króla Świń na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
         return king;
+    }
+
+    spawnGiantPigGuard(x = 1996, z = 2004, name = 'Wielki Świnioł Strażnik') {
+        const guard = new GiantPigGuard(this.scene, this.world, x, z, this, name);
+        this.animals.push(guard);
+        console.log(`[EntityManager] Zespawnowano Wielkiego Świnioła Strażnika na (${x.toFixed(1)}, ${z.toFixed(1)})!`);
+        return guard;
+    }
+
+    onGiantPigGuardDied(guard) {
+        const remainingGuards = this.animals.filter(a => a.type === 'giant_pig_guard' && !a.isDead);
+        if (remainingGuards.length > 0) {
+            if (this.ui) {
+                this.ui.showBossBar('⚔️ BOSS: WIELKIE ŚWINIOŁY (1 Pozostał)', remainingGuards[0].health, 55);
+                this.ui.showPopup('💥 Jeden Wielki Świnioł padł! Został jeszcze jeden!');
+            }
+        } else {
+            this.triggerPigKingStage2();
+        }
+    }
+
+    triggerPigKingStage2() {
+        const king = this.animals.find(a => a.type === 'boss_pig_king' && !a.isDead);
+        if (king && typeof king.activateStage2 === 'function') {
+            king.activateStage2();
+        }
     }
 
     spawnRedEyedPig(x, z) {

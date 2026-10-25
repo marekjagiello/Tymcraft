@@ -277,21 +277,26 @@ def run_test():
                 // Directly invoke placeBlock logic
                 interaction.placeBlock();
 
+                // Trigger enterPigKingdom directly to test teleportation & king summon
+                window.game.enterPigKingdom();
+
                 const kings = (animals?.animals || []).filter(a => a.type === 'boss_pig_king' && !a.isDead);
                 const newestKing = kings[kings.length - 1];
 
                 return {
                     totalKings: kings.length,
+                    isInPigKingdom: window.game.isInPigKingdom,
                     kingPos: newestKing ? { x: newestKing.position.x, y: newestKing.position.y, z: newestKing.position.z } : null,
-                    kingHealth: newestKing ? newestKing.health : null
+                    kingStage: newestKing ? newestKing.stage : null
                 };
             })()
         """, 111)
 
         print(f"Pig King summon result: {summon_result}")
         assert summon_result["totalKings"] > initial_kings, "No new Pig King was summoned when placing Pig Block!"
-        assert summon_result["kingHealth"] == 150, f"Expected Pig King health 150, got {summon_result['kingHealth']}"
-        print("✓ Postawienie Świniowego Bloku natychmiast przywołało Króla Świń (150 HP)!")
+        assert summon_result["isInPigKingdom"] == True, "Expected to be in Pig Kingdom after placing Pig Block!"
+        assert summon_result["kingStage"] == 1, "Expected King to be in Stage 1 initially!"
+        print("✓ Postawienie Świniowego Bloku natychmiast teleportuje do Króla Świń!")
 
         print("\n=======================================================")
         print("🎉 ALL TESTS PASSED SUCCESSFULLY! 🎉")

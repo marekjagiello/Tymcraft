@@ -1,8 +1,8 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
-import { ITEMS, RECIPES, canCraftRecipe, craftRecipeDirect } from './crafting.js?v=more_desert_mountains_icons_v6';
-import { getItem } from './items.js?v=more_desert_mountains_icons_v6';
+import { ITEMS, RECIPES, canCraftRecipe, craftRecipeDirect } from './crafting.js?v=pig_kingdom_dialogue_stage2_v8';
+import { getItem } from './items.js?v=pig_kingdom_dialogue_stage2_v8';
 import { eventBus } from './events.js';
-import { playCraftSuccessSound, speakText } from './audio.js?v=more_desert_mountains_icons_v6';
+import { playCraftSuccessSound, speakText, playPigGruntSound } from './audio.js?v=pig_kingdom_dialogue_stage2_v8';
 
 // 9 Pustych Slotów Paska Podręcznego (gracz zaczyna bez żadnych rzeczy na życzenie Tymka!)
 export const HOTBAR_BLOCKS = Array.from({ length: 9 }, (_, i) => ({
@@ -1757,5 +1757,111 @@ export class UI {
                 if (msgEl.parentNode) msgEl.parentNode.removeChild(msgEl);
             }, 600);
         }, 9000);
+    }
+
+    showPigKingdomDialogue(onComplete) {
+        let el = document.getElementById('pig-king-dialogue-modal');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'pig-king-dialogue-modal';
+            el.style.position = 'fixed';
+            el.style.bottom = '85px';
+            el.style.left = '50%';
+            el.style.transform = 'translateX(-50%)';
+            el.style.zIndex = '99999';
+            el.style.width = 'min(780px, 92vw)';
+            el.style.background = 'linear-gradient(135deg, rgba(30, 27, 75, 0.96), rgba(15, 23, 42, 0.96))';
+            el.style.border = '3px solid #f59e0b';
+            el.style.borderRadius = '16px';
+            el.style.padding = '18px 24px';
+            el.style.boxShadow = '0 15px 40px rgba(0,0,0,0.85), 0 0 25px rgba(245, 158, 11, 0.4)';
+            el.style.color = '#ffffff';
+            el.style.fontFamily = "'Segoe UI', Roboto, sans-serif";
+            el.style.cursor = 'pointer';
+            document.body.appendChild(el);
+        }
+
+        const lines = [
+            {
+                speaker: '👑 Król Świń',
+                avatar: '🐷👑',
+                color: '#fbbf24',
+                text: 'Chrum! Cześć, czego chcesz?',
+                audioText: 'Chrum! Cześć, czego chcesz?',
+                pitch: 1.0,
+                grunt: true
+            },
+            {
+                speaker: '🧑 Ty (Tymek)',
+                avatar: '🧑',
+                color: '#38bdf8',
+                text: 'Ja tu przybyłem przez przypadek.',
+                audioText: 'Ja tu przybyłem przez przypadek.',
+                pitch: 1.0,
+                grunt: false
+            },
+            {
+                speaker: '👑 Król Świń',
+                avatar: '🐷👑',
+                color: '#ef4444',
+                text: 'Chrrr! Straże! Zaatakować go!',
+                audioText: 'Chrrr! Straże! Zaatakować go!',
+                pitch: 1.0,
+                grunt: true
+            }
+        ];
+
+        let currentIdx = 0;
+        let lineTimeout = null;
+
+        const renderLine = () => {
+            if (currentIdx >= lines.length) {
+                if (lineTimeout) clearTimeout(lineTimeout);
+                el.style.display = 'none';
+                if (typeof onComplete === 'function') onComplete();
+                return;
+            }
+
+            const item = lines[currentIdx];
+            if (item.grunt) {
+                playPigGruntSound(true);
+            }
+            speakText(item.audioText, 'pl-PL', item.pitch || 1.0);
+
+            el.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="font-size: 42px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 6px 12px; border: 2px solid ${item.color};">
+                        ${item.avatar}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 16px; color: ${item.color}; margin-bottom: 4px;">
+                            ${item.speaker}
+                        </div>
+                        <div style="font-size: 17px; line-height: 1.4; color: #f8fafc; font-weight: 500;">
+                            „${item.text}”
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 8px; font-size: 11px; color: #94a3b8;">
+                    (Kliknij gdziekolwiek lub poczekaj, aby przejść dalej ➡️)
+                </div>
+            `;
+            el.style.display = 'block';
+
+            if (lineTimeout) clearTimeout(lineTimeout);
+            lineTimeout = setTimeout(() => {
+                currentIdx++;
+                renderLine();
+            }, 3600);
+        };
+
+        el.onclick = (e) => {
+            e.stopPropagation();
+            if (lineTimeout) clearTimeout(lineTimeout);
+            currentIdx++;
+            renderLine();
+        };
+
+        renderLine();
     }
 }

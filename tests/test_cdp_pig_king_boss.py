@@ -244,8 +244,8 @@ def run_test():
                 bgHex: '0x' + bgHex.toString(16),
                 isInPigKingdom: isInPigKingdom,
                 hasKing: Boolean(king),
-                kingHealth: king ? king.health : null,
-                kingMaxHealth: king ? king.maxHealth : null
+                kingStage: king ? king.stage : null,
+                kingIsImmune: king ? king.isImmune : null
             };
         })()
         """)
@@ -253,63 +253,84 @@ def run_test():
         assert enter_res.get('isInPigKingdom') == True, "Expected isInPigKingdom to be true"
         assert abs(enter_res.get('x') - 2000) < 5, f"Expected player x near 2000, got: {enter_res.get('x')}"
         assert enter_res.get('hasKing') == True, "Expected PigKing to be spawned in Pig Kingdom!"
-        assert enter_res.get('kingHealth') == 150, f"Expected PigKing 150 HP, got: {enter_res.get('kingHealth')}"
-        print("✓ Successfully entered Pig Kingdom (2000, 12.5, 1992) with Pig King spawned (150 HP)!")
+        assert enter_res.get('kingStage') == 1, "Expected PigKing to be in Stage 1 initially"
+        assert enter_res.get('kingIsImmune') == True, "Expected PigKing to be immune while guards are alive"
+        print("✓ Successfully entered Pig Kingdom with Pig King in Stage 1 (immune on throne)!")
 
-        # 5. Test Pig King Crown, Tusks, Belt and Minion Summoning
-        print("\n--- Test 5: Pig King Visuals and Minion (Świnia z Czerwonymi Oczami) ---")
-        minion_res = eval_js(80, """
+        # 5. Test Dialogue Modal, Normal Pitch (1.0), and 2-Stage Boss Fight
+        print("\n--- Test 5: Dialogue Modal & Wielkie Świnioły (Boss Stage 1) ---")
+        diag_res = eval_js(80, """
         (() => {
-            const king = window.game.animals.animals.find(a => a.type === 'boss_pig_king' && !a.isDead);
-            if (!king) return { error: 'No king' };
+            // Check dialogue modal
+            const modal = document.getElementById('pig-king-dialogue-modal');
+            const hasModal = Boolean(modal);
+            const modalDisplay = modal ? modal.style.display : null;
 
-            // Check crown mesh
-            const hasCrown = Boolean(king.crownMesh);
-            
-            // Trigger minion summon
-            king.summonMinions();
+            // Trigger dialogue completion to spawn guards
+            window.game.animals.spawnGiantPigGuard(1996, 2002, 'Wielki Świnioł Strażnik Lewy');
+            window.game.animals.spawnGiantPigGuard(2004, 2002, 'Wielki Świnioł Strażnik Prawy');
+            window.game.ui.showBossBar('⚔️ BOSS: WIELKIE ŚWINIOŁY (2 Pozostały)', 110, 110);
 
-            // Find RedEyedPig minions
-            const minions = window.game.animals.animals.filter(a => a.type === 'red_eyed_pig' && !a.isDead);
-
-            // Check minion red glowing eyes
-            const firstMinion = minions[0];
-            const eyeColor = firstMinion && firstMinion.redEyeMat ? firstMinion.redEyeMat.color.getHex() : null;
+            // Find guards
+            const guards = window.game.animals.animals.filter(a => a.type === 'giant_pig_guard' && !a.isDead);
+            const bossBarText = document.getElementById('boss-title') ? document.getElementById('boss-title').innerText : '';
 
             return {
-                hasCrown,
-                minionCount: minions.length,
-                minionHp: firstMinion ? firstMinion.health : null,
-                eyeColorHex: eyeColor ? '0x' + eyeColor.toString(16) : null
+                hasModal,
+                modalDisplay,
+                guardCount: guards.length,
+                guardHp: guards[0] ? guards[0].health : 0,
+                guardMaxHp: guards[0] ? guards[0].maxHealth : 0,
+                bossBarText
             };
         })()
         """)
-        print("Minion & King visuals result:", minion_res)
-        assert minion_res.get('hasCrown') == True, "Expected Pig King to have golden crown mesh"
-        assert minion_res.get('minionCount') >= 2, f"Expected at least 2 red eyed pig minions, got: {minion_res.get('minionCount')}"
-        assert minion_res.get('eyeColorHex') == '0xff0000', f"Expected glowing red eyes 0xff0000, got: {minion_res.get('eyeColorHex')}"
-        print("✓ Pig King golden crown and glowing Red-Eyed Pig minions verified!")
+        print("Dialogue & Stage 1 result:", diag_res)
+        assert diag_res.get('hasModal') == True, "Expected dialogue modal to exist"
+        assert diag_res.get('guardCount') == 2, f"Expected 2 Giant Pig Guards, got: {diag_res.get('guardCount')}"
+        assert diag_res.get('guardHp') == 55, f"Expected 55 HP per guard, got: {diag_res.get('guardHp')}"
+        assert "WIELKIE ŚWINIOŁY" in diag_res.get('bossBarText', ''), f"Expected Boss Bar for Wielkie Świnioły, got: {diag_res.get('bossBarText')}"
+        print("✓ Dialogue modal displayed and 2 Wielkie Świnioły spawned with Boss Bar!")
 
-        # 6. Test Pig King Defeat, Drops, and Return Gate
-        print("\n--- Test 6: Pig King Defeat & Victory Return Gate ---")
-        defeat_res = eval_js(90, """
+        # 6. Test Defeating Guards & Activating Stage 2 (Easy King with 25 HP)
+        print("\n--- Test 6: Defeating Guards & Easy Pig King (Stage 2) ---")
+        stage2_res = eval_js(90, """
         (() => {
+            // Kill first guard
+            const guards = window.game.animals.animals.filter(a => a.type === 'giant_pig_guard' && !a.isDead);
+            if (guards.length > 0) {
+                guards[0].die();
+            }
+
+            const remainingAfterFirst = window.game.animals.animals.filter(a => a.type === 'giant_pig_guard' && !a.isDead);
+            const bossBarAfterFirst = document.getElementById('boss-title') ? document.getElementById('boss-title').innerText : '';
+
+            // Kill second guard
+            if (remainingAfterFirst.length > 0) {
+                remainingAfterFirst[0].die();
+            }
+
+            // Check King state
             const king = window.game.animals.animals.find(a => a.type === 'boss_pig_king' && !a.isDead);
-            if (!king) return { error: 'No king' };
+            const stage2BossBar = document.getElementById('boss-title') ? document.getElementById('boss-title').innerText : '';
 
-            // Kill king
-            king.takeDamage(160);
+            // Now kill easy king
+            if (king) {
+                king.takeDamage(30);
+            }
 
-            // Check drops created in dropsManager
             const drops = window.game.drops ? window.game.drops.items : [];
             const hasPork = drops.some(d => d.id === 38);
             const hasRuby = drops.some(d => d.id === 34);
-
-            // Check victory portal spawned at wall
             const portal = window.game.scene.getObjectByName('victoryPortal');
 
             return {
-                kingDead: king.isDead,
+                bossBarAfterFirst,
+                kingStage: king ? king.stage : null,
+                kingMaxHp: king ? king.maxHealth : null,
+                kingIsImmune: king ? king.isImmune : null,
+                stage2BossBar,
+                kingDead: king ? king.isDead : false,
                 hasPork,
                 hasRuby,
                 portalExists: Boolean(portal),
@@ -317,11 +338,15 @@ def run_test():
             };
         })()
         """)
-        print("Defeat & victory portal result:", defeat_res)
-        assert defeat_res.get('kingDead') == True, "Pig King should be dead"
-        assert defeat_res.get('portalExists') == True, "Victory portal should spawn after defeating Pig King!"
-        assert abs(defeat_res.get('portalPos', {}).get('x', 0) - 2012) < 2, f"Victory portal should be at wall x=2012, got: {defeat_res.get('portalPos')}"
-        print("✓ Pig King defeated, drops generated, and victory return gate spawned at wall (2012, 11, 2000)!")
+        print("Stage 2 and Defeat result:", stage2_res)
+        assert "1 POZOSTAŁ" in stage2_res.get('bossBarAfterFirst', '').upper(), f"Expected '(1 POZOSTAŁ)' on boss bar, got: {stage2_res.get('bossBarAfterFirst')}"
+        assert stage2_res.get('kingStage') == 2, "Expected Pig King to transition to Stage 2"
+        assert stage2_res.get('kingMaxHp') == 25, f"Expected easy King (25 HP), got: {stage2_res.get('kingMaxHp')}"
+        assert stage2_res.get('kingIsImmune') == False, "Expected Pig King to no longer be immune in Stage 2"
+        assert stage2_res.get('kingDead') == True, "Expected Pig King to be defeated"
+        assert stage2_res.get('portalExists') == True, "Victory portal should spawn after defeating Pig King!"
+        assert abs(stage2_res.get('portalPos', {}).get('x', 0) - 2012) < 2, f"Victory portal should be at wall x=2012, got: {stage2_res.get('portalPos')}"
+        print("✓ Wielkie Świnioły defeated, Easy King (25 HP) activated and defeated, victory portal spawned!")
 
         # 7. Test Return to Overworld via /wroc or gate interaction
         print("\n--- Test 7: Return to Overworld ---")

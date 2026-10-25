@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=more_desert_mountains_icons_v6';
-import { Player } from './player.js?v=more_desert_mountains_icons_v6';
-import { Interaction } from './interaction.js?v=more_desert_mountains_icons_v6';
-import { AnimalManager } from './animals.js?v=more_desert_mountains_icons_v6';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=more_desert_mountains_icons_v6';
-import { StorageManager } from './storage.js?v=more_desert_mountains_icons_v6';
-import { SurvivalManager } from './survival.js?v=more_desert_mountains_icons_v6';
-import { CraftingManager } from './crafting.js?v=more_desert_mountains_icons_v6';
-import { DropsManager } from './drops.js?v=more_desert_mountains_icons_v6';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pig_kingdom_dialogue_stage2_v8';
+import { Player } from './player.js?v=pig_kingdom_dialogue_stage2_v8';
+import { Interaction } from './interaction.js?v=pig_kingdom_dialogue_stage2_v8';
+import { AnimalManager } from './animals.js?v=pig_kingdom_dialogue_stage2_v8';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pig_kingdom_dialogue_stage2_v8';
+import { StorageManager } from './storage.js?v=pig_kingdom_dialogue_stage2_v8';
+import { SurvivalManager } from './survival.js?v=pig_kingdom_dialogue_stage2_v8';
+import { CraftingManager } from './crafting.js?v=pig_kingdom_dialogue_stage2_v8';
+import { DropsManager } from './drops.js?v=pig_kingdom_dialogue_stage2_v8';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=more_desert_mountains_icons_v6';
-import { QuestManager } from './quests.js?v=more_desert_mountains_icons_v6';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=more_desert_mountains_icons_v6';
-import { SecurityShield } from './security.js?v=more_desert_mountains_icons_v6';
+import { updateWaterAnimation } from './textures.js?v=pig_kingdom_dialogue_stage2_v8';
+import { QuestManager } from './quests.js?v=pig_kingdom_dialogue_stage2_v8';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pig_kingdom_dialogue_stage2_v8';
+import { SecurityShield } from './security.js?v=pig_kingdom_dialogue_stage2_v8';
 
 
 
@@ -411,21 +411,32 @@ class Game {
         this.player.position.set(2000, 12.5, 1992);
         this.player.velocity.set(0, 0, 0);
 
-        // ZAWSZE upewnij się, że Król Świnia pojawia się na arenie gotowy do walki
-        this.animals.animals = this.animals.animals.filter(a => !(a.type === 'boss_pig_king' && a.isDead));
-        let activeKing = this.animals.animals.find(a => a.type === 'boss_pig_king' && !a.isDead);
-        if (!activeKing) {
-            activeKing = this.animals.spawnPigKing(2000, 2000);
-        }
-        activeKing.health = activeKing.maxHealth;
-        activeKing.position.set(2000, 12, 2000);
-        activeKing.group.position.copy(activeKing.position);
-        activeKing.group.visible = true;
+        // Usuń stare moby z areny
+        if (this.animals) {
+            this.animals.animals = this.animals.animals.filter(a => !(
+                (a.type === 'boss_pig_king' || a.type === 'giant_pig_guard' || a.type === 'red_eyed_pig') &&
+                Math.hypot(a.position.x - 2000, a.position.z - 2000) < 50
+            ));
 
-        if (this.ui) {
-            this.ui.showBossBar('👑 KRÓL ŚWINIA', activeKing.health, activeKing.maxHealth);
-            this.ui.addChatMessage('Serwer', '🐷👑 Wkroczyłeś do Królestwa Świń! Władca Świń w złotej koronie z rubinami wzywa swoją gwardię z czerwonymi oczami! 🥩👑', 'chat-warning');
-            this.ui.showPopup('👑 KRÓL ŚWINIA POWITAŁ CIĘ W SWOIM KRÓLESTWIE! 🐷');
+            // Zespawnuj Króla Świń („taki ludzik” z koroną) na podwyższeniu / tronie
+            const activeKing = this.animals.spawnPigKing(2000, 2008);
+            activeKing.stage = 1;
+            activeKing.isImmune = true;
+            activeKing.position.set(2000, 12, 2008);
+            activeKing.group.position.copy(activeKing.position);
+            activeKing.targetRotationY = Math.PI; // patrzy w stronę gracza
+
+            if (this.ui) {
+                this.ui.addChatMessage('Serwer', '🐷👑 Wkroczyłeś do Królestwa Świń! Król Świń rozpoczyna rozmowę!', 'chat-warning');
+                // Rozpocznij sekwencję dialogową z lektorem i awatarami
+                this.ui.showPigKingdomDialogue(() => {
+                    // Po zakończeniu dialogu: Król wzywa swoje dwie wielkie świnie!
+                    this.animals.spawnGiantPigGuard(1996, 2002, 'Wielki Świnioł Strażnik Lewy');
+                    this.animals.spawnGiantPigGuard(2004, 2002, 'Wielki Świnioł Strażnik Prawy');
+                    this.ui.showBossBar('⚔️ BOSS: WIELKIE ŚWINIOŁY (2 Pozostały)', 110, 110);
+                    this.ui.showPopup('⚔️ BOSS: Wielkie Świnioły zaatakowały!');
+                });
+            }
         }
     }
 

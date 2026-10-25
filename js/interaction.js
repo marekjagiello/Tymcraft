@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK_DEF } from './textures.js?v=water_2';
 import { playSwingSound, playHitSound, playEatSound, playDrinkSound, playBowShootSound, playBowDrawSound, playExplosionSound, playRainbowChimeSound, playCyberTeleportSound, playPigGruntSound, startBossRobotMusic } from './audio.js';
-import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=more_desert_mountains_icons_v6';
+import { getItem, getItemDamage, isFood, isPlaceableBlock, isBow, isMagicWand } from './items.js?v=pig_kingdom_dialogue_stage2_v8';
 
 import { eventBus } from './events.js';
 
@@ -1021,16 +1021,24 @@ export class Interaction {
 
         this.world.setBlock(placeX, placeY, placeZ, activeItemId);
 
-        // Tymek: "Ten blok świń jak się położy, to będzie Król Świń."
+        // Tymek: "jednym blokiem i jak go położysz to od razu cię teleportuje do Króla Świń!"
         if (activeItemId === 59) {
-            if (this.animals && this.animals.spawnPigKing) {
-                const king = this.animals.spawnPigKing(placeX + 0.5, placeZ + 0.5);
-                if (king) {
-                    king.position.y = Math.max(king.position.y, placeY + 1);
-                    king.group.position.copy(king.position);
-                }
-                eventBus.emit('ui:popup', '👑 Oink! Król Świń narodził się ze Świniowego Bloku! 🐷👑');
+            playCyberTeleportSound?.();
+            playPigGruntSound?.(true);
+            eventBus.emit('boss:attack_flash', {
+                color: 0xf472b6,
+                intensity: 4.8,
+                x: placeX,
+                y: placeY + 1,
+                z: placeZ
+            });
+            eventBus.emit('ui:popup', '🐷👑 Świniowy Blok zapłonął magią! Teleportacja do Króla Świń! 🌀');
+            if (this.ui) {
+                this.ui.showPopup('🐷👑 Świniowy Blok zapłonął magią! Teleportacja do Króla Świń! 🌀');
             }
+            setTimeout(() => {
+                eventBus.emit('dimension:enter_pig_kingdom');
+            }, 300);
         }
 
         eventBus.emit('item:consume');
