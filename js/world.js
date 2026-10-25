@@ -185,13 +185,16 @@ export class World {
         return BLOCK_DEF[b]?.transparent ?? true;
     }
 
-    getBiome(x, z) {
+    getBiomeCycleProgress(x, z) {
         const dx = x - 32;
         const dz = z - 32;
+        const dist = Math.hypot(dx, dz);
+        const warp = this.biomeNoise.noise2D(x * 0.015, z * 0.015) * 0.85
+                   + this.noise.noise2D(z * 0.022, x * 0.022) * 0.35;
+        return (dist / 44.0) + warp;
+    }
 
-        // Immediate spawn center (32, 32) is peaceful Plains
-        if (Math.abs(dx) <= 8 && Math.abs(dz) <= 8) return 'Plains';
-
+    getBiome(x, z) {
         // Mroczny Wymiar Bossa Robota (Dark Dimension) - sektor (960..1040, 960..1040)
         if (x >= 960 && x <= 1040 && z >= 960 && z <= 1040) {
             return 'DarkDimension';
@@ -202,33 +205,25 @@ export class World {
             return 'PigKingdom';
         }
 
-        // Tymek: "Ma być więcej pustyni, czyli żeby było więcej pustyni, gór"
-        // West & Southwest: Massive Golden Desert (spanning hundreds of blocks)
-        if (dx < -8 && dx > -250 && dz > -180 && dz < 45) {
-            return 'Desert';
-        }
+        const dx = x - 32;
+        const dz = z - 32;
+        const dist = Math.hypot(dx, dz);
 
-        // East & Southeast: Huge Majestic Mountains with towering peaks
-        if (dx > 8 && dx < 250 && dz > -180 && dz < 50) {
-            return 'Mountains';
-        }
+        // Immediate spawn center (32, 32) is a peaceful, picturesque Forest with green trees and flowers
+        if (dist <= 16) return 'Forest';
 
-        // North / far zones: Snowy Winter (Zima)!
-        if (dz > 45) {
-            return 'Winter';
-        }
+        // Tymek (8 lat): "Drzewa, pustynia, góry! Drzewa, pustynia, góry! Drzewa, pustynia, góry! ... i to się ciągle zmienia!"
+        // Ciągły, dynamiczny i organiczny cykl biomów:
+        // 0 = Forest (Drzewa 🌳)
+        // 1 = Desert (Pustynia 🏜️)
+        // 2 = Mountains (Góry 🏔️)
+        const cycleProgress = this.getBiomeCycleProgress(x, z);
+        const phase = Math.floor(cycleProgress) % 3;
+        const normalizedPhase = (phase + 3) % 3;
 
-        // Procedural distribution of large deserts and mountain ranges across endless world
-        const scale = 0.02;
-        const desertNoise = this.biomeNoise.noise2D((x + 600) * scale, (z - 400) * scale);
-        if (desertNoise < -0.24) return 'Desert';
-
-        const mountainNoise = this.noise.noise2D((x - 700) * scale, (z + 800) * scale);
-        if (mountainNoise > 0.30) return 'Mountains';
-
-        const moisture = this.biomeNoise.noise2D((x + 200) * scale, (z + 200) * scale);
-        if (moisture > 0.12) return 'Forest';
-        return 'Plains';
+        if (normalizedPhase === 0) return 'Forest';    // 🌳 Drzewa
+        if (normalizedPhase === 1) return 'Desert';    // 🏜️ Pustynia
+        return 'Mountains';                             // 🏔️ Góry
     }
 
     // Generuje mroczną latającą arenę Bossa Robota (Bedrock, Bruk i zasilające niebieskie bloki)
@@ -365,19 +360,35 @@ export class World {
                 const z = startZ + lz;
                 const biome = this.getBiome(x, z);
 
-                // Multi-octave natural elevation
+                // Multi-octave natural elevation with smooth blending between biomes
                 let h = 0;
                 if (biome === 'Desert') {
+                    // Pustynia: łagodne, złote wydmy piaskowe
                     h = 7 + Math.floor(this.noise.fbm2D(x * 0.025, z * 0.025, 3) * 4);
                 } else if (biome === 'Mountains') {
-                    const rawH = this.noise.fbm2D(x * 0.03, z * 0.03, 4);
-                    h = 15 + Math.floor(rawH * 16);
-                } else if (biome === 'Winter') {
+                    // Góry: majestatyczne, wysokie ośnieżone szczyty
+                    const rawH = this.noise.fbm2D(x * 0.028, z * 0.028, 4);
+                    h = 16 + Math.floor(rawH * 14);
+                } else { // Forest / Plains (Drzewa)
+                    // Las i kwieciste łąki: malownicze pagórki
                     h = 9 + Math.floor(this.noise.fbm2D(x * 0.035, z * 0.035, 3) * 3);
-                } else if (biome === 'Forest') {
-                    h = 9 + Math.floor(this.noise.fbm2D(x * 0.04, z * 0.04, 3) * 4);
-                } else { // Plains
-                    h = 8 + Math.floor(this.noise.fbm2D(x * 0.035, z * 0.035, 3) * 3);
+                }
+
+                // Płynne łagodne przejścia wysokości na granicy biomów (brak ostrych uskoków)
+                const cycleProgress = this.getBiomeCycleProgress(x, z);
+                const sub = ((cycleProgress % 1) + 1) % 1;
+                if (biome === 'Desert' && sub > 0.75) {
+                    const t = (sub - 0.75) / 0.25;
+                    const mountainFootH = 14 + Math.floor(this.noise.fbm2D(x * 0.028, z * 0.028, 3) * 4);
+                    h = Math.floor(h * (1 - t) + mountainFootH * t);
+                } else if (biome === 'Mountains' && sub > 0.75) {
+                    const t = (sub - 0.75) / 0.25;
+                    const forestValleyH = 9 + Math.floor(this.noise.fbm2D(x * 0.035, z * 0.035, 3) * 3);
+                    h = Math.floor(h * (1 - t) + forestValleyH * t);
+                } else if (biome === 'Forest' && sub > 0.80) {
+                    const t = (sub - 0.80) / 0.20;
+                    const desertEdgeH = 7 + Math.floor(this.noise.fbm2D(x * 0.025, z * 0.025, 3) * 3);
+                    h = Math.floor(h * (1 - t) + desertEdgeH * t);
                 }
 
                 // Rzadkie i malownicze małe oczka wodne (dużo mniej wody na mapie)
@@ -386,7 +397,7 @@ export class World {
                 let isLake = false;
                 const waterLevel = 5;
 
-                if (!isNearSpawn && (biome === 'Plains' || biome === 'Forest') && lakeNoiseVal < -0.58) {
+                if (!isNearSpawn && biome === 'Forest' && lakeNoiseVal < -0.58) {
                     isLake = true;
                     const depth = Math.min(2.0, (-0.58 - lakeNoiseVal) * 4.5);
                     h = Math.floor(h - depth);
@@ -410,18 +421,16 @@ export class World {
                     if (y === h) {
                         // Surface
                         if (isLake && h < waterLevel) {
-                            // Dno jeziora: Żwir (13) i Piasek (6)
                             chunk.voxels[lIdx] = ((x + z) % 3 === 0) ? 13 : 6;
                         } else if (biome === 'Desert') {
                             chunk.voxels[lIdx] = 6; // Sand
                         } else if (biome === 'Mountains') {
-                            chunk.voxels[lIdx] = (y >= 16) ? 7 : (y >= 13 ? 3 : 1); // Snow, Stone, or Grass
-                        } else if (biome === 'Winter') {
-                            chunk.voxels[lIdx] = 7; // Snow
+                            // Szczyty ośnieżone (y >= 20), strome zbocza skaliste (y >= 14), niższe stoki zielone
+                            chunk.voxels[lIdx] = (y >= 20) ? 7 : (y >= 14 ? 3 : 1);
                         } else {
-                            // Piaszczysty brzeg jeziora / plaża
+                            // Forest: zielona trawa / piaszczysty brzeg
                             if (isLake && (h === waterLevel || h === waterLevel + 1)) {
-                                chunk.voxels[lIdx] = 6; // Sand beach
+                                chunk.voxels[lIdx] = 6;
                             } else {
                                 chunk.voxels[lIdx] = 1; // Grass
                             }
@@ -429,7 +438,7 @@ export class World {
                     } else if (y >= h - 3) {
                         // Subsurface
                         if (biome === 'Desert' || (isLake && h < waterLevel)) {
-                            chunk.voxels[lIdx] = 6; // Sand
+                            chunk.voxels[lIdx] = (y === h - 1) ? 6 : 3;
                         } else if (biome === 'Mountains' && y >= 13) {
                             chunk.voxels[lIdx] = 3; // Stone
                         } else {
@@ -532,31 +541,42 @@ export class World {
                 // Trees / Cacti planning on solid surface (excluding lakes)
                 if (h > SEA_LEVEL && (!isLake || h >= waterLevel)) {
                     const surfBlock = chunk.voxels[this.localIndex(lx, h, lz)];
-                    const mod5X = ((x % 5) + 5) % 5;
-                    const mod5Z = ((z % 5) + 5) % 5;
-                    const mod9X = ((x % 9) + 9) % 9;
-                    const mod9Z = ((z % 9) + 9) % 9;
-                    const mod8X = ((x % 8) + 8) % 8;
-                    const mod8Z = ((z % 8) + 8) % 8;
+
+                    // Naturalny, organiczny rozstaw drzew w komórkach 5x5 (brak sztywnej siatki)
+                    const cellX = Math.floor(x / 5);
+                    const cellZ = Math.floor(z / 5);
+                    const jHash = Math.abs(Math.sin(cellX * 37.11 + cellZ * 91.73) * 43758.5453);
+                    const jx = Math.floor((jHash % 1.0) * 3) + 1;
+                    const jz = Math.floor(((jHash * 7.13) % 1.0) * 3) + 1;
+                    const isTreeSpot = (((x % 5) + 5) % 5 === jx) && (((z % 5) + 5) % 5 === jz);
 
                     if (surfBlock === 1) { // Grass
-                        if (biome === 'Forest' && mod5X === 2 && mod5Z === 3) {
-                            treesToPlant.push({ x, y: h + 1, z });
-                        } else if (biome === 'Plains' && mod9X === 4 && mod9Z === 5) {
-                            treesToPlant.push({ x, y: h + 1, z });
-                        } else {
-                            // Naturally spawn flowers on grass meadows
-                            const fHash = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
-                            const fVal = fHash - Math.floor(fHash);
-                            if (fVal < 0.045) { // ~4.5% chance
-                                const flowerBlock = (fVal < 0.022) ? 17 : 18; // 17: Red Rose, 18: Yellow Dandelion
-                                flowersToPlant.push({ x, y: h + 1, z, blockId: flowerBlock });
+                        if (biome === 'Forest') {
+                            if (isTreeSpot) {
+                                treesToPlant.push({ x, y: h + 1, z });
+                            } else {
+                                // Kolorowe łąki z kwiatami (czerwone róże 17 i żółte mlecze 18)
+                                const fHash = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
+                                const fVal = fHash - Math.floor(fHash);
+                                if (fVal < 0.075) {
+                                    const flowerBlock = (fVal < 0.038) ? 17 : 18;
+                                    flowersToPlant.push({ x, y: h + 1, z, blockId: flowerBlock });
+                                }
                             }
+                        } else if (biome === 'Mountains' && h < 14 && isTreeSpot) {
+                            // Górskie świerki na niższych zboczach
+                            treesToPlant.push({ x, y: h + 1, z });
                         }
-                    } else if (surfBlock === 6 && biome === 'Desert' && mod8X === 3 && mod8Z === 4) {
-                        cactiToPlant.push({ x, y: h + 1, z });
-                    } else if (surfBlock === 7 && biome === 'Winter' && mod8X === 4 && mod8Z === 4) {
-                        treesToPlant.push({ x, y: h + 1, z });
+                    } else if (surfBlock === 6 && biome === 'Desert') {
+                        // Naturalne kaktusy na pustyni w siatce 7x7
+                        const cCellX = Math.floor(x / 7);
+                        const cCellZ = Math.floor(z / 7);
+                        const cHash = Math.abs(Math.sin(cCellX * 43.17 + cCellZ * 83.29) * 43758.5453);
+                        const cx = Math.floor((cHash % 1.0) * 4) + 1;
+                        const cz = Math.floor(((cHash * 5.17) % 1.0) * 4) + 1;
+                        if ((((x % 7) + 7) % 7 === cx) && (((z % 7) + 7) % 7 === cz)) {
+                            cactiToPlant.push({ x, y: h + 1, z });
+                        }
                     }
                 }
             }
@@ -584,9 +604,9 @@ export class World {
     }
 
     plantTree(x, startY, z) {
-        // Natural trunk height between 4 and 6 blocks
+        // Natural trunk height between 4 and 7 blocks
         const noiseVal = Math.abs(this.treeNoise.noise2D(x * 0.45, z * 0.45));
-        const height = 4 + Math.floor(noiseVal * 3);
+        const height = 4 + Math.floor(noiseVal * 4);
         if (startY + height + 3 >= WORLD_HEIGHT) return;
 
         // Wood trunk
@@ -600,12 +620,13 @@ export class World {
 
         for (let ly = leafBottom; ly <= leafTop; ly++) {
             const isTopLayer = (ly === leafTop);
-            const radius = isTopLayer ? 1 : 2;
+            const radius = isTopLayer ? 1 : (height >= 6 && ly === leafBottom ? 3 : 2);
 
             for (let lx = -radius; lx <= radius; lx++) {
                 for (let lz = -radius; lz <= radius; lz++) {
                     const distSq = lx * lx + lz * lz;
                     // Cut out outer sharp corners for natural rounded canopy
+                    if (radius === 3 && distSq > 8) continue;
                     if (radius === 2 && distSq > 5) continue;
                     if (isTopLayer && distSq > 1) continue; // cross shape on very top
 
@@ -625,14 +646,13 @@ export class World {
     }
 
     plantCactus(x, startY, z) {
-        const height = 2 + Math.floor(Math.abs(this.noise.noise2D(x * 0.5, z * 0.5)) * 2);
+        const height = 2 + Math.floor(Math.abs(this.noise.noise2D(x * 0.5, z * 0.5)) * 3);
         for (let y = 0; y < height; y++) {
             if (startY + y < WORLD_HEIGHT) {
                 this.setBlockRaw(x, startY + y, z, 11); // Cactus
             }
         }
     }
-
     // Build or rebuild single chunk mesh with face culling
     buildChunk(cx, cz) {
         const key = this.getChunkKey(cx, cz);

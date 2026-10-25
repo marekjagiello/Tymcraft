@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pig_kingdom_dialogue_stage2_v8';
-import { Player } from './player.js?v=pig_kingdom_dialogue_stage2_v8';
-import { Interaction } from './interaction.js?v=pig_kingdom_dialogue_stage2_v8';
-import { AnimalManager } from './animals.js?v=pig_kingdom_dialogue_stage2_v8';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pig_kingdom_dialogue_stage2_v8';
-import { StorageManager } from './storage.js?v=pig_kingdom_dialogue_stage2_v8';
-import { SurvivalManager } from './survival.js?v=pig_kingdom_dialogue_stage2_v8';
-import { CraftingManager } from './crafting.js?v=pig_kingdom_dialogue_stage2_v8';
-import { DropsManager } from './drops.js?v=pig_kingdom_dialogue_stage2_v8';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=cyclical_biomes_v9';
+import { Player } from './player.js?v=cyclical_biomes_v9';
+import { Interaction } from './interaction.js?v=cyclical_biomes_v9';
+import { AnimalManager } from './animals.js?v=cyclical_biomes_v9';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=cyclical_biomes_v9';
+import { StorageManager } from './storage.js?v=cyclical_biomes_v9';
+import { SurvivalManager } from './survival.js?v=cyclical_biomes_v9';
+import { CraftingManager } from './crafting.js?v=cyclical_biomes_v9';
+import { DropsManager } from './drops.js?v=cyclical_biomes_v9';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=pig_kingdom_dialogue_stage2_v8';
-import { QuestManager } from './quests.js?v=pig_kingdom_dialogue_stage2_v8';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pig_kingdom_dialogue_stage2_v8';
-import { SecurityShield } from './security.js?v=pig_kingdom_dialogue_stage2_v8';
+import { updateWaterAnimation } from './textures.js?v=cyclical_biomes_v9';
+import { QuestManager } from './quests.js?v=cyclical_biomes_v9';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=cyclical_biomes_v9';
+import { SecurityShield } from './security.js?v=cyclical_biomes_v9';
 
 
 

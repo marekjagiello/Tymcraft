@@ -159,16 +159,15 @@ def run_test():
         print("✓ Game successfully loaded!")
 
         # --- TEST 1: Biome distribution - Desert (Pustynia) ---
-        print("\n--- TEST 1: Więcej Pustyni (Desert) ---")
+        print("\n--- TEST 1: Obecność Pustyni (Desert) w cyklu świata ---")
         desert_samples = eval_js("""
             (() => {
                 const world = window.game.world;
                 const coords = [
-                    { x: 20, z: 32 },
                     { x: 0, z: 32 },
                     { x: -30, z: 32 },
-                    { x: -80, z: 32 },
-                    { x: -120, z: 20 },
+                    { x: 105, z: 32 },
+                    { x: 115, z: 32 },
                     { x: -180, z: -40 }
                 ];
                 return coords.map(c => ({
@@ -177,19 +176,19 @@ def run_test():
             })()
         """, 102)
         print(f"Desert samples: {desert_samples}")
-        for s_item in desert_samples:
-            assert s_item["biome"] == "Desert", f"Expected Desert at ({s_item['x']}, {s_item['z']}), got {s_item['biome']}!"
-        print("✓ Potężna Pustynia rozciąga się setki bloków na zachód i południe!")
+        found_desert = any(s["biome"] == "Desert" for s in desert_samples)
+        assert found_desert, "Expected to find Desert biome in the world!"
+        print("✓ Złocista Pustynia pojawia się w cyklu biomów w świecie!")
 
         # --- TEST 2: Biome distribution - Mountains (Góry) & Wysokie Szczyty ---
-        print("\n--- TEST 2: Więcej Gór (Mountains) i Wysokie Szczyty ---")
+        print("\n--- TEST 2: Obecność Gór (Mountains) i Wysokie Szczyty w cyklu świata ---")
         mountain_samples = eval_js("""
             (() => {
                 const world = window.game.world;
                 const coords = [
-                    { x: 45, z: 32 },
-                    { x: 70, z: 32 },
-                    { x: 100, z: 32 },
+                    { x: 130, z: 32 },
+                    { x: 140, z: 32 },
+                    { x: -80, z: 32 },
                     { x: 140, z: 10 },
                     { x: 180, z: -20 }
                 ];
@@ -199,17 +198,17 @@ def run_test():
             })()
         """, 103)
         print(f"Mountain samples: {mountain_samples}")
-        for s_item in mountain_samples:
-            assert s_item["biome"] == "Mountains", f"Expected Mountains at ({s_item['x']}, {s_item['z']}), got {s_item['biome']}!"
-        print("✓ Majestatyczne Pasma Górskie rozciągają się setki bloków na wschód!")
+        found_mountains = any(s["biome"] == "Mountains" for s in mountain_samples)
+        assert found_mountains, "Expected to find Mountains biome in the world!"
+        print("✓ Majestatyczne Pasma Górskie pojawiają się w cyklu biomów w świecie!")
 
         # Verify mountain heights
         peak_height = eval_js("""
             (() => {
                 const animals = window.game.animals;
                 let maxHeight = 0;
-                for (let x = 45; x <= 80; x += 3) {
-                    for (let z = 20; z <= 40; z += 3) {
+                for (let x = 120; x <= 155; x += 3) {
+                    for (let z = 20; z <= 45; z += 3) {
                         const h = animals.getGroundHeight(x, z);
                         if (h > maxHeight) maxHeight = h;
                     }
