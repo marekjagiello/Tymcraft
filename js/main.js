@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=recipe_tts_pig_king_v5';
-import { Player } from './player.js?v=recipe_tts_pig_king_v5';
-import { Interaction } from './interaction.js?v=recipe_tts_pig_king_v5';
-import { AnimalManager } from './animals.js?v=recipe_tts_pig_king_v5';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=recipe_tts_pig_king_v5';
-import { StorageManager } from './storage.js?v=recipe_tts_pig_king_v5';
-import { SurvivalManager } from './survival.js?v=recipe_tts_pig_king_v5';
-import { CraftingManager } from './crafting.js?v=recipe_tts_pig_king_v5';
-import { DropsManager } from './drops.js?v=recipe_tts_pig_king_v5';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=more_desert_mountains_icons_v6';
+import { Player } from './player.js?v=more_desert_mountains_icons_v6';
+import { Interaction } from './interaction.js?v=more_desert_mountains_icons_v6';
+import { AnimalManager } from './animals.js?v=more_desert_mountains_icons_v6';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=more_desert_mountains_icons_v6';
+import { StorageManager } from './storage.js?v=more_desert_mountains_icons_v6';
+import { SurvivalManager } from './survival.js?v=more_desert_mountains_icons_v6';
+import { CraftingManager } from './crafting.js?v=more_desert_mountains_icons_v6';
+import { DropsManager } from './drops.js?v=more_desert_mountains_icons_v6';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=recipe_tts_pig_king_v5';
-import { QuestManager } from './quests.js?v=recipe_tts_pig_king_v5';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=recipe_tts_pig_king_v5';
-import { SecurityShield } from './security.js?v=recipe_tts_pig_king_v5';
+import { updateWaterAnimation } from './textures.js?v=more_desert_mountains_icons_v6';
+import { QuestManager } from './quests.js?v=more_desert_mountains_icons_v6';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=more_desert_mountains_icons_v6';
+import { SecurityShield } from './security.js?v=more_desert_mountains_icons_v6';
 
 
 

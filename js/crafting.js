@@ -1,4 +1,4 @@
-import { ITEMS } from './items.js?v=recipe_tts_pig_king_v5';
+import { ITEMS } from './items.js?v=more_desert_mountains_icons_v6';
 
 export { ITEMS };
 
@@ -474,6 +474,7 @@ export function canCraftRecipe(recipe, ui) {
         }
         if (totalCount < ing.count) {
             missing.push({
+                id: ing.id,
                 name: ing.name,
                 needed: ing.count,
                 have: totalCount,

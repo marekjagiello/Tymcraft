@@ -1,8 +1,8 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
-import { ITEMS, RECIPES, canCraftRecipe, craftRecipeDirect } from './crafting.js?v=recipe_tts_pig_king_v5';
-import { getItem } from './items.js?v=recipe_tts_pig_king_v5';
+import { ITEMS, RECIPES, canCraftRecipe, craftRecipeDirect } from './crafting.js?v=more_desert_mountains_icons_v6';
+import { getItem } from './items.js?v=more_desert_mountains_icons_v6';
 import { eventBus } from './events.js';
-import { playCraftSuccessSound, speakText } from './audio.js?v=recipe_tts_pig_king_v5';
+import { playCraftSuccessSound, speakText } from './audio.js?v=more_desert_mountains_icons_v6';
 
 // 9 Pustych Slotów Paska Podręcznego (gracz zaczyna bez żadnych rzeczy na życzenie Tymka!)
 export const HOTBAR_BLOCKS = Array.from({ length: 9 }, (_, i) => ({
@@ -1054,7 +1054,12 @@ export class UI {
 
             const ingSpan = document.createElement('div');
             ingSpan.className = 'recipe-ingredients';
-            const ingElements = recipe.ingredients.map(ing => {
+            ingSpan.style.display = 'flex';
+            ingSpan.style.flexWrap = 'wrap';
+            ingSpan.style.gap = '6px';
+            ingSpan.style.marginTop = '4px';
+
+            recipe.ingredients.forEach(ing => {
                 const allowedIds = ing.alternatives || [ing.id];
                 let count = 0;
                 for (const id of allowedIds) {
@@ -1062,10 +1067,35 @@ export class UI {
                     for (const slot of this.backpackSlots) { if (slot.id === id && slot.count > 0) count += slot.count; }
                 }
                 const isSatisfied = count >= ing.count;
-                const col = isSatisfied ? '#4ade80' : '#fca5a5';
-                return `<span style="color: ${col}; font-weight: ${isSatisfied ? 'normal' : 'bold'};">${ing.count}x ${ing.name} (${count}/${ing.count})</span>`;
-            }).join(' + ');
-            ingSpan.innerHTML = ingElements;
+
+                const chip = document.createElement('span');
+                chip.className = 'recipe-ingredient-chip';
+                chip.style.display = 'inline-flex';
+                chip.style.alignItems = 'center';
+                chip.style.gap = '4px';
+                chip.style.padding = '2px 6px';
+                chip.style.borderRadius = '6px';
+                chip.style.fontSize = '11px';
+                chip.style.background = isSatisfied ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+                chip.style.border = isSatisfied ? '1px solid #22c55e' : '1px solid #ef4444';
+                chip.style.color = isSatisfied ? '#86efac' : '#fca5a5';
+
+                const chipIcon = createSlotItemIcon(ing.id);
+                if (chipIcon) {
+                    chipIcon.style.width = '16px';
+                    chipIcon.style.height = '16px';
+                    chipIcon.style.imageRendering = 'pixelated';
+                    chipIcon.style.verticalAlign = 'middle';
+                    chip.appendChild(chipIcon);
+                }
+
+                const txt = document.createElement('span');
+                txt.innerText = `${ing.name} (${count}/${ing.count})`;
+                txt.style.fontWeight = isSatisfied ? 'normal' : 'bold';
+                chip.appendChild(txt);
+
+                ingSpan.appendChild(chip);
+            });
 
             texts.appendChild(nameSpan);
             texts.appendChild(ingSpan);
@@ -1134,32 +1164,72 @@ export class UI {
             el.style.zIndex = '99999';
             el.style.background = 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96))';
             el.style.border = '2px solid #f59e0b';
-            el.style.borderRadius = '12px';
-            el.style.padding = '14px 22px';
+            el.style.borderRadius = '14px';
+            el.style.padding = '16px 24px';
             el.style.color = '#ffffff';
             el.style.textAlign = 'center';
             el.style.fontFamily = "'Segoe UI', Roboto, sans-serif";
-            el.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(245, 158, 11, 0.35)';
+            el.style.boxShadow = '0 12px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(245, 158, 11, 0.4)';
             el.style.pointerEvents = 'none';
             el.style.transition = 'opacity 0.25s ease';
             document.body.appendChild(el);
         }
 
-        const missingItemsHtml = missing.map(m => `
-            <div style="margin: 4px 0; color: #fef08a; font-size: 13px;">
-                🔴 <b>${m.name}</b>: Masz <b>${m.have}</b> / Potrzebujesz <b>${m.needed}</b> (Brakuje: <b>${m.diff}</b>)
-            </div>
-        `).join('');
+        el.innerHTML = '';
 
-        el.innerHTML = `
-            <div style="font-size: 15px; font-weight: bold; color: #fbbf24; margin-bottom: 6px;">
-                📋 Czego potrzebujesz do wytworzenia: <b>${recipe.output.name}</b> (x${recipe.output.count})?
-            </div>
-            ${missingItemsHtml}
-            <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
-                Zbierz brakujące surowce w świecie lub wykop ze skał!
-            </div>
-        `;
+        const title = document.createElement('div');
+        title.style.fontSize = '16px';
+        title.style.fontWeight = 'bold';
+        title.style.color = '#fbbf24';
+        title.style.marginBottom = '10px';
+        title.innerHTML = `📋 Czego potrzebujesz do wytworzenia: <b>${recipe.output.name}</b> (x${recipe.output.count})?`;
+        el.appendChild(title);
+
+        const listContainer = document.createElement('div');
+        listContainer.style.display = 'flex';
+        listContainer.style.justifyContent = 'center';
+        listContainer.style.gap = '12px';
+        listContainer.style.flexWrap = 'wrap';
+        listContainer.style.margin = '8px 0';
+
+        missing.forEach(m => {
+            const card = document.createElement('div');
+            card.style.display = 'flex';
+            card.style.alignItems = 'center';
+            card.style.gap = '10px';
+            card.style.background = 'rgba(239, 68, 68, 0.22)';
+            card.style.border = '2px solid #ef4444';
+            card.style.borderRadius = '10px';
+            card.style.padding = '8px 14px';
+
+            const itemId = m.id || recipe?.ingredients?.find(i => i.name === m.name)?.id;
+            const icon = createSlotItemIcon(itemId);
+            if (icon) {
+                icon.style.width = '30px';
+                icon.style.height = '30px';
+                icon.style.imageRendering = 'pixelated';
+                card.appendChild(icon);
+            }
+
+            const info = document.createElement('div');
+            info.style.textAlign = 'left';
+            info.innerHTML = `
+                <div style="font-weight: bold; color: #ffffff; font-size: 14px;">🔴 ${m.name}</div>
+                <div style="font-size: 12px; color: #fca5a5;">Masz: <b>${m.have}</b> / Potrzebujesz: <b>${m.needed}</b></div>
+                <div style="font-size: 12px; color: #fef08a; font-weight: bold;">(Brakuje: ${m.diff})</div>
+            `;
+            card.appendChild(info);
+            listContainer.appendChild(card);
+        });
+        el.appendChild(listContainer);
+
+        const hint = document.createElement('div');
+        hint.style.fontSize = '12px';
+        hint.style.color = '#94a3b8';
+        hint.style.marginTop = '8px';
+        hint.innerText = 'Zbierz brakujące surowce w świecie lub wykop ze skał!';
+        el.appendChild(hint);
+
         el.style.display = 'block';
         el.style.opacity = '1';
 
@@ -1167,7 +1237,7 @@ export class UI {
         this._recipeNeedsTimeout = setTimeout(() => {
             el.style.opacity = '0';
             setTimeout(() => { if (el.style.opacity === '0') el.style.display = 'none'; }, 300);
-        }, 3600);
+        }, 3800);
 
         const missingStr = missing.map(m => `${m.diff}x ${m.name}`).join(', ');
         this.showPopup(`🚫 Nie masz dobrych surowców, żeby to zrobić! (Potrzebujesz: ${missingStr})`);

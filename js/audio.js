@@ -633,28 +633,10 @@ export function playDisorientSound() {
     } catch (_) {}
 }
 
-// Dźwięk ostrzegawczy / brak surowców w Księdze Receptur
+// Dźwięk ostrzegawczy / brak surowców w Księdze Receptur - wyciszony na życzenie Tymka („a nie robić bzzzt/m-m-m”)
 export function playWarningBuzzer() {
-    try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        const now = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(120, now);
-        osc.frequency.setValueAtTime(100, now + 0.08);
-
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(now);
-        osc.stop(now + 0.18);
-    } catch (_) {}
+    // Całkowicie cichy - na życzenie gracza brak denerwujących dźwięków buczenia
+    return;
 }
 
 // Dźwięk pomyślnego wytworzenia przedmiotu w Księdze Receptur

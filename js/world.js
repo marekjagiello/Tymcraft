@@ -190,23 +190,7 @@ export class World {
         const dz = z - 32;
 
         // Immediate spawn center (32, 32) is peaceful Plains
-        if (Math.abs(dx) <= 9 && Math.abs(dz) <= 9) return 'Plains';
-
-        // West: Beautiful Golden Desert - has clear borders (-11 to -48 in X, and |dz| < 40)
-        // Beyond that, it ends and transitions into other biomes!
-        if (dx < -11 && dx > -48 && Math.abs(dz) < 40) {
-            return 'Desert';
-        }
-
-        // East: Snowy Mountains with high freezing peaks - has clear borders (14 to 52 in X, and |dz| < 40)
-        if (dx > 14 && dx < 52 && Math.abs(dz) < 40) {
-            return 'Mountains';
-        }
-
-        // North / far zones: Snowy Winter (Zima)!
-        if (dz > 42 || (dx >= 52 && dz > 10)) {
-            return 'Winter';
-        }
+        if (Math.abs(dx) <= 8 && Math.abs(dz) <= 8) return 'Plains';
 
         // Mroczny Wymiar Bossa Robota (Dark Dimension) - sektor (960..1040, 960..1040)
         if (x >= 960 && x <= 1040 && z >= 960 && z <= 1040) {
@@ -218,9 +202,32 @@ export class World {
             return 'PigKingdom';
         }
 
-        const scale = 0.025;
+        // Tymek: "Ma być więcej pustyni, czyli żeby było więcej pustyni, gór"
+        // West & Southwest: Massive Golden Desert (spanning hundreds of blocks)
+        if (dx < -8 && dx > -250 && dz > -180 && dz < 45) {
+            return 'Desert';
+        }
+
+        // East & Southeast: Huge Majestic Mountains with towering peaks
+        if (dx > 8 && dx < 250 && dz > -180 && dz < 50) {
+            return 'Mountains';
+        }
+
+        // North / far zones: Snowy Winter (Zima)!
+        if (dz > 45) {
+            return 'Winter';
+        }
+
+        // Procedural distribution of large deserts and mountain ranges across endless world
+        const scale = 0.02;
+        const desertNoise = this.biomeNoise.noise2D((x + 600) * scale, (z - 400) * scale);
+        if (desertNoise < -0.24) return 'Desert';
+
+        const mountainNoise = this.noise.noise2D((x - 700) * scale, (z + 800) * scale);
+        if (mountainNoise > 0.30) return 'Mountains';
+
         const moisture = this.biomeNoise.noise2D((x + 200) * scale, (z + 200) * scale);
-        if (moisture > 0.08) return 'Forest';
+        if (moisture > 0.12) return 'Forest';
         return 'Plains';
     }
 
@@ -361,10 +368,10 @@ export class World {
                 // Multi-octave natural elevation
                 let h = 0;
                 if (biome === 'Desert') {
-                    h = 7 + Math.floor(this.noise.fbm2D(x * 0.03, z * 0.03, 3) * 3);
+                    h = 7 + Math.floor(this.noise.fbm2D(x * 0.025, z * 0.025, 3) * 4);
                 } else if (biome === 'Mountains') {
-                    const rawH = this.noise.fbm2D(x * 0.035, z * 0.035, 4);
-                    h = 14 + Math.floor(rawH * 12);
+                    const rawH = this.noise.fbm2D(x * 0.03, z * 0.03, 4);
+                    h = 15 + Math.floor(rawH * 16);
                 } else if (biome === 'Winter') {
                     h = 9 + Math.floor(this.noise.fbm2D(x * 0.035, z * 0.035, 3) * 3);
                 } else if (biome === 'Forest') {
