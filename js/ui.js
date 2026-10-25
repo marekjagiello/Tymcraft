@@ -349,6 +349,11 @@ export class UI {
                 this.addItem(data.id, data.name || 'Przedmiot', data.count || 1);
             }
         });
+        eventBus.on('chat:system_message', (data) => {
+            if (data && data.text) {
+                this.addChatMessage(data.sender || '🛡️ System Ochrony', data.text, 'chat-success');
+            }
+        });
     }
 
     startLoadingSequence(onComplete = null) {
@@ -1286,6 +1291,13 @@ export class UI {
         // Strip leading symbols like =, /, -
         const stripped = raw.replace(/^[/=\-]/, '').trim();
         const lower = stripped.toLowerCase();
+
+        // Blokada ściągania i kopiowania gry (Anti-Download Defense na życzenie Tymka):
+        if (lower === 'pobierz' || lower === 'sciagnij' || lower === 'ściągnij' || lower === 'download' || lower === 'tata' || lower === 'save' || lower === 'zapisz' || lower === 'kopia' || lower === 'skopiuj' || lower === 'rip') {
+            this.addChatMessage('🛡️ System Ochrony', '🚫 [BLOKADA ŚCIĄGANIA]: Nie możesz ściągnąć tej gry! Ta gra ma własną ochronę stworzoną specjalnie dla Tymka! Nikt nie może jej ściągnąć ani zrobić lepszej! 👑🔒✨', 'chat-success');
+            eventBus.emit('security:alert', 'Nie możesz ściągnąć tej gry, bo ma własną ochronę!');
+            return;
+        }
 
         // Tarcza Anty-Hakerska TYMCRAFT na życzenie Tymka (wklejona na stałe!):
         if (lower === 'tarcza' || lower === 'antihack' || lower === 'haker' || lower === 'ochrona' || lower === 'bezpieczenstwo' || lower === 'bezpieczeństwo' || lower === 'shield') {

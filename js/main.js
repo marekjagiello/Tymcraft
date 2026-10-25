@@ -1,17 +1,18 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=permanent_shield_v2';
-import { Player } from './player.js?v=permanent_shield_v2';
-import { Interaction } from './interaction.js?v=permanent_shield_v2';
-import { AnimalManager } from './animals.js?v=permanent_shield_v2';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=permanent_shield_v2';
-import { StorageManager } from './storage.js?v=permanent_shield_v2';
-import { SurvivalManager } from './survival.js?v=permanent_shield_v2';
-import { CraftingManager } from './crafting.js?v=permanent_shield_v2';
-import { DropsManager } from './drops.js?v=permanent_shield_v2';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=full_game_shield_v3';
+import { Player } from './player.js?v=full_game_shield_v3';
+import { Interaction } from './interaction.js?v=full_game_shield_v3';
+import { AnimalManager } from './animals.js?v=full_game_shield_v3';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=full_game_shield_v3';
+import { StorageManager } from './storage.js?v=full_game_shield_v3';
+import { SurvivalManager } from './survival.js?v=full_game_shield_v3';
+import { CraftingManager } from './crafting.js?v=full_game_shield_v3';
+import { DropsManager } from './drops.js?v=full_game_shield_v3';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=permanent_shield_v2';
-import { QuestManager } from './quests.js?v=permanent_shield_v2';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=permanent_shield_v2';
+import { updateWaterAnimation } from './textures.js?v=full_game_shield_v3';
+import { QuestManager } from './quests.js?v=full_game_shield_v3';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=full_game_shield_v3';
+import { SecurityShield } from './security.js?v=full_game_shield_v3';
 
 
 
@@ -167,8 +168,12 @@ class Game {
 
         this.eventBus = eventBus;
 
+        // 10. Pełna Tarcza Ochrony Gry Tymka (blokada pobierania, kopiowania, inspekcji)
+        this.securityShield = new SecurityShield(this);
+
         if (typeof window !== 'undefined') {
             window.game = this;
+            window.securityShield = this.securityShield;
             window.spawnCreeper = () => this.animals.spawnCreeperInFrontOfPlayer(this.player, 5.0);
             window.spawnDirtik = () => this.animals.spawnDirtikInFrontOfPlayer(this.player, 4.0);
             window.spawnRobot = () => this.animals.spawnRobotInFrontOfPlayer(this.player, 4.0);
