@@ -1232,10 +1232,11 @@ export class UI {
             }
         });
 
-        // Dyskretna wiadomość powitalna o czacie i tarczy bezpieczeństwa
+        // Komunikat o wklejonej na stałe Tarczy Anty-Hakerskiej dla każdego gracza!
         setTimeout(() => {
-            this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Wpisz /pomoc lub /tarcza 🛡️✨', 'chat-server');
-            this.addChatMessage('🛡️ System Ochrony', '🛡️ Tarcza Anty-Hakerska TYMCRAFT: AKTYWNA! Twój świat jest w 100% bezpieczny przed hakerami i błędami! 🚀✨', 'chat-success');
+            this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Wpisz /pomoc, aby zobaczyć komendy ✨', 'chat-server');
+            this.addChatMessage('🛡️ System Ochrony', '🛡️ TARCZA ANTY-HAKERSKA TYMCRAFT: WKLEJONA NA STAŁE! Każdy gracz ma automatyczną blokadę przechodzenia przez ściany, noclip i cheatów od razu! Nikt nie musi nic wpisywać! 🔒✨', 'chat-success');
+            this.showPopup('🛡️ Tarcza Anty-Hakerska: Wklejona na stałe! Przechodzenie przez ściany zablokowane! 🔒');
         }, 1500);
     }
 
@@ -1286,10 +1287,10 @@ export class UI {
         const stripped = raw.replace(/^[/=\-]/, '').trim();
         const lower = stripped.toLowerCase();
 
-        // Tarcza Anty-Hakerska TYMCRAFT na życzenie Tymka!
+        // Tarcza Anty-Hakerska TYMCRAFT na życzenie Tymka (wklejona na stałe!):
         if (lower === 'tarcza' || lower === 'antihack' || lower === 'haker' || lower === 'ochrona' || lower === 'bezpieczenstwo' || lower === 'bezpieczeństwo' || lower === 'shield') {
-            this.addChatMessage('🛡️ System Ochrony', '🛡️ Tarcza Anty-Hakerska TYMCRAFT jest w 100% WŁĄCZONA i AKTYWNA! Blokuje noclip, naprawia widok X-Ray, chroni przed wpadnięciem w próżnię i broni świat Tymka przed wszystkimi złośliwymi hakerami! 🚀✨', 'chat-success');
-            this.showPopup('🛡️ Tarcza Anty-Hakerska AKTYWNA! Twój świat jest w 100% bezpieczny! 🔒');
+            this.addChatMessage('🛡️ System Ochrony', '🛡️ Tarcza Anty-Hakerska TYMCRAFT jest już wklejona na stałe dla każdego gracza! Nikt nie musi nic wpisywać – przechodzenie przez ściany, noclip i cheaty są w 100% zablokowane od razu! 🚀✨', 'chat-success');
+            this.showPopup('🛡️ Tarcza Anty-Hakerska jest wklejona na stałe! Świat jest w 100% bezpieczny! 🔒');
             return;
         }
 

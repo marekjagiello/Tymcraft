@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=wand_anti_hack_v1';
-import { Player } from './player.js?v=wand_anti_hack_v1';
-import { Interaction } from './interaction.js?v=wand_anti_hack_v1';
-import { AnimalManager } from './animals.js?v=wand_anti_hack_v1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=wand_anti_hack_v1';
-import { StorageManager } from './storage.js?v=wand_anti_hack_v1';
-import { SurvivalManager } from './survival.js?v=wand_anti_hack_v1';
-import { CraftingManager } from './crafting.js?v=wand_anti_hack_v1';
-import { DropsManager } from './drops.js?v=wand_anti_hack_v1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=permanent_shield_v2';
+import { Player } from './player.js?v=permanent_shield_v2';
+import { Interaction } from './interaction.js?v=permanent_shield_v2';
+import { AnimalManager } from './animals.js?v=permanent_shield_v2';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=permanent_shield_v2';
+import { StorageManager } from './storage.js?v=permanent_shield_v2';
+import { SurvivalManager } from './survival.js?v=permanent_shield_v2';
+import { CraftingManager } from './crafting.js?v=permanent_shield_v2';
+import { DropsManager } from './drops.js?v=permanent_shield_v2';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=wand_anti_hack_v1';
-import { QuestManager } from './quests.js?v=wand_anti_hack_v1';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=wand_anti_hack_v1';
+import { updateWaterAnimation } from './textures.js?v=permanent_shield_v2';
+import { QuestManager } from './quests.js?v=permanent_shield_v2';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=permanent_shield_v2';
 
 
 

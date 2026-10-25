@@ -40,6 +40,7 @@ export class Player {
         };
 
         this.cameraMode = 0; // 0 = first person, 1 = third person back
+        this.antiHackShieldActive = true; // Tarcza Anty-Hakerska wklejona na stałe od pierwszej klatki!
         this.walkCycle = 0;
         this.mountedBear = null;
         this.currentArmorType = 0;
@@ -658,6 +659,7 @@ export class Player {
 
         // Helper for vertical Y movement and collision
         const moveVertical = () => {
+            const prevY = this.position.y;
             let newY = this.position.y + this.velocity.y * dt;
             let testBoxY = {
                 minX: this.position.x - halfW, maxX: this.position.x + halfW,
@@ -706,10 +708,17 @@ export class Player {
                 }
             }
             this.position.y = newY;
+            // Floor / Ceiling impenetrable defense (Tarcza przed wpadaniem w podłogę i sufit)
+            if (this.checkVoxelCollision(this.getAABB())) {
+                this.position.y = prevY;
+                this.velocity.y = 0;
+            }
         };
 
         // Helper for horizontal movement with smooth step-up
         const moveHorizontal = () => {
+            const prevX = this.position.x;
+            const prevZ = this.position.z;
             const dx = this.velocity.x * dt;
             const dz = this.velocity.z * dt;
             if (dx === 0 && dz === 0) return;
@@ -801,6 +810,15 @@ export class Player {
                 } else if (this.velocity.z < 0) {
                     this.position.z = Math.floor(testBoxZ.minZ) + 1 + halfW + 0.001;
                 }
+                this.velocity.z = 0;
+            }
+
+            // Wklejona Tarcza przed przechodzeniem przez ściany (Solid Wall Defense & Anti-Noclip):
+            // Jeśli ruch w jakikolwiek sposób spowodowałby kolizję ze ścianą, natychmiast wycofaj do bezpiecznej pozycji przed ścianą!
+            if (this.checkVoxelCollision(this.getAABB())) {
+                this.position.x = prevX;
+                this.position.z = prevZ;
+                this.velocity.x = 0;
                 this.velocity.z = 0;
             }
         };
