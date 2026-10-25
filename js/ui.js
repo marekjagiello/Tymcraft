@@ -1,7 +1,8 @@
 import { BLOCK_DEF, AtlasCanvas, TILE_SIZE, ATLAS_COLS } from './textures.js?v=water_2';
-import { ITEMS } from './crafting.js';
+import { ITEMS, RECIPES, canCraftRecipe, craftRecipeDirect } from './crafting.js?v=recipe_book_v4';
 import { getItem } from './items.js?v=empty_start_bow_string_v10';
 import { eventBus } from './events.js';
+import { playWarningBuzzer, playCraftSuccessSound } from './audio.js?v=recipe_book_v4';
 
 // 9 Pustych Slotów Paska Podręcznego (gracz zaczyna bez żadnych rzeczy na życzenie Tymka!)
 export const HOTBAR_BLOCKS = Array.from({ length: 9 }, (_, i) => ({
@@ -180,6 +181,10 @@ export function createSlotItemIcon(itemId) {
         else if (itemId === 59) {
             itemSpan.innerText = '🐷🧱'; // Świniowy Blok
             itemSpan.style.filter = 'drop-shadow(0 0 8px #f472b6)';
+        }
+        else if (itemId === 60) {
+            itemSpan.innerText = '🗿'; // Odstraszacz Potworów
+            itemSpan.style.filter = 'drop-shadow(0 0 8px #a855f7)';
         }
         return itemSpan;
     }
@@ -640,6 +645,7 @@ export class UI {
         this.renderBackpackSlots();
         this.renderModalHotbar();
         this.updateCursorItemDisplay();
+        if (this.isCraftingOpen) this.renderRecipeBook();
     }
 
     updateCursorItemDisplay() {
@@ -722,6 +728,7 @@ export class UI {
         if (this.isCraftingOpen) {
             this.renderBackpackSlots();
             this.renderModalHotbar();
+            this.renderRecipeBook();
         }
     }
 
@@ -738,6 +745,7 @@ export class UI {
             this.renderHotbar();
             if (this.isCraftingOpen) {
                 this.renderModalHotbar();
+                this.renderRecipeBook();
             }
         }
     }
@@ -787,6 +795,7 @@ export class UI {
         if (this.isCraftingOpen) {
             this.renderBackpackSlots();
             this.renderModalHotbar();
+            this.renderRecipeBook();
         }
         return needed === 0;
     }
@@ -839,6 +848,7 @@ export class UI {
             this.renderBackpackSlots();
             this.renderModalHotbar();
             this.updateCraftingDisplay();
+            this.renderRecipeBook();
         } else {
             if (this.cursorItem) {
                 this.addItem(this.cursorItem.id, this.cursorItem.name, this.cursorItem.count);
@@ -860,6 +870,32 @@ export class UI {
                 this.toggleCraftingModal();
             });
         }
+
+        // Przycisk otwierania/zwijania Księgi Receptur (📗)
+        const toggleBookBtn = document.getElementById('toggle-recipe-book-btn');
+        const bookContainer = document.getElementById('recipe-book-container');
+        if (toggleBookBtn && bookContainer) {
+            toggleBookBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = bookContainer.style.display === 'none';
+                bookContainer.style.display = isHidden ? 'flex' : 'none';
+                const iconEl = toggleBookBtn.querySelector('.book-icon');
+                if (iconEl) iconEl.innerText = isHidden ? '📗' : '📖';
+            });
+        }
+
+        // Zakładki kategorii w Księdze Receptur
+        const tabs = this.craftingModalEl.querySelectorAll('.recipe-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.recipeBookCategory = tab.dataset.cat || 'all';
+                this.renderRecipeBook();
+            });
+        });
 
         const craftSlots = this.craftingModalEl.querySelectorAll('.craft-slot');
         craftSlots.forEach((slotEl) => {
@@ -921,11 +957,14 @@ export class UI {
                     this.renderModalHotbar();
                     this.updateCraftingDisplay();
                     this.updateCursorItemDisplay();
+                    this.renderRecipeBook();
                     console.log(`[Crafting] Stworzono: ${result.item.name} x${result.count}`);
                     eventBus.emit('craft:item', { id: result.item.id });
                 }
             });
         }
+
+        this.renderRecipeBook();
     }
 
     updateCraftingDisplay() {
@@ -971,6 +1010,103 @@ export class UI {
                 outputSlot.style.background = '#4b5563';
                 outputSlot.style.cursor = 'default';
             }
+        }
+        this.renderRecipeBook();
+    }
+
+    // ==============================================================================
+    // 📖 Renderowanie Interaktywnej Księgi Receptur (Recipe Book) na życzenie Tymka
+    // ==============================================================================
+    renderRecipeBook() {
+        const listEl = document.getElementById('recipe-cards-list');
+        const readyCountEl = document.getElementById('recipe-ready-count');
+        if (!listEl) return;
+
+        listEl.innerHTML = '';
+        let readyCount = 0;
+
+        const currentCat = this.recipeBookCategory || 'all';
+        const filtered = RECIPES.filter(r => currentCat === 'all' || r.category === currentCat);
+
+        filtered.forEach((recipe) => {
+            const { canCraft, missing } = canCraftRecipe(recipe, this);
+            if (canCraft) readyCount++;
+
+            const card = document.createElement('div');
+            card.className = `recipe-card ${canCraft ? 'available' : 'unavailable'}`;
+            card.dataset.recipeId = recipe.id;
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'recipe-icon';
+            const slotIcon = createSlotItemIcon(recipe.output.id);
+            if (slotIcon) {
+                iconSpan.appendChild(slotIcon);
+            } else {
+                iconSpan.innerText = '📦';
+            }
+
+            const texts = document.createElement('div');
+            texts.className = 'recipe-texts';
+
+            const nameSpan = document.createElement('div');
+            nameSpan.className = 'recipe-name';
+            nameSpan.innerText = `${recipe.output.name} (x${recipe.output.count})`;
+
+            const ingSpan = document.createElement('div');
+            ingSpan.className = 'recipe-ingredients';
+            const ingText = recipe.ingredients.map(ing => `${ing.count}x ${ing.name}`).join(' + ');
+            ingSpan.innerText = ingText;
+
+            texts.appendChild(nameSpan);
+            texts.appendChild(ingSpan);
+
+            const info = document.createElement('div');
+            info.className = 'recipe-info';
+            info.appendChild(iconSpan);
+            info.appendChild(texts);
+
+            const badge = document.createElement('span');
+            badge.className = `recipe-badge ${canCraft ? 'badge-green' : 'badge-red'}`;
+            badge.innerText = canCraft ? '✓ Gotowe' : '✕ Brak';
+
+            card.appendChild(info);
+            card.appendChild(badge);
+
+            // Obsługa kliknięcia wg reguł Tymka:
+            // - Zielona: od razu wytwarza przedmiot
+            // - Czerwona: dźwięk buzzer + komunikat: "Nie masz dobrych surowców, żeby to zrobić!"
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (canCraft) {
+                    const result = craftRecipeDirect(recipe, this);
+                    if (result.success) {
+                        playCraftSuccessSound();
+                        this.showPopup(`✨ Wytworzono: ${recipe.output.name} x${recipe.output.count}! 🎉`);
+                        eventBus.emit('craft:item', { id: recipe.output.id });
+                        this.renderHotbar();
+                        this.renderBackpackSlots();
+                        this.renderModalHotbar();
+                        this.updateCraftingDisplay();
+                        this.renderRecipeBook();
+                    }
+                } else {
+                    playWarningBuzzer();
+                    card.classList.add('shake');
+                    setTimeout(() => card.classList.remove('shake'), 350);
+
+                    const missingStr = missing.map(m => `${m.diff}x ${m.name}`).join(', ');
+                    this.showPopup(`🚫 Nie masz dobrych surowców, żeby to zrobić! (Brakuje: ${missingStr})`);
+                }
+            });
+
+            listEl.appendChild(card);
+        });
+
+        if (readyCountEl) {
+            readyCountEl.innerText = `${readyCount} gotowych`;
+            readyCountEl.style.background = readyCount > 0 ? '#065f46' : '#7f1d1d';
+            readyCountEl.style.color = readyCount > 0 ? '#34d399' : '#fca5a5';
+            readyCountEl.style.borderColor = readyCount > 0 ? '#10b981' : '#ef4444';
         }
     }
 

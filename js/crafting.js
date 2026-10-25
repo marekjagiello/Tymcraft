@@ -178,6 +178,15 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 24. Odstraszacz Potworów (60): Patyk (20) + Kamień/Bruk (3/11) + Kość/Proch/Róża (27/36/17)
+        if (nonNulls.length === 3 &&
+            nonNulls.includes(20) &&
+            (nonNulls.includes(3) || nonNulls.includes(11)) &&
+            (nonNulls.includes(27) || nonNulls.includes(36) || nonNulls.includes(17))) {
+            this.output = { item: ITEMS.MONSTER_REPELLENT, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }
@@ -194,4 +203,313 @@ export class CraftingManager {
 
         return crafted;
     }
+}
+
+// ==============================================================================
+// 📖 TYMCRAFT RECIPE BOOK — Baza Receptur dla Książki Przepisów Tymka
+// ==============================================================================
+export const RECIPES = [
+    {
+        id: 'planks',
+        name: 'Deski',
+        output: { id: 8, name: 'Deski', count: 4, icon: 'planks' },
+        category: 'blocks',
+        categoryName: '🧱 Bloki',
+        description: 'Drewniane deski do budowy i tworzenia patyków',
+        ingredients: [
+            { id: 4, name: 'Drewno', count: 1 }
+        ]
+    },
+    {
+        id: 'stick',
+        name: 'Patyk',
+        output: { id: 20, name: 'Patyk', count: 4, icon: 'stick' },
+        category: 'materials',
+        categoryName: '🪵 Surowce',
+        description: 'Podstawa do każdego narzędzia i broni',
+        ingredients: [
+            { id: 8, name: 'Deski', count: 2 }
+        ]
+    },
+    {
+        id: 'wood_sword',
+        name: 'Drewniany Miecz',
+        output: { id: 24, name: 'Drewniany Miecz', count: 1, icon: 'wood_sword' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'Podstawowy miecz do obrony przed potworami (5 dmg)',
+        ingredients: [
+            { id: 8, name: 'Deski', count: 1 },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'wood_pickaxe',
+        name: 'Drewniany Kilof',
+        output: { id: 21, name: 'Drewniany Kilof', count: 1, icon: 'wood_pick' },
+        category: 'tools',
+        categoryName: '⛏️ Narzędzia',
+        description: 'Do szybkiego wydobywania skał i węgla',
+        ingredients: [
+            { id: 8, name: 'Deski', count: 2 },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'stone_sword',
+        name: 'Kamienny Miecz',
+        output: { id: 25, name: 'Kamienny Miecz', count: 1, icon: 'stone_sword' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'Mocny miecz zadający 8 obrażeń potworom',
+        ingredients: [
+            { id: 3, name: 'Kamień / Bruk', count: 1, alternatives: [3, 11] },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'stone_pickaxe',
+        name: 'Kamienny Kilof',
+        output: { id: 22, name: 'Kamienny Kilof', count: 1, icon: 'stone_pick' },
+        category: 'tools',
+        categoryName: '⛏️ Narzędzia',
+        description: 'Twardy kilof ze skały (szybkie kopanie)',
+        ingredients: [
+            { id: 3, name: 'Kamień / Bruk', count: 2, alternatives: [3, 11] },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'bow',
+        name: 'Łuk',
+        output: { id: 29, name: 'Łuk', count: 1, icon: 'bow' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'Broń dystansowa! Wymaga linki z robota i strzał',
+        ingredients: [
+            { id: 57, name: 'Linka', count: 1 },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'arrow',
+        name: 'Strzała',
+        output: { id: 28, name: 'Strzała', count: 4, icon: 'arrow' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: '4x ostre strzały z patyka i kamienia lub kości',
+        ingredients: [
+            { id: 20, name: 'Patyk', count: 1 },
+            { id: 3, name: 'Kamień / Kość', count: 1, alternatives: [3, 11, 27] }
+        ]
+    },
+    {
+        id: 'flint_and_steel',
+        name: 'Krzesiwo',
+        output: { id: 52, name: 'Krzesiwo', count: 1, icon: 'flint_and_steel' },
+        category: 'tools',
+        categoryName: '⛏️ Narzędzia',
+        description: 'Rozpala ogień i aktywuje portal do Mrocznego Wymiaru!',
+        ingredients: [
+            { id: 20, name: 'Patyk', count: 1 },
+            { id: 3, name: 'Kamień / Bruk', count: 1, alternatives: [3, 11] }
+        ]
+    },
+    {
+        id: 'monster_repellent',
+        name: 'Odstraszacz Potworów',
+        output: { id: 60, name: 'Odstraszacz Potworów', count: 1, icon: 'monster_repellent' },
+        category: 'special',
+        categoryName: '🗿 Specjalne',
+        description: '🗿🧟 Odstrasza potwory! Zombie, szkielety i creepery uciekają w popłochu!',
+        ingredients: [
+            { id: 20, name: 'Patyk', count: 1 },
+            { id: 3, name: 'Kamień / Bruk', count: 1, alternatives: [3, 11] },
+            { id: 27, name: 'Kość / Proch / Róża', count: 1, alternatives: [27, 36, 17] }
+        ]
+    },
+    {
+        id: 'stone_armor',
+        name: 'Kamienna Zbroja',
+        output: { id: 43, name: 'Kamienna Zbroja', count: 1, icon: 'stone_armor' },
+        category: 'armor',
+        categoryName: '🛡️ Zbroje',
+        description: 'Pancerz ze skał dający aż 13 serc życia (26 HP)!',
+        ingredients: [
+            { id: 11, name: 'Bruk / Kamień', count: 3, alternatives: [3, 11] }
+        ]
+    },
+    {
+        id: 'diamond_sword',
+        name: 'Diamentowy Miecz',
+        output: { id: 31, name: 'Diamentowy Miecz', count: 1, icon: 'diamond_sword' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'Legendarny miecz zadający potężne 14 obrażeń!',
+        ingredients: [
+            { id: 30, name: 'Diament', count: 1 },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'diamond_pickaxe',
+        name: 'Diamentowy Kilof',
+        output: { id: 33, name: 'Diamentowy Kilof', count: 1, icon: 'diamond_pick' },
+        category: 'tools',
+        categoryName: '⛏️ Narzędzia',
+        description: 'Super szybki kilof diamentowy (10.0 efficiency)',
+        ingredients: [
+            { id: 30, name: 'Diament', count: 2 },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'diamond_armor',
+        name: 'Diamentowa Zbroja',
+        output: { id: 32, name: 'Diamentowa Zbroja', count: 1, icon: 'diamond_armor' },
+        category: 'armor',
+        categoryName: '🛡️ Zbroje',
+        description: 'Diamentowa zbroja dająca 15 serc (30 HP)!',
+        ingredients: [
+            { id: 30, name: 'Diament', count: 3 }
+        ]
+    },
+    {
+        id: 'ruby_sword',
+        name: 'Rubinowy Miecz',
+        output: { id: 35, name: 'Rubinowy Miecz', count: 1, icon: 'ruby_sword' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'One-Hit Kill! Likwiduje niemal każdego wroga jednym ciosem (20 dmg)',
+        ingredients: [
+            { id: 34, name: 'Rubin', count: 1 },
+            { id: 20, name: 'Patyk', count: 1 }
+        ]
+    },
+    {
+        id: 'ruby_armor',
+        name: 'Rubinowa Zbroja',
+        output: { id: 37, name: 'Rubinowa Zbroja', count: 1, icon: 'ruby_armor' },
+        category: 'armor',
+        categoryName: '🛡️ Zbroje',
+        description: 'Niezniszczalna zbroja dająca 20 serc (40 HP) i 50 trafień tarczy!',
+        ingredients: [
+            { id: 34, name: 'Rubin', count: 3 }
+        ]
+    },
+    {
+        id: 'pig_block',
+        name: 'Świniowy Blok',
+        output: { id: 59, name: 'Świniowy Blok', count: 1, icon: 'pig_block' },
+        category: 'blocks',
+        categoryName: '🧱 Bloki',
+        description: 'Różowy blok stworzony ze zgniłego mięsa!',
+        ingredients: [
+            { id: 26, name: 'Zgniłe Mięso', count: 2 }
+        ]
+    },
+    {
+        id: 'magic_wand',
+        name: 'Magiczna Różdżka',
+        output: { id: 50, name: 'Magiczna Różdżka', count: 1, icon: 'magic_wand' },
+        category: 'special',
+        categoryName: '🗿 Specjalne',
+        description: 'Ciska czarami: ⚡ Piorun, 🔥 Kula Ognia, 🪨 Kamień!',
+        ingredients: [
+            { id: 14, name: 'Bedrock / Kolorowy Blok', count: 1, alternatives: [14, 51, 53] },
+            { id: 49, name: 'Niebieski Pierwiastek / Patyk', count: 1, alternatives: [49, 20] }
+        ]
+    },
+    {
+        id: 'color_sword',
+        name: 'Kolorowy Miecz',
+        output: { id: 54, name: 'Kolorowy Miecz', count: 1, icon: 'color_sword' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'Legendarny miecz zadający rekordowe 25 obrażeń!',
+        ingredients: [
+            { id: 53, name: 'Napiorunowany Blok', count: 1, alternatives: [53, 51] },
+            { id: 35, name: 'Miecz', count: 1, alternatives: [35, 31, 25, 47] }
+        ]
+    },
+    {
+        id: 'color_bow',
+        name: 'Kolorowy Łuk',
+        output: { id: 55, name: 'Kolorowy Łuk', count: 1, icon: 'color_bow' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'Tęczowy łuk strzelający samonaprowadzającymi strzałami!',
+        ingredients: [
+            { id: 53, name: 'Napiorunowany Blok', count: 1, alternatives: [53, 51] },
+            { id: 29, name: 'Łuk', count: 1 }
+        ]
+    },
+    {
+        id: 'color_arrow',
+        name: 'Magiczna Kolorowa Strzała',
+        output: { id: 56, name: 'Magiczna Kolorowa Strzała', count: 1, icon: 'color_arrow' },
+        category: 'weapons',
+        categoryName: '⚔️ Broń',
+        description: 'Tęczowa amunicja śledząca potwory na odległość!',
+        ingredients: [
+            { id: 53, name: 'Napiorunowany Blok', count: 1, alternatives: [53, 51] },
+            { id: 28, name: 'Strzała', count: 1 }
+        ]
+    }
+];
+
+export function canCraftRecipe(recipe, ui) {
+    if (!recipe || !ui) return { canCraft: false, missing: [] };
+    const missing = [];
+    for (const ing of recipe.ingredients) {
+        const allowedIds = ing.alternatives || [ing.id];
+        let totalCount = 0;
+        for (const id of allowedIds) {
+            for (const slot of ui.hotbarBlocks) {
+                if (slot.id === id && slot.count > 0) totalCount += slot.count;
+            }
+            for (const slot of ui.backpackSlots) {
+                if (slot.id === id && slot.count > 0) totalCount += slot.count;
+            }
+        }
+        if (totalCount < ing.count) {
+            missing.push({
+                name: ing.name,
+                needed: ing.count,
+                have: totalCount,
+                diff: ing.count - totalCount
+            });
+        }
+    }
+    return {
+        canCraft: missing.length === 0,
+        missing
+    };
+}
+
+export function craftRecipeDirect(recipe, ui) {
+    const check = canCraftRecipe(recipe, ui);
+    if (!check.canCraft) return { success: false, missing: check.missing };
+
+    // Consume required ingredients
+    for (const ing of recipe.ingredients) {
+        let toConsume = ing.count;
+        const allowedIds = ing.alternatives || [ing.id];
+        for (const id of allowedIds) {
+            if (toConsume <= 0) break;
+            let avail = 0;
+            for (const s of [...ui.hotbarBlocks, ...ui.backpackSlots]) {
+                if (s.id === id && s.count > 0) avail += s.count;
+            }
+            if (avail > 0) {
+                const take = Math.min(avail, toConsume);
+                ui.consumeItem(id, take);
+                toConsume -= take;
+            }
+        }
+    }
+
+    // Add produced item directly to inventory
+    ui.addItem(recipe.output.id, recipe.output.name, recipe.output.count);
+    return { success: true, item: recipe.output };
 }

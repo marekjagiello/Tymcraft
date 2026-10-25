@@ -738,9 +738,9 @@ body, html {
     display: none;
     color: #333333;
     font-family: monospace;
-    width: 440px;
-    max-width: 95vw;
-    max-height: 90vh;
+    width: 630px;
+    max-width: 96vw;
+    max-height: 92vh;
     overflow-y: auto;
 }
 
@@ -767,18 +767,27 @@ body, html {
     display: flex;
     gap: 12px;
     margin-bottom: 10px;
+    align-items: stretch;
 }
 
 .crafting-section {
-    flex: 1.1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     background: #8b8b8b;
     padding: 10px;
     border: 2px solid #373737;
-    border-radius: 4px;
+    border-radius: 6px;
+    min-width: 175px;
+}
+
+.crafting-grid-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 .crafting-grid-2x2 {
@@ -813,20 +822,225 @@ body, html {
 }
 
 .crafting-arrow {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
     color: #ffffff;
 }
 
-.crafting-recipe-hint {
+.recipe-book-toggle-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #15803d, #166534);
+    border: 2px solid #4ade80;
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    font-family: inherit;
+}
+.recipe-book-toggle-btn:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+    transform: translateY(-1px);
+}
+
+/* 📖 Recipe Book Styles */
+.recipe-book-container {
     flex: 1;
-    font-size: 10.5px;
-    color: #374151;
-    background: #e5e5e5;
-    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    background: #1e293b;
+    border: 2px solid #0f172a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+    height: 185px;
+    min-width: 0;
+}
+
+.recipe-book-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    color: #e2e8f0;
+    font-size: 11.5px;
+    font-weight: bold;
+}
+
+.recipe-ready-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: #065f46;
+    color: #34d399;
+    border: 1px solid #10b981;
+    font-weight: bold;
+}
+
+.recipe-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    margin-bottom: 6px;
+    padding-bottom: 2px;
+}
+
+.recipe-tab {
+    background: #334155;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+    padding: 2px 7px;
+    font-size: 10px;
     border-radius: 4px;
-    line-height: 1.35;
-    border: 1px solid #d1d5db;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background 0.1s, border-color 0.1s;
+}
+.recipe-tab:hover {
+    background: #475569;
+    color: #ffffff;
+}
+.recipe-tab.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.recipe-cards-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-right: 4px;
+}
+
+/* Custom scrollbar for recipe list */
+.recipe-cards-list::-webkit-scrollbar {
+    width: 6px;
+}
+.recipe-cards-list::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 3px;
+}
+
+.recipe-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Świeci na zielono, gdy gracz ma surowce! */
+.recipe-card.available {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.7), rgba(15, 23, 42, 0.85));
+    border: 2px solid #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);
+}
+.recipe-card.available:hover {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.95), rgba(15, 23, 42, 0.95));
+    border-color: #34d399;
+    transform: translateX(2px) scale(1.01);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.65);
+}
+
+/* Świeci na czerwono, gdy brak surowców! */
+.recipe-card.unavailable {
+    background: linear-gradient(135deg, rgba(69, 10, 10, 0.45), rgba(20, 20, 20, 0.75));
+    border: 2px solid #ef4444;
+    opacity: 0.85;
+}
+.recipe-card.unavailable:hover {
+    opacity: 1;
+    border-color: #f87171;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+.recipe-card.shake {
+    animation: cardShake 0.35s ease;
+}
+
+@keyframes cardShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+.recipe-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.recipe-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.recipe-texts {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+}
+
+.recipe-name {
+    font-size: 11px;
+    font-weight: bold;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recipe-ingredients {
+    font-size: 9.5px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recipe-badge {
+    font-size: 9.5px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.badge-green {
+    background: #059669;
+    color: #ecfdf5;
+    border: 1px solid #34d399;
+    box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+}
+
+.badge-red {
+    background: #991b1b;
+    color: #fee2e2;
+    border: 1px solid #f87171;
 }
 
 .inv-section-title {

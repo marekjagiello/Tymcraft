@@ -157,7 +157,15 @@ export class Zombie extends Mob {
 
         if (playerPosition && !this.isDead) {
             const distToPlayer = this.position.distanceTo(playerPosition);
-            if (distToPlayer < 24.0) {
+            const hasRepellent = Boolean(this.manager?.player?.ui?.hasItem(60) || this.manager?.ui?.hasItem(60));
+
+            if (hasRepellent && distToPlayer < 16.0) {
+                // Odstraszacz Potworów: Zombie panikuje i ucieka od gracza!
+                this.targetRotationY = Math.atan2(this.position.x - playerPosition.x, this.position.z - playerPosition.z);
+                this.state = 'walk';
+                this.walkSpeed = 3.6;
+            } else if (distToPlayer < 24.0) {
+                this.walkSpeed = 2.4;
                 this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
 
                 if (distToPlayer <= 1.4) {
@@ -424,7 +432,14 @@ export class Skeleton extends Mob {
 
         if (playerPosition && !this.isDead) {
             const distToPlayer = this.position.distanceTo(playerPosition);
-            if (distToPlayer < 24.0) {
+            const hasRepellent = Boolean(this.manager?.player?.ui?.hasItem(60) || this.manager?.ui?.hasItem(60));
+
+            if (hasRepellent && distToPlayer < 16.0) {
+                // Odstraszacz Potworów: Szkielet panikuje i ucieka od gracza!
+                this.targetRotationY = Math.atan2(this.position.x - playerPosition.x, this.position.z - playerPosition.z);
+                this.state = 'walk';
+                this.walkSpeed = 3.6;
+            } else if (distToPlayer < 24.0) {
                 this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
 
                 // Tactical Ranged AI (kites player & shoots arrows)
@@ -714,8 +729,17 @@ export class Creeper extends Mob {
         const detectRange = 15.0;
         const fuseRange = 3.2;
         const defuseRange = 4.8;
+        const hasRepellent = Boolean(this.manager?.player?.ui?.hasItem(60) || this.manager?.ui?.hasItem(60));
 
-        if (distToPlayer <= detectRange) {
+        if (hasRepellent && distToPlayer < 16.0) {
+            // Odstraszacz Potworów: Creeper natychmiast rezygnuje z wybuchu i ucieka!
+            this.isFusing = false;
+            this.fuseTimer = 0;
+            this.group.scale.set(1.0, 1.0, 1.0);
+            this.targetRotationY = Math.atan2(this.position.x - playerPosition.x, this.position.z - playerPosition.z);
+            this.state = 'walk';
+            this.walkSpeed = 3.8;
+        } else if (distToPlayer <= detectRange) {
             this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
 
             if (distToPlayer <= fuseRange) {
@@ -1050,7 +1074,13 @@ export class Dirtik extends Mob {
         }
 
         // Hostile chasing behavior
-        if (distToPlayer < 24.0) {
+        const hasRepellent = Boolean(this.manager?.player?.ui?.hasItem(60) || this.manager?.ui?.hasItem(60));
+        if (hasRepellent && distToPlayer < 16.0) {
+            // Odstraszacz Potworów: Dirtik ucieka w panice!
+            this.targetRotationY = Math.atan2(this.position.x - playerPosition.x, this.position.z - playerPosition.z);
+            this.state = 'walk';
+            this.walkSpeed = 3.8;
+        } else if (distToPlayer < 24.0) {
             this.targetRotationY = Math.atan2(playerPosition.x - this.position.x, playerPosition.z - this.position.z);
             this.state = 'walk';
 

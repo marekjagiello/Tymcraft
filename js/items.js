@@ -72,7 +72,8 @@ export const ITEMS = {
     COLOR_ARROW: { id: 56, name: 'Magiczna Kolorowa Strzała', type: ITEM_TYPES.MATERIAL, icon: 'color_arrow' },
     STRING: { id: 57, name: 'Linka', type: ITEM_TYPES.MATERIAL, icon: 'string' },
     IRON_INGOT: { id: 58, name: 'Żelazo', type: ITEM_TYPES.MATERIAL, icon: 'iron_ingot' },
-    PIG_BLOCK: { id: 59, name: 'Świniowy Blok', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'pig_block' }
+    PIG_BLOCK: { id: 59, name: 'Świniowy Blok', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'pig_block' },
+    MONSTER_REPELLENT: { id: 60, name: 'Odstraszacz Potworów', type: ITEM_TYPES.TOOL, damage: 4.0, icon: 'monster_repellent' }
 };
 
 

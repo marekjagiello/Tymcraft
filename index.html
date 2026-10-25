@@ -56,7 +56,7 @@
         };
     })();
     </script>
-    <link rel="stylesheet" href="./css/style.css?v=boss_visible_hitbox_v15">
+    <link rel="stylesheet" href="./css/style.css?v=recipe_book_v4">
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%235b8731'/><rect y='6' width='16' height='10' fill='%23866043'/></svg>">
     <script type="importmap">
@@ -124,28 +124,36 @@
         </div>
         <div class="modal-top-section">
             <div class="crafting-section">
-                <div class="crafting-grid-2x2">
-                    <div class="craft-slot" data-slot="0" title="Slot 1"></div>
-                    <div class="craft-slot" data-slot="1" title="Slot 2"></div>
-                    <div class="craft-slot" data-slot="2" title="Slot 3"></div>
-                    <div class="craft-slot" data-slot="3" title="Slot 4"></div>
+                <div class="crafting-grid-container">
+                    <div class="crafting-grid-2x2">
+                        <div class="craft-slot" data-slot="0" title="Slot 1"></div>
+                        <div class="craft-slot" data-slot="1" title="Slot 2"></div>
+                        <div class="craft-slot" data-slot="2" title="Slot 3"></div>
+                        <div class="craft-slot" data-slot="3" title="Slot 4"></div>
+                    </div>
+                    <div class="crafting-arrow">➔</div>
+                    <div class="output-slot" id="craft-output-slot" title="Wynik">Puste</div>
                 </div>
-                <div class="crafting-arrow">➔</div>
-                <div class="output-slot" id="craft-output-slot" title="Wynik">Puste</div>
+                <button type="button" id="toggle-recipe-book-btn" class="recipe-book-toggle-btn" title="Otwórz / Zamknij Książkę Przepisów">
+                    <span class="book-icon">📗</span>
+                    <span class="book-text">Księga Receptur</span>
+                </button>
             </div>
-            <div class="crafting-recipe-hint">
-                <b>Przepisy 2x2:</b><br>
-                • 1x Drewno ➔ 4x Deski<br>
-                • 2x Deski w pionie ➔ 4x Patyki<br>
-                • 2x Deski/Kamień + 1x Patyk ➔ Kilof<br>
-                • 1x Deski/Kamień + 1x Patyk ➔ Miecz<br>
-                • 1x Linka (góra) + 1x Patyk (dół) ➔ 🏹 Łuk<br>
-                • 1x Patyk + 1x Kamień/Kość ➔ 🎯 4x Strzały<br>
-                • 1x Patyk + 1x Kamień (na skos) ➔ 🔥 Krzesiwo<br>
-                • 3-4x Bruk ➔ 🛡️ Kamienna Zbroja (13 serc!)<br>
-                • 3-4x Diamenty ➔ 🛡️ Diamentowa Zbroja<br>
-                • 1x Rubin + 1x Patyk ➔ 🗡️ Rubinowy Miecz<br>
-                • 4x Rubiny ➔ 🛡️ Rubinowa Zbroja (50 ciosów wytrzymałości!)
+            <div id="recipe-book-container" class="recipe-book-container">
+                <div class="recipe-book-header">
+                    <span class="recipe-book-title">📖 Księga Receptur Tymka</span>
+                    <span id="recipe-ready-count" class="recipe-ready-badge">0 gotowych</span>
+                </div>
+                <div class="recipe-tabs">
+                    <button type="button" class="recipe-tab active" data-cat="all">Wszystkie</button>
+                    <button type="button" class="recipe-tab" data-cat="weapons">⚔️ Broń</button>
+                    <button type="button" class="recipe-tab" data-cat="tools">⛏️ Narzędzia</button>
+                    <button type="button" class="recipe-tab" data-cat="armor">🛡️ Zbroje</button>
+                    <button type="button" class="recipe-tab" data-cat="special">🗿 Specjalne</button>
+                </div>
+                <div id="recipe-cards-list" class="recipe-cards-list">
+                    <!-- Dynamic Recipe Cards rendered here -->
+                </div>
             </div>
         </div>
 
@@ -276,7 +284,7 @@
     </div>
 
     <!-- Main Game Script (ES Module) -->
-    <script type="module" src="./js/main.js?v=full_game_shield_v3"></script>
+    <script type="module" src="./js/main.js?v=recipe_book_v4"></script>
 </body>
 
 
