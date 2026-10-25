@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_phase2_v1';
-import { Player } from './player.js?v=boss_phase2_v1';
-import { Interaction } from './interaction.js?v=boss_phase2_v1';
-import { AnimalManager } from './animals.js?v=boss_phase2_v1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_phase2_v1';
-import { StorageManager } from './storage.js?v=boss_phase2_v1';
-import { SurvivalManager } from './survival.js?v=boss_phase2_v1';
-import { CraftingManager } from './crafting.js?v=boss_phase2_v1';
-import { DropsManager } from './drops.js?v=boss_phase2_v1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=wand_anti_hack_v1';
+import { Player } from './player.js?v=wand_anti_hack_v1';
+import { Interaction } from './interaction.js?v=wand_anti_hack_v1';
+import { AnimalManager } from './animals.js?v=wand_anti_hack_v1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=wand_anti_hack_v1';
+import { StorageManager } from './storage.js?v=wand_anti_hack_v1';
+import { SurvivalManager } from './survival.js?v=wand_anti_hack_v1';
+import { CraftingManager } from './crafting.js?v=wand_anti_hack_v1';
+import { DropsManager } from './drops.js?v=wand_anti_hack_v1';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=boss_phase2_v1';
-import { QuestManager } from './quests.js?v=boss_phase2_v1';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_phase2_v1';
+import { updateWaterAnimation } from './textures.js?v=wand_anti_hack_v1';
+import { QuestManager } from './quests.js?v=wand_anti_hack_v1';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=wand_anti_hack_v1';
 
 
 
@@ -154,6 +154,8 @@ class Game {
         );
         this.interaction.survival = this.survival;
         this.interaction.ui = this.ui;
+        this.ui.interaction = this.interaction;
+        this.player.interaction = this.interaction;
 
         // 9. Entity / Animal System
         this.animals = new AnimalManager(this.scene, this.world, this.player);

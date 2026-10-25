@@ -334,9 +334,10 @@ export class ThrownGunpowder extends Entity {
 }
 
 export class MagicStoneSpell extends Entity {
-    constructor(scene, world, origin, direction, manager = null, spellType = 'lightning') {
+    constructor(scene, world, origin, direction, manager = null, spellType = 'lightning', player = null) {
         super(scene, world, origin.x, origin.y, origin.z);
         this.manager = manager;
+        this.player = player || (manager ? manager.player : null);
         this.spellType = spellType;
         this.speed = spellType === 'lightning' ? 36.0 : (spellType === 'fireball' ? 26.0 : 28.0);
         this.velocity = direction.clone().normalize().multiplyScalar(this.speed);
@@ -412,6 +413,7 @@ export class MagicStoneSpell extends Entity {
 
     update(dt, player = null, survival = null, ui = null, animals = null) {
         if (this.isDead) return;
+        if (player) this.player = player;
         this.lifetime += dt;
         if (this.lifetime >= this.maxLifetime) {
             this.destroy();
@@ -503,9 +505,31 @@ export class MagicStoneSpell extends Entity {
         const px = Math.floor(prevPos.x);
         const py = Math.floor(prevPos.y);
         const pz = Math.floor(prevPos.z);
+        const targetPlayer = this.player || (this.manager ? this.manager.player : null);
 
         if (this.spellType === 'stone') {
-            if (this.world && py >= 1 && py < WORLD_HEIGHT && px >= 0 && px < WORLD_SIZE_X && pz >= 0 && pz < WORLD_SIZE_Z) {
+            // Tarcza Anty-XRay: NIGDY nie stawiaj bloku wewnątrz ani w bezpośredniej bliskości gracza!
+            let intersectsPlayer = false;
+            if (targetPlayer && targetPlayer.position) {
+                const pPos = targetPlayer.position;
+                const distXZ = Math.hypot(pPos.x - (px + 0.5), pPos.z - (pz + 0.5));
+                const distY = Math.abs((pPos.y + 0.9) - (py + 0.5));
+                if (distXZ < 0.95 && distY < 1.35) {
+                    intersectsPlayer = true;
+                }
+                if (targetPlayer.getAABB) {
+                    const pAABB = targetPlayer.getAABB();
+                    if (
+                        pAABB.minX < px + 1 && pAABB.maxX > px &&
+                        pAABB.minY < py + 1 && pAABB.maxY > py &&
+                        pAABB.minZ < pz + 1 && pAABB.maxZ > pz
+                    ) {
+                        intersectsPlayer = true;
+                    }
+                }
+            }
+
+            if (!intersectsPlayer && this.world && py >= 1 && py < WORLD_HEIGHT && px >= 0 && px < WORLD_SIZE_X && pz >= 0 && pz < WORLD_SIZE_Z) {
                 const currentBlock = this.world.getBlock(px, py, pz);
                 if (currentBlock === 0) {
                     this.world.setBlock(px, py, pz, 3); // Kamień!
@@ -513,18 +537,57 @@ export class MagicStoneSpell extends Entity {
                 }
             }
             playHitSound();
+            this.spawnSpellHitParticles(this.position, 0x71717a);
         } else if (this.spellType === 'fireball') {
             playExplosionSound();
             eventBus.emit('ui:popup', '🔥🪄 Kula Ognia wybuchła! 🔥');
+            this.spawnSpellHitParticles(this.position, 0xef4444);
         } else {
             playExplosionSound();
             eventBus.emit('ui:popup', '⚡🪄 Piorun uderzył w ziemię! ⚡');
+            this.spawnSpellHitParticles(this.position, 0xfacc15);
         }
 
         if (this.manager?.spawnDeathPoof) {
             this.manager.spawnDeathPoof(this.position);
         }
         this.destroy();
+    }
+
+    spawnSpellHitParticles(pos, colorHex) {
+        if (!this.scene) return;
+        const pGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        const pMat = new THREE.MeshBasicMaterial({ color: colorHex });
+        for (let i = 0; i < 12; i++) {
+            const m = new THREE.Mesh(pGeo, pMat);
+            m.position.copy(pos).add(new THREE.Vector3(
+                (Math.random() - 0.5) * 0.35,
+                Math.random() * 0.35,
+                (Math.random() - 0.5) * 0.35
+            ));
+            this.scene.add(m);
+            const vx = (Math.random() - 0.5) * 3.5;
+            const vy = 1.0 + Math.random() * 2.8;
+            const vz = (Math.random() - 0.5) * 3.5;
+            let life = 0.42;
+            const startLife = life;
+            const anim = () => {
+                life -= 0.03;
+                if (life <= 0) {
+                    if (m.parent) this.scene.remove(m);
+                    pGeo.dispose();
+                    pMat.dispose();
+                } else {
+                    m.position.x += vx * 0.03;
+                    m.position.y += vy * 0.03;
+                    m.position.z += vz * 0.03;
+                    const s = Math.max(0.01, life / startLife);
+                    m.scale.set(s, s, s);
+                    requestAnimationFrame(anim);
+                }
+            };
+            requestAnimationFrame(anim);
+        }
     }
 
     destroy() {

@@ -129,7 +129,12 @@ export class Player {
                     this.keys.sprint = true;
                     break;
                 case 'KeyV':
-                    this.toggleCameraMode();
+                    // Jeśli gracz trzyma Magiczną Różdżkę (ID 50), KeyV przełącza czary!
+                    if (this.ui && this.ui.getActiveBlockId && this.ui.getActiveBlockId() === 50) {
+                        eventBus.emit('wand:cycle_spell');
+                    } else {
+                        this.toggleCameraMode();
+                    }
                     break;
                 case 'KeyP':
                     eventBus.emit('player:toggle_mount');
@@ -568,15 +573,23 @@ export class Player {
                 if (this.playerGroup) this.playerGroup.visible = true;
                 const eyePos = new THREE.Vector3(this.position.x, this.position.y + this.eyeHeight + 0.3, this.position.z);
                 const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-                let dist = 4.2;
-                for (let d = 0.5; d <= 4.2; d += 0.3) {
+                let maxDist = 4.2;
+                let safeDist = maxDist;
+                for (let d = 0.2; d <= maxDist; d += 0.2) {
                     const checkPos = eyePos.clone().addScaledVector(camForward, -d);
                     if (this.world && this.world.isSolid(Math.floor(checkPos.x), Math.floor(checkPos.y), Math.floor(checkPos.z))) {
-                        dist = Math.max(0.5, d - 0.3);
+                        safeDist = Math.max(0, d - 0.25);
                         break;
                     }
                 }
-                const camPos = eyePos.clone().addScaledVector(camForward, -dist).add(new THREE.Vector3(0, 0.3, 0));
+                const camPos = eyePos.clone().addScaledVector(camForward, -safeDist);
+                const testCeiling = camPos.clone().add(new THREE.Vector3(0, 0.3, 0));
+                if (!this.world || !this.world.isSolid(Math.floor(testCeiling.x), Math.floor(testCeiling.y), Math.floor(testCeiling.z))) {
+                    camPos.y += 0.3;
+                }
+                if (this.world && this.world.isSolid(Math.floor(camPos.x), Math.floor(camPos.y), Math.floor(camPos.z))) {
+                    camPos.copy(eyePos);
+                }
                 this.camera.position.copy(camPos);
             }
             return;
@@ -801,9 +814,57 @@ export class Player {
             moveVertical();
         }
 
-        // Fall reset
-        if (this.position.y < -10) {
-            this.spawnOnSurface();
+        // Anti-Clipping & Auto-Unstuck Shield: Upewnij się, że ciało i głowa gracza NIGDY nie utkną w bloku
+        if (this.checkVoxelCollision(this.getAABB())) {
+            let freed = false;
+            for (let nudge = 0.4; nudge <= 6.0; nudge += 0.4) {
+                const testPos = this.position.clone().add(new THREE.Vector3(0, nudge, 0));
+                if (!this.checkVoxelCollision(this.getAABB(testPos))) {
+                    this.position.copy(testPos);
+                    this.velocity.y = 0;
+                    freed = true;
+                    break;
+                }
+            }
+            if (!freed) {
+                const offsets = [
+                    [1, 0], [-1, 0], [0, 1], [0, -1],
+                    [1, 1], [-1, 1], [1, -1], [-1, -1]
+                ];
+                for (const [ox, oz] of offsets) {
+                    for (let oy = 0; oy <= 3; oy += 0.5) {
+                        const testPos = this.position.clone().add(new THREE.Vector3(ox, oy, oz));
+                        if (!this.checkVoxelCollision(this.getAABB(testPos))) {
+                            this.position.copy(testPos);
+                            this.velocity.set(0, 0, 0);
+                            freed = true;
+                            break;
+                        }
+                    }
+                    if (freed) break;
+                }
+            }
+        }
+
+        // Tarcza Anty-Próżniowa TYMCRAFT: natychmiastowe ratowanie gracza przed spadkiem poniżej Bedrocka
+        if (this.position.y < 0.5) {
+            const curX = Math.floor(this.position.x);
+            const curZ = Math.floor(this.position.z);
+            let safeY = -1;
+            for (let y = WORLD_HEIGHT - 1; y >= 1; y--) {
+                if (this.world && this.world.isSolid(curX, y, curZ)) {
+                    safeY = y + 1.1;
+                    break;
+                }
+            }
+            if (safeY > 0) {
+                this.position.set(curX + 0.5, safeY, curZ + 0.5);
+            } else {
+                this.spawnOnSurface();
+            }
+            this.velocity.set(0, 0, 0);
+            eventBus.emit('ui:popup', '🛡️ Tarcza Anty-Próżniowa uratowała Cię przed spadkiem w próżnię! ✨');
+            if (this.ui) this.ui.showPopup('🛡️ Tarcza Anty-Próżniowa uratowała Cię przed próżnią! ✨');
         }
 
         // Animate legs and arms walking swing
@@ -841,7 +902,7 @@ export class Player {
             this.playerGroup.rotation.y = cameraEuler.y;
         }
 
-        // Camera position handling: 1st person vs 3rd person
+        // Camera position handling: 1st person vs 3rd person (Tarcza przed przenikaniem w ściany i sufity)
         if (this.cameraMode === 0) {
             // First Person: Camera placed at player eye height
             this.camera.position.set(this.position.x, this.position.y + this.eyeHeight, this.position.z);
@@ -851,15 +912,23 @@ export class Player {
             if (this.playerGroup) this.playerGroup.visible = true;
             const eyePos = new THREE.Vector3(this.position.x, this.position.y + this.eyeHeight, this.position.z);
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-            let dist = 3.2;
-            for (let d = 0.5; d <= 3.2; d += 0.3) {
+            let maxDist = 3.2;
+            let safeDist = maxDist;
+            for (let d = 0.15; d <= maxDist; d += 0.15) {
                 const checkPos = eyePos.clone().addScaledVector(forward, -d);
                 if (this.world && this.world.isSolid(Math.floor(checkPos.x), Math.floor(checkPos.y), Math.floor(checkPos.z))) {
-                    dist = Math.max(0.5, d - 0.3);
+                    safeDist = Math.max(0, d - 0.25);
                     break;
                 }
             }
-            const camPos = eyePos.clone().addScaledVector(forward, -dist).add(new THREE.Vector3(0, 0.2, 0));
+            const camPos = eyePos.clone().addScaledVector(forward, -safeDist);
+            const testCeiling = camPos.clone().add(new THREE.Vector3(0, 0.2, 0));
+            if (!this.world || !this.world.isSolid(Math.floor(testCeiling.x), Math.floor(testCeiling.y), Math.floor(testCeiling.z))) {
+                camPos.y += 0.2;
+            }
+            if (this.world && this.world.isSolid(Math.floor(camPos.x), Math.floor(camPos.y), Math.floor(camPos.z))) {
+                camPos.copy(eyePos);
+            }
             this.camera.position.copy(camPos);
         }
 

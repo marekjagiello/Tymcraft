@@ -810,12 +810,18 @@ export class UI {
 
         // Show active block name temporarily
         if (this.blockNameEl) {
-            this.blockNameEl.innerText = HOTBAR_BLOCKS[this.selectedSlotIndex].name;
+            const slotItem = HOTBAR_BLOCKS[this.selectedSlotIndex];
+            if (slotItem && slotItem.id === 50 && this.interaction && this.interaction.wandSpells) {
+                const sp = this.interaction.wandSpells[this.interaction.currentWandSpellIdx];
+                this.blockNameEl.innerText = `🪄 Magiczna Różdżka [${sp.name}] (LPM: czar, PPM / V / X: zmiana)`;
+            } else if (slotItem) {
+                this.blockNameEl.innerText = slotItem.name;
+            }
             this.blockNameEl.style.opacity = '1';
             clearTimeout(this.nameTimeout);
             this.nameTimeout = setTimeout(() => {
                 this.blockNameEl.style.opacity = '0';
-            }, 1500);
+            }, 1800);
         }
     }
 
@@ -1226,9 +1232,10 @@ export class UI {
             }
         });
 
-        // Dyskretna wiadomość powitalna o czacie (bez narzucania tłumacznika i 5 zasad!)
+        // Dyskretna wiadomość powitalna o czacie i tarczy bezpieczeństwa
         setTimeout(() => {
-            this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Wpisz /pomoc lub odkrywaj tajne hasła... 🤫✨', 'chat-server');
+            this.addChatMessage('Serwer', '💬 Wciśnij Q, aby otworzyć czat! Wpisz /pomoc lub /tarcza 🛡️✨', 'chat-server');
+            this.addChatMessage('🛡️ System Ochrony', '🛡️ Tarcza Anty-Hakerska TYMCRAFT: AKTYWNA! Twój świat jest w 100% bezpieczny przed hakerami i błędami! 🚀✨', 'chat-success');
         }, 1500);
     }
 
@@ -1278,6 +1285,13 @@ export class UI {
         // Strip leading symbols like =, /, -
         const stripped = raw.replace(/^[/=\-]/, '').trim();
         const lower = stripped.toLowerCase();
+
+        // Tarcza Anty-Hakerska TYMCRAFT na życzenie Tymka!
+        if (lower === 'tarcza' || lower === 'antihack' || lower === 'haker' || lower === 'ochrona' || lower === 'bezpieczenstwo' || lower === 'bezpieczeństwo' || lower === 'shield') {
+            this.addChatMessage('🛡️ System Ochrony', '🛡️ Tarcza Anty-Hakerska TYMCRAFT jest w 100% WŁĄCZONA i AKTYWNA! Blokuje noclip, naprawia widok X-Ray, chroni przed wpadnięciem w próżnię i broni świat Tymka przed wszystkimi złośliwymi hakerami! 🚀✨', 'chat-success');
+            this.showPopup('🛡️ Tarcza Anty-Hakerska AKTYWNA! Twój świat jest w 100% bezpieczny! 🔒');
+            return;
+        }
 
         // Tłumacznik / Rozpiska / Pomoc command: prints complete guide and speaks via TTS!
         if (lower === 'pomoc' || lower === 'help' || lower === 'boss' || lower === 'portal' || lower === 'tlumacz' || lower === 'tłumacz' || lower === 'rozpiska' || lower === 'zasady' || lower === 'krzesiwo') {

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
 import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig } from './mobs/hostile.js?v=boss_phase2_v1';
 
-import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=epic_rainbow_1';
+import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=wand_anti_hack_v1';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
 import { eventBus } from '../events.js';
 
@@ -439,8 +439,8 @@ export class EntityManager {
         return bomb;
     }
 
-    shootMagicStoneSpell(origin, direction, spellType = 'lightning') {
-        const spell = new MagicStoneSpell(this.scene, this.world, origin, direction, this, spellType);
+    shootMagicStoneSpell(origin, direction, spellType = 'lightning', player = this.player) {
+        const spell = new MagicStoneSpell(this.scene, this.world, origin, direction, this, spellType, player || this.player);
         this.thrownProjectiles.push(spell);
         return spell;
     }

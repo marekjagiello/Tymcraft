@@ -530,7 +530,7 @@ export class Interaction {
 
         // Keyboard shortcut for cycling wand spells and targeting
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyX' || e.code === 'KeyZ') {
+            if (e.code === 'KeyX' || e.code === 'KeyZ' || e.code === 'KeyR') {
                 const activeId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
                 if (activeId === 50) {
                     this.cycleWandSpell();
@@ -538,6 +538,14 @@ export class Interaction {
             }
             if (e.code === 'KeyT') {
                 this.cycleHomingTarget();
+            }
+        });
+
+        // Nasłuchiwanie zdarzenia przełączania czaru różdżki
+        eventBus.on('wand:cycle_spell', () => {
+            const activeId = this.getActiveBlockId ? this.getActiveBlockId() : 0;
+            if (activeId === 50) {
+                this.cycleWandSpell();
             }
         });
 
@@ -760,7 +768,7 @@ export class Interaction {
         this.currentWandSpellIdx = (this.currentWandSpellIdx + 1) % this.wandSpells.length;
         const spell = this.wandSpells[this.currentWandSpellIdx];
         playSwingSound();
-        const msg = `🪄 Przełączono czar różdżki: ${spell.name}! (${spell.desc}) [LPM: rzuć czar, PPM: przełącz]`;
+        const msg = `🪄 Czar Różdżki: ${spell.name}! (${spell.desc}) [LPM: rzuć, PPM / V / X: zmiana]`;
         eventBus.emit('ui:popup', msg);
         if (this.ui) this.ui.showPopup(msg);
     }
@@ -782,7 +790,7 @@ export class Interaction {
         const currentSpell = this.wandSpells[this.currentWandSpellIdx];
 
         if (this.animals && typeof this.animals.shootMagicStoneSpell === 'function') {
-            this.animals.shootMagicStoneSpell(origin, dir, currentSpell.id);
+            this.animals.shootMagicStoneSpell(origin, dir, currentSpell.id, this.player);
         }
 
         eventBus.emit('wand:spell_cast', { type: currentSpell.id });
