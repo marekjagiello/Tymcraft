@@ -71,6 +71,8 @@ export class SurvivalManager {
 
     takeDamage(amount, reason = 'damage') {
         if (this.isDead || amount <= 0) return;
+        if (this.game && this.game.isGamePaused && this.game.isGamePaused()) return;
+        if (this.ui && this.ui.isGamePaused && this.ui.isGamePaused()) return;
 
         if (this.hasRubyArmor) {
             this.rubyArmorDurability = (typeof this.rubyArmorDurability === 'number' && this.rubyArmorDurability > 0)
@@ -174,6 +176,8 @@ export class SurvivalManager {
     }
 
     handleFallLanding(downwardVelocity) {
+        if (this.game && this.game.isGamePaused && this.game.isGamePaused()) return;
+        if (this.ui && this.ui.isGamePaused && this.ui.isGamePaused()) return;
         // Woda w pełni amortyzuje upadek jak w Minecrafcie!
         if (this.player && this.player.isInWater) return;
 
@@ -189,6 +193,8 @@ export class SurvivalManager {
 
     update(dt) {
         if (this.isDead) return;
+        if (this.game && this.game.isGamePaused && this.game.isGamePaused()) return;
+        if (this.ui && this.ui.isGamePaused && this.ui.isGamePaused()) return;
 
         // Check armor type (0 = none, 32 = Diamond, 37 = Ruby)
         if (this.getArmorType) {

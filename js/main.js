@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=boss_start_guide_v10';
-import { Player } from './player.js?v=boss_start_guide_v10';
-import { Interaction } from './interaction.js?v=boss_start_guide_v10';
-import { AnimalManager } from './animals.js?v=boss_start_guide_v10';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=boss_start_guide_v10';
-import { StorageManager } from './storage.js?v=boss_start_guide_v10';
-import { SurvivalManager } from './survival.js?v=boss_start_guide_v10';
-import { CraftingManager } from './crafting.js?v=boss_start_guide_v10';
-import { DropsManager } from './drops.js?v=boss_start_guide_v10';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pause_campfires_biomes_v1';
+import { Player } from './player.js?v=pause_campfires_biomes_v1';
+import { Interaction } from './interaction.js?v=pause_campfires_biomes_v1';
+import { AnimalManager } from './animals.js?v=pause_campfires_biomes_v1';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pause_campfires_biomes_v1';
+import { StorageManager } from './storage.js?v=pause_campfires_biomes_v1';
+import { SurvivalManager } from './survival.js?v=pause_campfires_biomes_v1';
+import { CraftingManager } from './crafting.js?v=pause_campfires_biomes_v1';
+import { DropsManager } from './drops.js?v=pause_campfires_biomes_v1';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=boss_start_guide_v10';
-import { QuestManager } from './quests.js?v=boss_start_guide_v10';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=boss_start_guide_v10';
-import { SecurityShield } from './security.js?v=boss_start_guide_v10';
+import { updateWaterAnimation } from './textures.js?v=pause_campfires_biomes_v1';
+import { QuestManager } from './quests.js?v=pause_campfires_biomes_v1';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pause_campfires_biomes_v1';
+import { SecurityShield } from './security.js?v=pause_campfires_biomes_v1';
 
 
 
@@ -120,6 +120,8 @@ class Game {
 
         // 6. UI & HUD (Hearts, Hunger, Backpack modal, Reset button)
         this.ui = new UI(this.player, this.world, this.survival, this.crafting, this.storage);
+        this.survival.game = this;
+        this.survival.ui = this.ui;
         this.survival.onOxygenChange = (oxygen, maxOxygen, isHeadUnderwater) => {
             if (this.ui) this.ui.updateBubblesBar(oxygen, maxOxygen, isHeadUnderwater);
         };
@@ -561,8 +563,20 @@ class Game {
         this.dirLight.intensity = 0.1 + 0.8 * dayFactor;
     }
 
+    isGamePaused() {
+        return this.ui ? this.ui.isGamePaused() : false;
+    }
+
     animate() {
         requestAnimationFrame(() => this.animate());
+
+        if (this.isGamePaused()) {
+            // Reset delta accumulator so unpausing doesn't jump forward
+            this.clock.getDelta();
+            if (this.ui) this.ui.update();
+            this.renderer.render(this.scene, this.camera);
+            return;
+        }
 
         const dt = Math.min(this.clock.getDelta(), 0.1);
 

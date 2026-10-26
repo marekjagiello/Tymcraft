@@ -1284,6 +1284,10 @@ export class UI {
                     this.toggleCraftingModal();
                     return;
                 }
+                if (this.isGameActive && !this.isLoading && !this.isChatOpen && !this.survival?.isDead) {
+                    this.pauseGame();
+                    return;
+                }
             }
 
             const num = parseInt(e.key, 10);
@@ -1323,13 +1327,7 @@ export class UI {
                 this.startLoadingSequence();
             } else {
                 // Resuming from pause menu
-                this.overlayEl.style.display = 'none';
-                this.lastUnlockAllowedTime = Date.now() + 800;
-                try {
-                    this.player.controls.lock();
-                } catch (err) {
-                    console.warn("[UI] Pointer lock error:", err);
-                }
+                this.resumeGame();
             }
         };
 
@@ -1401,14 +1399,45 @@ export class UI {
                 if (Date.now() < this.lastUnlockAllowedTime) {
                     return;
                 }
-                const titleEl = document.getElementById('menu-title');
-                const subtitleEl = document.getElementById('menu-subtitle');
-                if (titleEl) titleEl.innerText = 'MENU GRY (PAUZA)';
-                if (subtitleEl) subtitleEl.innerText = 'Gra wstrzymana. Wybierz opcję poniżej:';
-                this.hideResetConfirmation();
-                this.overlayEl.style.display = 'flex';
+                this.pauseGame();
             }
         });
+    }
+
+    isGamePaused() {
+        if (!this.isGameActive) return true;
+        if (this.isLoading) return true;
+        if (this.isCraftingOpen) return true;
+        if (this.overlayEl && this.overlayEl.style.display !== 'none') return true;
+        return false;
+    }
+
+    pauseGame() {
+        if (!this.isGameActive || this.isLoading || this.survival?.isDead) return;
+        if (this.isCraftingOpen) {
+            this.toggleCraftingModal();
+        }
+        const titleEl = document.getElementById('menu-title');
+        const subtitleEl = document.getElementById('menu-subtitle');
+        if (titleEl) titleEl.innerText = '⏸️ GRA ZATRZYMANA (PAUZA)';
+        if (subtitleEl) subtitleEl.innerText = 'Świat gry i potwory są zatrzymane. Naciśnij Wznów grę lub kliknij ekran, aby kontynuować!';
+        const resumeBtn = document.getElementById('resume-game-btn');
+        if (resumeBtn) resumeBtn.innerText = 'Wznów grę';
+        this.hideResetConfirmation();
+        this.overlayEl.style.display = 'flex';
+        try {
+            this.player.controls.unlock();
+        } catch (e) {}
+    }
+
+    resumeGame() {
+        this.overlayEl.style.display = 'none';
+        this.lastUnlockAllowedTime = Date.now() + 800;
+        try {
+            this.player.controls.lock();
+        } catch (err) {
+            console.warn("[UI] Pointer lock error:", err);
+        }
     }
 
     showResetConfirmation() {
