@@ -332,7 +332,7 @@ export class Interaction {
 
                 // Check if feeding other animals with apple (ID 23)
                 const animal = targetAnimal;
-                if (animal && activeItemId === 23) {
+                if (animal && activeItemId === 23 && typeof animal.interactWithApple === 'function') {
                     animal.interactWithApple();
                     eventBus.emit('item:consume');
                     const mobName = animal.type === 'snake' ? 'węża 🐍' : (animal.type === 'sheep' ? 'owcę 🐑' : (animal.type === 'pig' ? 'świnkę 🐷' : (animal.type === 'cow' ? 'krówkę 🐮' : 'zwierzę 🐾')));

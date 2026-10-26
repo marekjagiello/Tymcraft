@@ -189,9 +189,9 @@ export class World {
         const dx = x - 32;
         const dz = z - 32;
         const dist = Math.hypot(dx, dz);
-        const warp = this.biomeNoise.noise2D(x * 0.015, z * 0.015) * 0.85
-                   + this.noise.noise2D(z * 0.022, x * 0.022) * 0.35;
-        return (dist / 44.0) + warp;
+        const warp = this.biomeNoise.noise2D(x * 0.010, z * 0.010) * 0.85
+                   + this.noise.noise2D(z * 0.016, x * 0.016) * 0.35;
+        return (dist / 58.0) + warp;
     }
 
     getBiome(x, z) {
@@ -210,7 +210,7 @@ export class World {
         const dist = Math.hypot(dx, dz);
 
         // Immediate spawn center (32, 32) is a peaceful, picturesque Forest with green trees and flowers
-        if (dist <= 16) return 'Forest';
+        if (dist <= 22) return 'Forest';
 
         // Tymek (8 lat): "Drzewa, pustynia, góry! Drzewa, pustynia, góry! Drzewa, pustynia, góry! ... i to się ciągle zmienia!"
         // Ciągły, dynamiczny i organiczny cykl biomów:

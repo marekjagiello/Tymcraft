@@ -22,52 +22,55 @@ import os
 import sys
 
 def run_test():
-    server_proc = None
+    server = None
     chrome_proc = None
     try:
-        # Check dev server on 8000
-        server_running = False
-        try:
-            with urllib.request.urlopen("http://127.0.0.1:8000/", timeout=1.0) as res:
-                if res.status == 200:
-                    server_running = True
-        except Exception:
-            pass
+        import threading
+        from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-        if not server_running:
-            print("Starting dev server on 8000...")
-            server_proc = subprocess.Popen(
-                ["python3", "-m", "http.server", "8000"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                cwd="/home/marek/ai projects/m2"
-            )
-            time.sleep(1.2)
+        class NoCacheHandler(SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory="/home/marek/ai projects/m2", **kwargs)
+            def end_headers(self):
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                super().end_headers()
 
-        print("Launching headless Chrome on 9222...")
+        server = ThreadingHTTPServer(('127.0.0.1', 8089), NoCacheHandler)
+        srv_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        srv_thread.start()
+        time.sleep(0.5)
+
+        print("Launching headless Chrome on 9223...")
         chrome_bin = "/home/marek/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome"
         if not os.path.exists(chrome_bin):
             chrome_bin = "google-chrome"
         chrome_cmd = [
             chrome_bin,
             "--headless=new",
-            "--remote-debugging-port=9222",
+            "--remote-debugging-port=9223",
+            "--remote-allow-origins=*",
+            "--user-data-dir=/tmp/test-pause-chrome-profile",
             "--no-sandbox",
             "--disable-gpu",
             "--window-size=1280,720",
             "--mute-audio",
-            "http://127.0.0.1:8000/"
+            "http://127.0.0.1:8089/index.html"
         ]
         chrome_proc = subprocess.Popen(chrome_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(2.5)
-
-        req = urllib.request.urlopen("http://127.0.0.1:9222/json")
-        targets = json.loads(req.read().decode('utf-8'))
         ws_url = None
-        for t in targets:
-            if t.get('type') == 'page' and 'webSocketDebuggerUrl' in t:
-                ws_url = t['webSocketDebuggerUrl']
-                break
+        for attempt in range(20):
+            time.sleep(0.5)
+            try:
+                with urllib.request.urlopen("http://127.0.0.1:9223/json", timeout=1.0) as req:
+                    targets = json.loads(req.read().decode('utf-8'))
+                    for t in targets:
+                        if t.get('type') == 'page' and ('index.html' in t.get('url', '') or '8089' in t.get('url', '')) and 'webSocketDebuggerUrl' in t:
+                            ws_url = t['webSocketDebuggerUrl']
+                            break
+                    if ws_url:
+                        break
+            except Exception:
+                pass
 
         assert ws_url, "No page target found with WebSocket URL!"
         print(f"Target WebSocket: {ws_url}")
@@ -115,12 +118,20 @@ def run_test():
         def recv_cdp_until_id(target_id, timeout=12):
             start = time.time()
             buf = bytearray()
+            s.settimeout(0.5)
             while time.time() - start < timeout:
-                chunk = s.recv(4096)
-                if not chunk: break
-                buf.extend(chunk)
+                try:
+                    chunk = s.recv(4096)
+                    if chunk:
+                        buf.extend(chunk)
+                except socket.timeout:
+                    pass
+                except Exception:
+                    break
+
                 while len(buf) >= 2:
                     second = buf[1]
+                    is_masked = bool(second & 0x80)
                     payload_len = second & 0x7f
                     idx = 2
                     if payload_len == 126:
@@ -131,12 +142,19 @@ def run_test():
                         if len(buf) < 10: break
                         payload_len = int.from_bytes(buf[2:10], 'big')
                         idx = 10
-                    if len(buf) < idx + payload_len:
+
+                    full_len = idx + (4 if is_masked else 0) + payload_len
+                    if len(buf) < full_len:
                         break
-                    mask = buf[idx:idx+4]
-                    masked_data = buf[idx+4:idx+4+payload_len]
-                    unmasked = bytes([b ^ mask[i % 4] for i, b in enumerate(masked_data)])
-                    buf = buf[idx+4+payload_len:]
+
+                    if is_masked:
+                        mask = buf[idx:idx+4]
+                        masked_data = buf[idx+4:idx+4+payload_len]
+                        unmasked = bytes([b ^ mask[i % 4] for i, b in enumerate(masked_data)])
+                    else:
+                        unmasked = bytes(buf[idx:idx+payload_len])
+
+                    buf = buf[full_len:]
                     try:
                         parsed = json.loads(unmasked.decode('utf-8'))
                         if parsed.get('id') == target_id:
@@ -155,7 +173,16 @@ def run_test():
             return result
 
         print("Waiting for game to load...")
-        time.sleep(2.0)
+        game_ready = False
+        for i in range(45):
+            time.sleep(1.0)
+            ready = eval_js("Boolean(window.game && window.game.ui && window.game.survival)", 200 + i)
+            if ready is True:
+                print(f"Game ready at attempt {i+1}!")
+                game_ready = True
+                break
+        assert game_ready, "Game failed to initialize within timeout!"
+        time.sleep(1.0)
 
         # Start game by bypassing loading screen
         eval_js("""
@@ -277,8 +304,8 @@ def run_test():
         if chrome_proc:
             try: chrome_proc.terminate()
             except Exception: pass
-        if server_proc:
-            try: server_proc.terminate()
+        if server:
+            try: server.shutdown()
             except Exception: pass
 
 if __name__ == "__main__":

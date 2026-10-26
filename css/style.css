@@ -287,7 +287,7 @@ body, html {
 /* Block Name Popup */
 #block-name-popup {
     position: absolute;
-    bottom: 80px;
+    bottom: 165px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
@@ -303,7 +303,7 @@ body, html {
 /* Hotbar */
 #hotbar-container {
     position: absolute;
-    bottom: 16px;
+    bottom: 65px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
@@ -675,7 +675,7 @@ body, html {
     display: flex;
     justify-content: space-between;
     width: 440px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     padding: 0 4px;
 }
 
@@ -717,9 +717,9 @@ body, html {
 }
 
 .heart-icon, .hunger-icon {
-    font-size: 15px;
+    font-size: 17px;
     line-height: 1;
-    filter: drop-shadow(1px 1px 1px #000);
+    filter: drop-shadow(1px 1px 2px #000);
 }
 
 /* 2x2 Crafting & Backpack/Inventory Modal */
@@ -1187,7 +1187,7 @@ body, html {
 /* In-game Chat HUD */
 #chat-container {
     position: fixed;
-    bottom: 95px;
+    bottom: 145px;
     left: 20px;
     width: 480px;
     max-width: calc(100vw - 40px);

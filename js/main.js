@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pause_campfires_biomes_v1';
-import { Player } from './player.js?v=pause_campfires_biomes_v1';
-import { Interaction } from './interaction.js?v=pause_campfires_biomes_v1';
-import { AnimalManager } from './animals.js?v=pause_campfires_biomes_v1';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pause_campfires_biomes_v1';
-import { StorageManager } from './storage.js?v=pause_campfires_biomes_v1';
-import { SurvivalManager } from './survival.js?v=pause_campfires_biomes_v1';
-import { CraftingManager } from './crafting.js?v=pause_campfires_biomes_v1';
-import { DropsManager } from './drops.js?v=pause_campfires_biomes_v1';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pause_raise_hud_v2';
+import { Player } from './player.js?v=pause_raise_hud_v2';
+import { Interaction } from './interaction.js?v=pause_raise_hud_v2';
+import { AnimalManager } from './animals.js?v=pause_raise_hud_v2';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pause_raise_hud_v2';
+import { StorageManager } from './storage.js?v=pause_raise_hud_v2';
+import { SurvivalManager } from './survival.js?v=pause_raise_hud_v2';
+import { CraftingManager } from './crafting.js?v=pause_raise_hud_v2';
+import { DropsManager } from './drops.js?v=pause_raise_hud_v2';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=pause_campfires_biomes_v1';
-import { QuestManager } from './quests.js?v=pause_campfires_biomes_v1';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pause_campfires_biomes_v1';
-import { SecurityShield } from './security.js?v=pause_campfires_biomes_v1';
+import { updateWaterAnimation } from './textures.js?v=pause_raise_hud_v2';
+import { QuestManager } from './quests.js?v=pause_raise_hud_v2';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pause_raise_hud_v2';
+import { SecurityShield } from './security.js?v=pause_raise_hud_v2';
 
 
 
