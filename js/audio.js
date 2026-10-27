@@ -308,6 +308,31 @@ export function playDirtikVoiceSound() {
     speakDirtikCry();
 }
 
+let cachedPolishVoice = null;
+function getBestPolishVoice() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    // 1. Natural / Google / Microsoft / Apple Polish voices
+    const naturalPl = voices.find(v => (v.lang === 'pl-PL' || v.lang === 'pl_PL' || v.lang.startsWith('pl')) &&
+        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Paulina') || v.name.includes('Zosia') || v.name.includes('Marek') || v.name.includes('Adam') || v.name.includes('Jan')));
+    if (naturalPl) return naturalPl;
+
+    // 2. Any Polish voice
+    const anyPl = voices.find(v => v.lang === 'pl-PL' || v.lang === 'pl_PL' || v.lang.startsWith('pl'));
+    if (anyPl) return anyPl;
+
+    return null;
+}
+
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        cachedPolishVoice = getBestPolishVoice();
+    };
+    cachedPolishVoice = getBestPolishVoice();
+}
+
 export function speakText(text, lang = 'pl-PL', pitch = 1.0, rate = 1.0) {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
@@ -316,11 +341,28 @@ export function speakText(text, lang = 'pl-PL', pitch = 1.0, rate = 1.0) {
             utter.lang = lang;
             utter.pitch = pitch;
             utter.rate = rate;
+
+            if (lang.startsWith('pl')) {
+                if (!cachedPolishVoice) cachedPolishVoice = getBestPolishVoice();
+                if (cachedPolishVoice) utter.voice = cachedPolishVoice;
+            }
+
             window.speechSynthesis.speak(utter);
         } catch (e) {
             console.warn('[Speech] Could not speak text:', e);
         }
     }
+}
+
+// Tymek (8 lat): wesoły, młodzieńczy, chłopięcy, naturalny głos ("taki mój, tylko trochę inny, nie taki roboczy")
+export function speakTymek(text) {
+    speakText(text, 'pl-PL', 1.28, 1.08);
+}
+
+// Niski, chrumkający głos Króla Świń
+export function speakPigBoss(text) {
+    try { playPigGruntSound(true); } catch (_) {}
+    speakText(text, 'pl-PL', 0.72, 0.94);
 }
 
 export function speakDirtikCry() {

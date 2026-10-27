@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig, GiantPigGuard } from './mobs/hostile.js?v=pig_kingdom_dialogue_stage2_v8';
+import { Pig, Sheep, Snake, Bear, Cow } from './mobs/passive.js?v=village_golem_2';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig, GiantPigGuard } from './mobs/hostile.js?v=village_golem_2';
+import { Villager } from './mobs/villager.js?v=village_golem_2';
+import { IronGolem } from './mobs/iron-golem.js?v=village_golem_2';
 
 import { FlyingArrow, ThrownGunpowder, MagicStoneSpell, HomingRainbowArrow } from './projectile.js?v=pig_kingdom_dialogue_stage2_v8';
 import { WORLD_SIZE_X, WORLD_SIZE_Z, WORLD_HEIGHT } from '../world.js';
@@ -31,6 +33,16 @@ export class EntityManager {
         if (typeof window !== 'undefined') {
             window.killSnakesExceptOne = () => this.killSnakesExceptOne();
             window.spawnCow = () => this.spawnPassiveNear(this.player?.position?.x || 32, this.player?.position?.z || 32, 'cow', 2, 4);
+            window.spawnVillager = (x = 100, z = 100) => {
+                const v = new Villager(this.scene, this.world, x, z, this);
+                this.animals.push(v);
+                return v;
+            };
+            window.spawnIronGolem = (x = 100, z = 100) => {
+                const g = new IronGolem(this.scene, this.world, x, z, this);
+                this.animals.push(g);
+                return g;
+            };
         }
     }
 
@@ -92,6 +104,17 @@ export class EntityManager {
         for (let i = 0; i < otherBearVariants.length; i++) {
             this.spawnBearNear(startX, startZ, otherBearVariants[i], 26 + i * 5, 42 + i * 5);
         }
+
+        // 6. Wioska na x: 100, z: 100 — Wieśniacy z dużymi nosami oraz Żelazny Golem! (Na prośbę Tymka!)
+        const villager1 = new Villager(this.scene, this.world, 99, 102, this, 'farmer');
+        const villager2 = new Villager(this.scene, this.world, 91, 107, this, 'blacksmith');
+        const villager3 = new Villager(this.scene, this.world, 109, 107, this, 'librarian');
+        const villager4 = new Villager(this.scene, this.world, 91, 93, this, 'farmer');
+        this.animals.push(villager1, villager2, villager3, villager4);
+
+        const ironGolem = new IronGolem(this.scene, this.world, 101, 98, this);
+        this.animals.push(ironGolem);
+        console.log(`[EntityManager] Zespawnowano Wioskę (x: 100, z: 100): 4 wieśniaków oraz Żelaznego Golema!`);
     }
 
     getGroundHeight(x, z) {

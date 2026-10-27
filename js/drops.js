@@ -929,6 +929,11 @@ export class DropsManager {
             dropId = 19;
             dropName = 'Lilia Wodna';
         }
+        // Campfire (61) drops Campfire
+        else if (blockId === 61) {
+            dropId = 61;
+            dropName = 'Ognisko';
+        }
 
         const drop = new DroppedItem(this.scene, this.world, dropId, dropName, x + 0.5, y + 0.5, z + 0.5);
         this.items.push(drop);

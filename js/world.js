@@ -212,6 +212,11 @@ export class World {
         // Immediate spawn center (32, 32) is a peaceful, picturesque Forest with green trees and flowers
         if (dist <= 22) return 'Forest';
 
+        // Wioska na x: 100, z: 100 (sektor wsi na prośbę Tymka!)
+        if (Math.abs(x - 100) <= 24 && Math.abs(z - 100) <= 24) {
+            return 'Village';
+        }
+
         // Tymek (8 lat): "Drzewa, pustynia, góry! Drzewa, pustynia, góry! Drzewa, pustynia, góry! ... i to się ciągle zmienia!"
         // Ciągły, dynamiczny i organiczny cykl biomów:
         // 0 = Forest (Drzewa 🌳)
@@ -362,7 +367,10 @@ export class World {
 
                 // Multi-octave natural elevation with smooth blending between biomes
                 let h = 0;
-                if (biome === 'Desert') {
+                if (biome === 'Village') {
+                    // Wioska (x: 100, z: 100): idealnie równa polana wiejska
+                    h = 9;
+                } else if (biome === 'Desert') {
                     // Pustynia: łagodne, złote wydmy piaskowe
                     h = 7 + Math.floor(this.noise.fbm2D(x * 0.025, z * 0.025, 3) * 4);
                 } else if (biome === 'Mountains') {
@@ -420,7 +428,16 @@ export class World {
 
                     if (y === h) {
                         // Surface
-                        if (isLake && h < waterLevel) {
+                        if (biome === 'Village') {
+                            const isMainRoadX = Math.abs(x - 100) <= 1 && Math.abs(z - 100) <= 18;
+                            const isMainRoadZ = Math.abs(z - 100) <= 1 && Math.abs(x - 100) <= 18;
+                            const isPlaza = Math.abs(x - 100) <= 3 && Math.abs(z - 100) <= 3;
+                            if (isMainRoadX || isMainRoadZ || isPlaza) {
+                                chunk.voxels[lIdx] = 12; // Cobblestone path / plaza
+                            } else {
+                                chunk.voxels[lIdx] = 1; // Lush grass
+                            }
+                        } else if (isLake && h < waterLevel) {
                             chunk.voxels[lIdx] = ((x + z) % 3 === 0) ? 13 : 6;
                         } else if (biome === 'Desert') {
                             chunk.voxels[lIdx] = 6; // Sand
@@ -447,6 +464,15 @@ export class World {
                     } else {
                         // Deep rock
                         chunk.voxels[lIdx] = 3; // Stone
+                    }
+                }
+
+                // Village central square campfire and stool seats
+                if (biome === 'Village') {
+                    if (x === 100 && z === 100) {
+                        chunk.voxels[this.localIndex(lx, 10, lz)] = 61; // Central Campfire!
+                    } else if ((Math.abs(x - 100) === 1 && z === 100) || (Math.abs(z - 100) === 1 && x === 100)) {
+                        chunk.voxels[this.localIndex(lx, 10, lz)] = 4; // Wood log stool around campfire
                     }
                 }
 
@@ -599,8 +625,106 @@ export class World {
             }
         }
 
+        // Build Village Structures if this chunk overlaps village (x: 76..124, z: 76..124)
+        if (chunk.cx >= 4 && chunk.cx <= 8 && chunk.cz >= 4 && chunk.cz <= 8) {
+            this.buildVillageStructures(chunk, startX, startZ);
+        }
+
+        // Spawn chunk starter campfire (38, 9, 36) near player spawn (32, 32)
+        if (chunk.cx === 2 && chunk.cz === 2) {
+            this.plantCampfire(38, 9, 36);
+        }
+
         // Apply any saved localStorage modifications for this chunk
         this.applyChunkStorageDelta(chunk);
+    }
+
+    plantCampfire(x, groundY, z) {
+        if (groundY + 2 >= WORLD_HEIGHT) return;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                if (dx === 0 && dz === 0) {
+                    this.setBlockRaw(x, groundY, z, 12);     // Cobblestone hearth base
+                    this.setBlockRaw(x, groundY + 1, z, 61); // Campfire block!
+                } else {
+                    this.setBlockRaw(x + dx, groundY, z + dz, 12);
+                    if ((Math.abs(dx) === 1 && dz === 0) || (Math.abs(dz) === 1 && dx === 0)) {
+                        this.setBlockRaw(x + dx, groundY + 1, z + dz, 4); // Wood log stool
+                    }
+                }
+            }
+        }
+    }
+
+    buildVillageStructures(chunk, startX, startZ) {
+        const setVoxelIfInChunk = (gx, gy, gz, blockId) => {
+            if (gx >= startX && gx < startX + CHUNK_SIZE && gz >= startZ && gz < startZ + CHUNK_SIZE) {
+                if (gy >= 0 && gy < WORLD_HEIGHT) {
+                    const lx = gx - startX;
+                    const lz = gz - startZ;
+                    chunk.voxels[this.localIndex(lx, gy, lz)] = blockId;
+                }
+            }
+        };
+
+        const buildHouse = (minX, maxX, minZ, maxZ, doorX, doorZ) => {
+            for (let x = minX; x <= maxX; x++) {
+                for (let z = minZ; z <= maxZ; z++) {
+                    const isEdge = (x === minX || x === maxX || z === minZ || z === maxZ);
+                    const isCorner = (x === minX || x === maxX) && (z === minZ || z === maxZ);
+
+                    // Cobblestone foundation at y=9
+                    setVoxelIfInChunk(x, 9, z, 12);
+
+                    // Walls at y=10..12
+                    for (let y = 10; y <= 12; y++) {
+                        if (x === doorX && z === doorZ && (y === 10 || y === 11)) {
+                            setVoxelIfInChunk(x, y, z, 0); // Open door
+                            continue;
+                        }
+                        if (isCorner) {
+                            setVoxelIfInChunk(x, y, z, 4); // Wood log corner post
+                        } else if (isEdge) {
+                            if (y === 11 && (x === Math.floor((minX + maxX)/2) || z === Math.floor((minZ + maxZ)/2))) {
+                                setVoxelIfInChunk(x, y, z, 9); // Glass window!
+                            } else {
+                                setVoxelIfInChunk(x, y, z, 8); // Planks
+                            }
+                        } else {
+                            setVoxelIfInChunk(x, y, z, 0); // Interior space
+                        }
+                    }
+
+                    // Roof at y=13
+                    setVoxelIfInChunk(x, 13, z, 4); // Wooden roof
+                }
+            }
+        };
+
+        // House 1 (North-West Cottage)
+        buildHouse(88, 94, 105, 111, 91, 105);
+
+        // House 2 (North-East Cottage)
+        buildHouse(106, 112, 105, 111, 109, 105);
+
+        // House 3 (South-East Smithy)
+        buildHouse(106, 112, 89, 95, 109, 95);
+
+        // Farm (South-West)
+        for (let x = 88; x <= 94; x++) {
+            for (let z = 89; z <= 95; z++) {
+                const isBorder = (x === 88 || x === 94 || z === 89 || z === 95);
+                if (isBorder) {
+                    setVoxelIfInChunk(x, 10, z, 4); // Wood border
+                } else if (z === 92) {
+                    setVoxelIfInChunk(x, 9, z, 10); // Water canal
+                    setVoxelIfInChunk(x, 10, z, 0);
+                } else {
+                    setVoxelIfInChunk(x, 9, z, 2); // Farmland soil
+                    setVoxelIfInChunk(x, 10, z, 18); // Wheat flowers!
+                }
+            }
+        }
     }
 
     plantTree(x, startY, z) {

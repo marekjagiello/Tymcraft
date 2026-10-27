@@ -73,7 +73,13 @@ export const ITEMS = {
     STRING: { id: 57, name: 'Linka', type: ITEM_TYPES.MATERIAL, icon: 'string' },
     IRON_INGOT: { id: 58, name: 'Żelazo', type: ITEM_TYPES.MATERIAL, icon: 'iron_ingot' },
     PIG_BLOCK: { id: 59, name: 'Świniowy Blok', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'pig_block' },
-    MONSTER_REPELLENT: { id: 60, name: 'Odstraszacz Potworów', type: ITEM_TYPES.TOOL, damage: 4.0, icon: 'monster_repellent' }
+    MONSTER_REPELLENT: { id: 60, name: 'Odstraszacz Potworów', type: ITEM_TYPES.TOOL, damage: 4.0, icon: 'monster_repellent' },
+    CAMPFIRE: { id: 61, name: 'Ognisko', type: ITEM_TYPES.BLOCK, placeable: true, icon: 'campfire' },
+    EMERALD: { id: 62, name: 'Szmaragd', type: ITEM_TYPES.MATERIAL, icon: 'emerald' },
+    COOKED_PORKCHOP: { id: 63, name: 'Pieczony Schab', type: ITEM_TYPES.FOOD, nutrition: 8, heals: 5, icon: 'cooked_porkchop' },
+    COOKED_BEEF: { id: 64, name: 'Pieczona Wołowina', type: ITEM_TYPES.FOOD, nutrition: 8, heals: 5, icon: 'cooked_beef' },
+    BREAD: { id: 65, name: 'Chleb', type: ITEM_TYPES.FOOD, nutrition: 5, heals: 3, icon: 'bread' },
+    WHEAT: { id: 66, name: 'Pszenica', type: ITEM_TYPES.MATERIAL, icon: 'wheat' }
 };
 
 
@@ -115,7 +121,7 @@ export function isTool(id) {
 }
 
 export function isPlaceableBlock(id) {
-    if (id === 51 || id === 53 || id === 59) return true;
+    if (id === 51 || id === 53 || id === 59 || id === 61) return true;
     const item = getItem(id);
     if (item && item.placeable !== undefined) return Boolean(item.placeable);
     return id >= 1 && id <= 19;

@@ -1,7 +1,9 @@
-import { Pig, Sheep, Snake, Bear, Cow, createPixelHeartMesh } from './entities/mobs/passive.js?v=drops_1';
-import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig, GiantPigGuard } from './entities/mobs/hostile.js?v=pig_kingdom_dialogue_stage2_v8';
-import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './entities/projectile.js?v=pig_kingdom_dialogue_stage2_v8';
-import { EntityManager } from './entities/entity-manager.js?v=pig_kingdom_dialogue_stage2_v8';
+import { Pig, Sheep, Snake, Bear, Cow, createPixelHeartMesh } from './entities/mobs/passive.js?v=village_golem_2';
+import { Zombie, Skeleton, Creeper, Dirtik, Robot, BossRobot, MiniRobot, PigKing, RedEyedPig, GiantPigGuard } from './entities/mobs/hostile.js?v=village_golem_2';
+import { Villager } from './entities/mobs/villager.js?v=village_golem_2';
+import { IronGolem } from './entities/mobs/iron-golem.js?v=village_golem_2';
+import { FlyingArrow, ThrownGunpowder, MagicStoneSpell } from './entities/projectile.js?v=village_golem_2';
+import { EntityManager } from './entities/entity-manager.js?v=village_golem_2';
 
 export {
     createPixelHeartMesh,
@@ -22,6 +24,8 @@ export {
     MiniRobot,
     PigKing,
     RedEyedPig,
+    Villager,
+    IronGolem,
     EntityManager
 };
 
@@ -29,6 +33,10 @@ export {
 export class Animal {
     constructor(scene, world, type = 'pig', x = 32, z = 32, manager = null, isBaby = false, hasHelmet = false) {
         switch (type) {
+            case 'villager':
+                return new Villager(scene, world, x, z, manager);
+            case 'iron_golem':
+                return new IronGolem(scene, world, x, z, manager);
             case 'boss_pig_king':
                 return new PigKing(scene, world, x, z, manager);
             case 'red_eyed_pig':

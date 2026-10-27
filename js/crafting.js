@@ -186,6 +186,20 @@ export class CraftingManager {
             return this.output;
         }
 
+        // 25. Ognisko (61): 3 Patyki (20) + 1 Drewno (4) lub 1 Węgiel (13) lub 1 Deska (8) (lub 2 patyki + drewno/węgiel)
+        const stickCount = nonNulls.filter(id => id === 20).length;
+        const hasFuel = nonNulls.includes(4) || nonNulls.includes(13) || nonNulls.includes(8);
+        if (stickCount >= 2 && hasFuel && (nonNulls.length === 3 || nonNulls.length === 4)) {
+            this.output = { item: ITEMS.CAMPFIRE, count: 1 };
+            return this.output;
+        }
+
+        // 26. Chleb (65): 2 lub 3 Pszenice (66)
+        if (nonNulls.length >= 2 && nonNulls.every(id => id === 66)) {
+            this.output = { item: ITEMS.BREAD, count: 1 };
+            return this.output;
+        }
+
         this.output = null;
         return null;
     }
@@ -453,6 +467,29 @@ export const RECIPES = [
         ingredients: [
             { id: 53, name: 'Napiorunowany Blok', count: 1, alternatives: [53, 51] },
             { id: 28, name: 'Strzała', count: 1 }
+        ]
+    },
+    {
+        id: 'campfire',
+        name: 'Ognisko',
+        output: { id: 61, name: 'Ognisko', count: 1, icon: 'campfire' },
+        category: 'blocks',
+        categoryName: '🧱 Bloki',
+        description: 'Dymiące ognisko do oświetlania, pieczenia mięsa i ogrzewania!',
+        ingredients: [
+            { id: 20, name: 'Patyk', count: 3 },
+            { id: 4, name: 'Drewno', count: 1, alternatives: [4, 8, 13] }
+        ]
+    },
+    {
+        id: 'bread',
+        name: 'Chleb',
+        output: { id: 65, name: 'Chleb', count: 1, icon: 'bread' },
+        category: 'materials',
+        categoryName: '🍞 Jedzenie',
+        description: 'Pożywny chleb z wiejskiej pszenicy!',
+        ingredients: [
+            { id: 66, name: 'Pszenica', count: 2 }
         ]
     }
 ];

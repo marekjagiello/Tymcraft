@@ -182,12 +182,18 @@ export class Interaction {
                             else if (animal.type === 'robot') name = 'Robota Transformera';
                             else if (animal.type === 'pig') name = 'świnię';
                             else if (animal.type === 'sheep') name = 'owcę';
+                            else if (animal.type === 'villager') name = 'wieśniaka';
+                            else if (animal.type === 'iron_golem') name = 'Żelaznego Golema';
 
                             const msg = `💥 Pokonano ${name}!`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
-                        } else if (!isBossPhase2Immune && (animal.type === 'boss_robot' || animal.type === 'robot' || animal.type === 'mini_robot' || animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
-                            const enemyName = animal.type === 'boss_robot' ? (animal.isPhase2 ? 'Bossa Robota (Faza 2)' : 'Bossa Robota') : (animal.type === 'mini_robot' ? 'Małego Robocika' : (animal.type === 'robot' ? 'Robota Transformera' : (animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie')))));
+                        } else if (animal.type === 'villager') {
+                            const msg = '😱 Uderzono wieśniaka! Uważaj na Żelaznego Golema!';
+                            eventBus.emit('ui:popup', msg);
+                            if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
+                        } else if (!isBossPhase2Immune && (animal.type === 'boss_robot' || animal.type === 'iron_golem' || animal.type === 'robot' || animal.type === 'mini_robot' || animal.type === 'zombie' || animal.type === 'skeleton' || animal.type === 'creeper' || animal.type === 'dirtik')) {
+                            const enemyName = animal.type === 'iron_golem' ? 'Żelaznego Golema' : (animal.type === 'boss_robot' ? (animal.isPhase2 ? 'Bossa Robota (Faza 2)' : 'Bossa Robota') : (animal.type === 'mini_robot' ? 'Małego Robocika' : (animal.type === 'robot' ? 'Robota Transformera' : (animal.type === 'skeleton' ? 'Szkieleta' : (animal.type === 'creeper' ? 'Creepera' : (animal.type === 'dirtik' ? 'Dirtika' : 'Zombie'))))));
                             const msg = `⚔️ Trafiono ${enemyName}! (${Math.max(0, animal.health)}/${animal.maxHealth} HP)`;
                             eventBus.emit('ui:popup', msg);
                             if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(msg);
@@ -246,8 +252,15 @@ export class Interaction {
                     }
                 }
 
-                // Check if right-clicking disguised Dirtik
+                // Check if right-clicking a Villager -> Open Trading Screen! (Tymek: "z wieśniakami można się wymieniać")
                 const targetAnimal = this.raycastAnimal();
+                if (targetAnimal && targetAnimal.type === 'villager') {
+                    if (typeof targetAnimal.interactWithPlayer === 'function') {
+                        targetAnimal.interactWithPlayer(this.player, this.ui);
+                        return;
+                    }
+                }
+
                 if (targetAnimal && targetAnimal.type === 'dirtik' && !targetAnimal.isAwakened) {
                     targetAnimal.awaken();
                     return;
@@ -341,6 +354,14 @@ export class Interaction {
                     if (this.onItemConsumed) this.onItemConsumed(23);
                     if (this.ui && !this.ui._handledByEvent) this.ui.showPopup(feedMsg);
                     return;
+                }
+
+                // Check if cooking raw meat on campfire (ID 61)
+                const aimedVoxelForCook = this.raycastVoxels();
+                if (aimedVoxelForCook && aimedVoxelForCook.hit && aimedVoxelForCook.blockId === 61 && this.campfires) {
+                    if (this.campfires.tryCookMeat(activeItemId, aimedVoxelForCook.x, aimedVoxelForCook.y, aimedVoxelForCook.z)) {
+                        return;
+                    }
                 }
 
                 // Eat Food or Drink Water
@@ -928,6 +949,7 @@ export class Interaction {
 
         this.spawnBreakParticles(x + 0.5, y + 0.5, z + 0.5, blockId);
         this.world.setBlock(x, y, z, 0);
+        eventBus.emit('block:broken', { x, y, z, blockId });
 
         if (this.drops) {
             this.drops.spawnBlockDrop(x, y, z, blockId);
@@ -986,6 +1008,8 @@ export class Interaction {
             }
         }
 
+        const isCampfire = (activeItemId === 61);
+
         // Player AABB collision check
         const playerAABB = this.player.getAABB();
         const blockAABB = {
@@ -1000,7 +1024,7 @@ export class Interaction {
             playerAABB.minZ < blockAABB.maxZ && playerAABB.maxZ > blockAABB.minZ
         );
 
-        if (intersectsPlayer && !isFlower) {
+        if (intersectsPlayer && !isFlower && !isCampfire) {
             return; // Don't place solid blocks inside player
         }
 
@@ -1020,6 +1044,7 @@ export class Interaction {
         }
 
         this.world.setBlock(placeX, placeY, placeZ, activeItemId);
+        eventBus.emit('block:set', { x: placeX, y: placeY, z: placeZ, id: activeItemId });
 
         // Tymek: "jednym blokiem i jak go położysz to od razu cię teleportuje do Króla Świń!"
         if (activeItemId === 59) {

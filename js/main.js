@@ -1,18 +1,19 @@
 import * as THREE from 'three';
-import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=pause_raise_hud_v2';
-import { Player } from './player.js?v=pause_raise_hud_v2';
-import { Interaction } from './interaction.js?v=pause_raise_hud_v2';
-import { AnimalManager } from './animals.js?v=pause_raise_hud_v2';
-import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=pause_raise_hud_v2';
-import { StorageManager } from './storage.js?v=pause_raise_hud_v2';
-import { SurvivalManager } from './survival.js?v=pause_raise_hud_v2';
-import { CraftingManager } from './crafting.js?v=pause_raise_hud_v2';
-import { DropsManager } from './drops.js?v=pause_raise_hud_v2';
+import { World, WORLD_SIZE_X, WORLD_SIZE_Z } from './world.js?v=village_golem_2';
+import { Player } from './player.js?v=village_golem_2';
+import { Interaction } from './interaction.js?v=village_golem_2';
+import { AnimalManager } from './animals.js?v=village_golem_2';
+import { UI, HOTBAR_BLOCKS, BACKPACK_SLOTS } from './ui.js?v=village_golem_2';
+import { StorageManager } from './storage.js?v=village_golem_2';
+import { SurvivalManager } from './survival.js?v=village_golem_2';
+import { CraftingManager } from './crafting.js?v=village_golem_2';
+import { DropsManager } from './drops.js?v=village_golem_2';
 import { eventBus } from './events.js';
-import { updateWaterAnimation } from './textures.js?v=pause_raise_hud_v2';
-import { QuestManager } from './quests.js?v=pause_raise_hud_v2';
-import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=pause_raise_hud_v2';
-import { SecurityShield } from './security.js?v=pause_raise_hud_v2';
+import { updateWaterAnimation } from './textures.js?v=village_golem_2';
+import { QuestManager } from './quests.js?v=village_golem_2';
+import { startBossRobotMusic, stopBossRobotMusic } from './audio.js?v=village_golem_2';
+import { SecurityShield } from './security.js?v=village_golem_2';
+import { CampfireManager } from './campfire.js?v=village_golem_2';
 
 
 
@@ -168,6 +169,10 @@ class Game {
         this.interaction.animals = this.animals;
         if (this.ui) this.ui.animals = this.animals;
 
+        // 9b. Campfire System (animacje dymu, ciepłe światło, pieczenie mięsa)
+        this.campfires = new CampfireManager(this.scene, this.world, this.player, this.survival, this.ui);
+        this.interaction.campfires = this.campfires;
+
         this.eventBus = eventBus;
 
         // 10. Pełna Tarcza Ochrony Gry Tymka (blokada pobierania, kopiowania, inspekcji)
@@ -175,6 +180,7 @@ class Game {
 
         if (typeof window !== 'undefined') {
             window.game = this;
+            window.campfires = this.campfires;
             window.securityShield = this.securityShield;
             window.spawnCreeper = () => this.animals.spawnCreeperInFrontOfPlayer(this.player, 5.0);
             window.spawnDirtik = () => this.animals.spawnDirtikInFrontOfPlayer(this.player, 4.0);
@@ -589,6 +595,7 @@ class Game {
         });
         const isDay = this.sun ? this.sun.position.y > 0 : true;
         this.animals.update(dt, this.player.position, isDay);
+        if (this.campfires) this.campfires.update(dt);
 
         this.world.update(this.player ? this.player.position : null);
         this.survival.update(dt);

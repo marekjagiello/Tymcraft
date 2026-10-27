@@ -186,6 +186,30 @@ export function createSlotItemIcon(itemId) {
             itemSpan.innerText = '🗿'; // Odstraszacz Potworów
             itemSpan.style.filter = 'drop-shadow(0 0 8px #a855f7)';
         }
+        else if (itemId === 61) {
+            itemSpan.innerText = '🔥'; // Ognisko
+            itemSpan.style.filter = 'drop-shadow(0 0 8px #f97316)';
+        }
+        else if (itemId === 62) {
+            itemSpan.innerText = '❇️'; // Szmaragd
+            itemSpan.style.filter = 'drop-shadow(0 0 8px #10b981)';
+        }
+        else if (itemId === 63) {
+            itemSpan.innerText = '🍖'; // Pieczony Schab
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #f59e0b)';
+        }
+        else if (itemId === 64) {
+            itemSpan.innerText = '🥩'; // Pieczona Wołowina
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #b45309)';
+        }
+        else if (itemId === 65) {
+            itemSpan.innerText = '🍞'; // Chleb
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #fbbf24)';
+        }
+        else if (itemId === 66) {
+            itemSpan.innerText = '🌾'; // Pszenica
+            itemSpan.style.filter = 'drop-shadow(0 0 5px #eab308)';
+        }
         return itemSpan;
     }
 
@@ -1270,6 +1294,14 @@ export class UI {
                 return;
             }
 
+            if (this.isVillagerTradeOpen) {
+                if (e.code === 'KeyE' || e.code === 'KeyR' || e.key === 'e' || e.key === 'r' || e.code === 'Escape' || e.key === 'Escape') {
+                    e.preventDefault();
+                    this.closeVillagerTrading();
+                    return;
+                }
+            }
+
             const isR = e.code === 'KeyR' || e.key === 'r' || e.key === 'R';
             const isE = e.code === 'KeyE' || e.key === 'e' || e.key === 'E';
             if (isR || isE) {
@@ -1408,6 +1440,7 @@ export class UI {
         if (!this.isGameActive) return true;
         if (this.isLoading) return true;
         if (this.isCraftingOpen) return true;
+        if (this.isVillagerTradeOpen) return true;
         if (this.overlayEl && this.overlayEl.style.display !== 'none') return true;
         return false;
     }
@@ -1416,6 +1449,9 @@ export class UI {
         if (!this.isGameActive || this.isLoading || this.survival?.isDead) return;
         if (this.isCraftingOpen) {
             this.toggleCraftingModal();
+        }
+        if (this.isVillagerTradeOpen) {
+            this.closeVillagerTrading();
         }
         const titleEl = document.getElementById('menu-title');
         const subtitleEl = document.getElementById('menu-subtitle');
@@ -1942,5 +1978,169 @@ export class UI {
         };
 
         renderLine();
+    }
+
+    openVillagerTrading(villager) {
+        if (!villager) return;
+        this.activeTradingVillager = villager;
+        this.isVillagerTradeOpen = true;
+
+        if (!this.villagerTradeModalEl) {
+            this.villagerTradeModalEl = document.createElement('div');
+            this.villagerTradeModalEl.id = 'villager-trade-modal';
+            this.villagerTradeModalEl.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(145deg, #1e293b, #0f172a);
+                border: 3px solid #10b981;
+                border-radius: 16px;
+                padding: 24px;
+                width: 90%;
+                max-width: 580px;
+                z-index: 10000;
+                box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8), 0 0 25px rgba(16, 185, 129, 0.35);
+                color: #f8fafc;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            `;
+            document.body.appendChild(this.villagerTradeModalEl);
+        }
+
+        try {
+            this.player.controls.unlock();
+        } catch (_) {}
+
+        this.renderVillagerTrading();
+        this.villagerTradeModalEl.style.display = 'block';
+    }
+
+    closeVillagerTrading() {
+        this.isVillagerTradeOpen = false;
+        this.activeTradingVillager = null;
+        if (this.villagerTradeModalEl) {
+            this.villagerTradeModalEl.style.display = 'none';
+        }
+        try {
+            this.player.controls.lock();
+        } catch (_) {}
+    }
+
+    renderVillagerTrading() {
+        if (!this.villagerTradeModalEl || !this.activeTradingVillager) return;
+
+        const villager = this.activeTradingVillager;
+        const professionName = villager.profession === 'farmer' ? 'Rolnik 🌾' : (villager.profession === 'blacksmith' ? 'Kowal ⚒️' : 'Mędrzec 📜');
+
+        const trades = [
+            {
+                inputId: 20, inputCount: 5, inputName: 'Patyki', inputIcon: '🪵',
+                outputId: 62, outputCount: 1, outputName: 'Szmaragd', outputIcon: '❇️'
+            },
+            {
+                inputId: 66, inputCount: 3, inputName: 'Pszenica', inputIcon: '🌾',
+                outputId: 65, outputCount: 1, outputName: 'Chleb', outputIcon: '🍞'
+            },
+            {
+                inputId: 62, inputCount: 1, inputName: 'Szmaragd', inputIcon: '❇️',
+                outputId: 63, outputCount: 2, outputName: 'Pieczony Schab', outputIcon: '🍖'
+            },
+            {
+                inputId: 62, inputCount: 2, inputName: 'Szmaragd', inputIcon: '❇️',
+                outputId: 25, outputCount: 1, outputName: 'Kamienny Miecz', outputIcon: '⚔️'
+            },
+            {
+                inputId: 62, inputCount: 3, inputName: 'Szmaragd', inputIcon: '❇️',
+                outputId: 61, outputCount: 1, outputName: 'Ognisko', outputIcon: '🔥'
+            },
+            {
+                inputId: 62, inputCount: 4, inputName: 'Szmaragd', inputIcon: '❇️',
+                outputId: 30, outputCount: 1, outputName: 'Diament', outputIcon: '💎'
+            }
+        ];
+
+        let tradesHtml = '';
+        trades.forEach((trade, idx) => {
+            let availableCount = 0;
+            for (const s of [...this.hotbarBlocks, ...this.backpackSlots]) {
+                if (s.id === trade.inputId && s.count > 0) availableCount += s.count;
+            }
+            const canTrade = availableCount >= trade.inputCount;
+
+            tradesHtml += `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.7); border: 1px solid ${canTrade ? '#10b981' : '#334155'}; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 130px;">
+                        <span style="font-size: 22px;">${trade.inputIcon}</span>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;">${trade.inputName} x${trade.inputCount}</div>
+                            <div style="font-size: 11px; color: ${canTrade ? '#10b981' : '#94a3b8'};">Masz: ${availableCount}</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 20px; color: #10b981; font-weight: bold;">➡️</div>
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 140px;">
+                        <span style="font-size: 22px;">${trade.outputIcon}</span>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px; color: #38bdf8;">${trade.outputName} x${trade.outputCount}</div>
+                        </div>
+                    </div>
+                    <button id="trade-btn-${idx}" style="
+                        background: ${canTrade ? 'linear-gradient(135deg, #059669, #10b981)' : '#334155'};
+                        color: ${canTrade ? '#ffffff' : '#94a3b8'};
+                        border: none;
+                        border-radius: 8px;
+                        padding: 8px 16px;
+                        font-weight: bold;
+                        font-size: 13px;
+                        cursor: ${canTrade ? 'pointer' : 'not-allowed'};
+                        transition: transform 0.15s;
+                    " ${canTrade ? '' : 'disabled'}>
+                        ${canTrade ? 'Wymień! 🤝' : 'Brak surowców'}
+                    </button>
+                </div>
+            `;
+        });
+
+        this.villagerTradeModalEl.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 36px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 4px 8px; border: 2px solid #10b981;">🧑‍🌾</span>
+                    <div>
+                        <h2 style="margin: 0; font-size: 20px; color: #10b981; display: flex; align-items: center; gap: 8px;">
+                            Rynek Wiejski: Wieśniak (${professionName})
+                        </h2>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">„Hrmmm! Wybierz co chcesz wymienić!”</div>
+                    </div>
+                </div>
+                <button id="close-villager-trade" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; border-radius: 8px; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer;">✕</button>
+            </div>
+            <div style="max-height: 340px; overflow-y: auto; padding-right: 4px;">
+                ${tradesHtml}
+            </div>
+            <div style="margin-top: 14px; text-align: right; font-size: 11px; color: #94a3b8;">
+                Kliknij [✕] lub naciśnij klawisz [E] / [Esc], aby wrócić do gry.
+            </div>
+        `;
+
+        const closeBtn = document.getElementById('close-villager-trade');
+        if (closeBtn) {
+            closeBtn.onclick = () => this.closeVillagerTrading();
+        }
+
+        trades.forEach((trade, idx) => {
+            const btn = document.getElementById(`trade-btn-${idx}`);
+            if (btn && !btn.disabled) {
+                btn.onclick = () => {
+                    const consumed = this.consumeItem(trade.inputId, trade.inputCount);
+                    if (consumed) {
+                        this.addItem(trade.outputId, trade.outputName, trade.outputCount);
+                        villager.playVillagerGrunt?.();
+                        villager.spawnEmeraldParticles?.();
+                        this.showPopup(`❇️ Udana wymiana: Otrzymano ${trade.outputName} x${trade.outputCount}! 🎉`);
+                        this.renderVillagerTrading();
+                        this.renderHotbar();
+                    }
+                };
+            }
+        });
     }
 }

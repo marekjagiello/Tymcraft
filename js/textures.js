@@ -8,7 +8,7 @@ function hash(x, y) {
 
 // 4x4 Atlas of 16x16 textures = 64x64 px canvas
 export const ATLAS_COLS = 4;
-export const ATLAS_ROWS = 6;
+export const ATLAS_ROWS = 7;
 export const TILE_SIZE = 16;
 
 export const TILES = {
@@ -35,7 +35,8 @@ export const TILES = {
     LILY_PAD: 20,
     COLOR_BLOCK_626: 21,
     CHARGED_BLOCK_626: 22,
-    PIG_BLOCK: 23
+    PIG_BLOCK: 23,
+    CAMPFIRE: 24
 };
 
 // Map block types to tile faces: [Top, Bottom, Front, Back, Left, Right]
@@ -61,7 +62,8 @@ export const BLOCK_DEF = {
     19: { name: 'Lilia Wodna (Lily Pad)', tiles: [TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD, TILES.LILY_PAD], solid: false, transparent: true, isLilyPad: true },
     51: { name: 'Kolorowy Blok 626', tiles: [TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626, TILES.COLOR_BLOCK_626], solid: true },
     53: { name: 'Napiorunowany Kolorowy Blok', tiles: [TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626, TILES.CHARGED_BLOCK_626], solid: true },
-    59: { name: 'Świniowy Blok', tiles: [TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK], solid: true }
+    59: { name: 'Świniowy Blok', tiles: [TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK, TILES.PIG_BLOCK], solid: true },
+    61: { name: 'Ognisko (Campfire)', tiles: [TILES.CAMPFIRE, TILES.WOOD_TOP, TILES.CAMPFIRE, TILES.CAMPFIRE, TILES.CAMPFIRE, TILES.CAMPFIRE], solid: false, transparent: true, isCampfire: true }
 };
 
 export function renderWaterTile(c, time, offsetX = 0, offsetY = 0) {
@@ -796,6 +798,63 @@ function createAtlas() {
         c.fillStyle = '#1e1b4b';
         c.fillRect(2, 4, 1, 2);
         c.fillRect(13, 4, 1, 2);
+    });
+
+    // 24: CAMPFIRE (Ognisko - żarzące się polana drewna, żar i żywe płomienie)
+    drawTile(TILES.CAMPFIRE, (c) => {
+        c.clearRect(0, 0, 16, 16);
+
+        // Dark charcoal ash and stone embers on bottom (y=13..15)
+        for (let x = 1; x < 15; x++) {
+            for (let y = 13; y < 16; y++) {
+                const n = (hash(x * 13 + 5, y * 19 + 7) - 0.5) * 20;
+                c.fillStyle = `rgb(${45 + n}, ${38 + n * 0.8}, ${35 + n * 0.7})`;
+                c.fillRect(x, y, 1, 1);
+            }
+        }
+
+        // Crossed oak logs at the base
+        const logPixels = [
+            [2, 12, '#78350f'], [3, 12, '#92400e'], [4, 12, '#78350f'], [11, 12, '#78350f'], [12, 12, '#92400e'], [13, 12, '#78350f'],
+            [1, 13, '#451a03'], [2, 13, '#78350f'], [3, 13, '#92400e'], [12, 13, '#92400e'], [13, 13, '#78350f'], [14, 13, '#451a03'],
+            [2, 14, '#451a03'], [3, 14, '#78350f'], [4, 14, '#451a03'], [11, 14, '#451a03'], [12, 14, '#78350f'], [13, 14, '#451a03'],
+            // Horizontal cross log
+            [4, 13, '#78350f'], [5, 13, '#92400e'], [6, 13, '#78350f'], [7, 13, '#92400e'], [8, 13, '#78350f'], [9, 13, '#92400e'], [10, 13, '#78350f'], [11, 13, '#92400e']
+        ];
+        for (const [lx, ly, col] of logPixels) {
+            c.fillStyle = col;
+            c.fillRect(lx, ly, 1, 1);
+        }
+
+        // Glowing red/orange coals inside the hearth (y=9..13)
+        const coalPixels = [
+            [4, 11, '#b91c1c'], [5, 11, '#ea580c'], [6, 11, '#f97316'], [7, 11, '#f97316'], [8, 11, '#ea580c'], [9, 11, '#b91c1c'], [10, 11, '#ea580c'], [11, 11, '#b91c1c'],
+            [5, 12, '#dc2626'], [6, 12, '#f97316'], [7, 12, '#fbbf24'], [8, 12, '#fbbf24'], [9, 12, '#f97316'], [10, 12, '#dc2626'],
+            [6, 10, '#f97316'], [7, 10, '#fde047'], [8, 10, '#fde047'], [9, 10, '#f97316']
+        ];
+        for (const [cx, cy, col] of coalPixels) {
+            c.fillStyle = col;
+            c.fillRect(cx, cy, 1, 1);
+        }
+
+        // Flickering fire flames rising upward (y=2..9)
+        const flamePixels = [
+            // Center tongue of flame
+            [7, 2, '#fde047'], [8, 2, '#fef08a'],
+            [7, 3, '#fde047'], [8, 3, '#fde047'],
+            [6, 4, '#fbbf24'], [7, 4, '#fef08a'], [8, 4, '#fde047'], [9, 4, '#fbbf24'],
+            [5, 5, '#f97316'], [6, 5, '#fbbf24'], [7, 5, '#fef08a'], [8, 5, '#fef08a'], [9, 5, '#fbbf24'], [10, 5, '#f97316'],
+            [5, 6, '#f97316'], [6, 6, '#fbbf24'], [7, 6, '#fde047'], [8, 6, '#fde047'], [9, 6, '#fbbf24'], [10, 6, '#f97316'],
+            [4, 7, '#ef4444'], [5, 7, '#f97316'], [6, 7, '#fbbf24'], [7, 7, '#fef08a'], [8, 7, '#fef08a'], [9, 7, '#fbbf24'], [10, 7, '#f97316'], [11, 7, '#ef4444'],
+            [4, 8, '#ea580c'], [5, 8, '#f97316'], [6, 8, '#fbbf24'], [7, 8, '#fde047'], [8, 8, '#fde047'], [9, 8, '#fbbf24'], [10, 8, '#f97316'], [11, 8, '#ea580c'],
+            [5, 9, '#ea580c'], [6, 9, '#f97316'], [7, 9, '#fbbf24'], [8, 9, '#fbbf24'], [9, 9, '#f97316'], [10, 9, '#ea580c'],
+            // Flying sparks
+            [4, 3, '#fbbf24'], [11, 4, '#fde047'], [6, 1, '#f97316']
+        ];
+        for (const [fx, fy, col] of flamePixels) {
+            c.fillStyle = col;
+            c.fillRect(fx, fy, 1, 1);
+        }
     });
 
     const texture = new THREE.CanvasTexture(canvas);
